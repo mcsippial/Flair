@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@300;400;500&family=Lora:wght@400;500&display=swap');
+
+:root {
+  --color-wood-dark: #1a0f07;
+  --color-wood-mid: #2d1a0e;
+  --color-wood-light: #3d2414;
+  --color-cream: #f5efe0;
+  --color-cream-dim: #c8b89a;
+  --color-amber: #d4820a;
+  --color-amber-glow: #f5a623;
+  --color-green-meter: #4a9b5e;
+  --color-red-clip: #c0392b;
+  --color-metal: #8a8070;
+  --color-metal-light: #b0a090;
+  --color-felt: #1c1410;
+  --color-tape: #c4a882;
+  --color-ai-accent: #7eb8d4;
+  --color-ai-glow: rgba(126,184,212,0.15);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: var(--color-wood-dark);
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40L40 0' stroke='%23ffffff' stroke-width='0.5' stroke-opacity='0.07'/%3E%3Cpath d='M-10 40L40 -10' stroke='%23ffffff' stroke-width='0.3' stroke-opacity='0.04'/%3E%3Cpath d='M10 40L40 10' stroke='%23ffffff' stroke-width='0.3' stroke-opacity='0.04'/%3E%3C/svg%3E");
+  color: var(--color-cream);
+  font-family: 'DM Mono', monospace;
+  min-width: 1280px;
+  overflow: hidden;
+  height: 100vh;
+}
+
+#root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+button {
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+}
+
+input, select, textarea {
+  font-family: 'DM Mono', monospace;
+}
+
+a {
+  color: var(--color-amber);
+  text-decoration: none;
+}
