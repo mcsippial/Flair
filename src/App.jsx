@@ -1,122 +1,134 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useReducer, useEffect, useRef, useState, useCallback } from 'react';
+import { sessionReducer, initialState } from './state/sessionReducer';
+import StartScreen from './components/StartScreen';
+import TopBar from './components/TopBar';
+import TrackList from './components/TrackList';
+import Timeline from './components/Timeline';
+import AIPanel from './components/AIPanel';
+import Mixer from './components/Mixer';
+import PianoRoll from './components/PianoRoll';
+import { setupMasterBus, ensureToneStarted } from './engine/audioEngine';
+import * as Tone from 'tone';
+import { scheduleSession, clearSchedule } from './engine/scheduler';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [state, dispatch] = useReducer(sessionReducer, initialState);
+  const { present: session } = state;
+  const [showStartScreen, setShowStartScreen] = useState(true);
+  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
+  const toneSetup = useRef(false);
+
+  useEffect(() => {
+    if (!toneSetup.current) {
+      setupMasterBus();
+      toneSetup.current = true;
+    }
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKey = (e) => {
+      const tag = e.target.tagName.toLowerCase();
+      if (['input', 'textarea'].includes(tag)) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handlePlayStop();
+      } else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'Z') {
+        e.preventDefault();
+        dispatch({ type: 'REDO' });
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault();
+        dispatch({ type: 'UNDO' });
+      } else if (e.key === 'Escape') {
+        dispatch({ type: 'SET_OPEN_PANEL', panel: 'mixer' });
+        dispatch({ type: 'SELECT_TRACK', trackId: null });
+      } else if (e.key === 'm' || e.key === 'M') {
+        if (session.selectedTrackId) dispatch({ type: 'MUTE_TRACK', trackId: session.selectedTrackId });
+      } else if (e.key === 's' || e.key === 'S') {
+        if (session.selectedTrackId) dispatch({ type: 'SOLO_TRACK', trackId: session.selectedTrackId });
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [session.isPlaying, session.selectedTrackId]);
+
+  const handlePlayStop = useCallback(async () => {
+    if (!session.isPlaying) {
+      await ensureToneStarted();
+      Tone.Transport.bpm.value = session.bpm;
+      clearSchedule();
+      scheduleSession(session.tracks);
+      Tone.Transport.start();
+      dispatch({ type: 'SET_PLAYING', isPlaying: true });
+    } else {
+      Tone.Transport.stop();
+      clearSchedule();
+      dispatch({ type: 'SET_PLAYING', isPlaying: false });
+      dispatch({ type: 'SET_PLAYHEAD', position: 0 });
+    }
+  }, [session.isPlaying, session.bpm, session.tracks]);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-root">
+      {showStartScreen && (
+        <StartScreen
+          onDismiss={() => setShowStartScreen(false)}
+          dispatch={dispatch}
+          session={session}
+        />
+      )}
+      <div className={`app-layout ${showStartScreen ? 'blurred' : ''}`}>
+        <TopBar
+          session={session}
+          dispatch={dispatch}
+          onPlayStop={handlePlayStop}
+          onOpenSettings={() => setApiKeyModalOpen(true)}
+          canUndo={state.past.length > 0}
+          canRedo={state.future.length > 0}
+        />
+        <TrackList session={session} dispatch={dispatch} />
+        <Timeline session={session} dispatch={dispatch} />
+        <AIPanel session={session} dispatch={dispatch} />
+        <div className="bottom-panel">
+          {session.openPanel === 'pianoroll' ? (
+            <PianoRoll session={session} dispatch={dispatch} />
+          ) : (
+            <Mixer session={session} dispatch={dispatch} />
+          )}
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      </div>
+      {apiKeyModalOpen && (
+        <ApiKeyModal onClose={() => setApiKeyModalOpen(false)} />
+      )}
+    </div>
+  );
 }
 
-export default App
+function ApiKeyModal({ onClose }) {
+  const [key, setKey] = useState(localStorage.getItem('flair_claude_api_key') || '');
+  const save = () => {
+    localStorage.setItem('flair_claude_api_key', key);
+    onClose();
+  };
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={e => e.stopPropagation()}>
+        <h2 className="modal-title">Claude API Key</h2>
+        <p className="modal-desc">Your key is stored locally in this browser only.</p>
+        <input
+          className="modal-input"
+          type="password"
+          value={key}
+          onChange={e => setKey(e.target.value)}
+          placeholder="sk-ant-..."
+          onKeyDown={e => e.key === 'Enter' && save()}
+        />
+        <div className="modal-actions">
+          <button className="btn-primary" onClick={save}>Save</button>
+          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
