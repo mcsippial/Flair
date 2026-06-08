@@ -6,39 +6,49 @@
 
 .app-layout {
   display: grid;
-  grid-template-rows: 64px 1fr 300px;
-  grid-template-columns: 220px 1fr 340px;
+  grid-template-rows: 52px 1fr 220px;
+  grid-template-columns: 200px 1fr 300px;
   height: 100vh;
   overflow: hidden;
+  background: var(--bg);
 }
 
 .top-bar {
   grid-column: 1 / -1;
   grid-row: 1;
+  border-bottom: 1px solid var(--border);
 }
 
 .track-list {
   grid-column: 1;
   grid-row: 2;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
 }
 
 .timeline {
   grid-column: 2;
   grid-row: 2;
+  overflow: hidden;
+  position: relative;
 }
 
 .ai-panel {
   grid-column: 3;
   grid-row: 2;
+  border-left: 1px solid var(--border);
+  overflow: hidden;
 }
 
 .bottom-panel {
   grid-column: 1 / -1;
   grid-row: 3;
+  border-top: 1px solid var(--border);
+  overflow: hidden;
 }
 
 .app-layout.blurred {
-  filter: blur(4px);
+  filter: blur(6px);
   pointer-events: none;
   user-select: none;
 }
