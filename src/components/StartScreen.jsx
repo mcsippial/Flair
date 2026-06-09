@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { composeStarterSession } from '../ai/composeSession';
-import { getApiKey } from '../ai/claudeClient';
+import { getApiKey, setApiKey } from '../ai/claudeClient';
 
 const CHIPS = [
   { id: 'beat', label: 'Beat' },
