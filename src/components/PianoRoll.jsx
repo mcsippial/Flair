@@ -15,7 +15,14 @@ export default function PianoRoll({ session, dispatch }) {
   const selectedTrack = session.tracks.find(t => t.clips.some(c => c === selectedClip));
 
   const gridRef = useRef(null);
+  const keysRef = useRef(null);
   const [notes, setNotes] = useState(selectedClip?.notes || []);
+
+  const handleGridScroll = () => {
+    if (keysRef.current && gridRef.current) {
+      keysRef.current.scrollTop = gridRef.current.scrollTop;
+    }
+  };
 
   useEffect(() => { setNotes(selectedClip?.notes || []); }, [selectedClip?.id]);
 
@@ -64,7 +71,7 @@ export default function PianoRoll({ session, dispatch }) {
         <button className="quantize-btn">Quantize</button>
       </div>
       <div className="piano-roll-body">
-        <div className="piano-keys">
+        <div className="piano-keys" ref={keysRef} style={{ overflowY: 'hidden' }}>
           {ALL_NOTES.map(note => {
             const isBlack = note.includes('#');
             return (
@@ -74,7 +81,7 @@ export default function PianoRoll({ session, dispatch }) {
             );
           })}
         </div>
-        <div className="note-grid" ref={gridRef} onClick={handleGridClick}>
+        <div className="note-grid" ref={gridRef} onClick={handleGridClick} onScroll={handleGridScroll}>
           {Array.from({ length: BEATS }, (_, i) => (
             <div key={i} className="beat-line" style={{ left: i * BEAT_WIDTH }} />
           ))}

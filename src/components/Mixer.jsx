@@ -1,9 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Knob from './Knob';
 import VUMeter from './VUMeter';
-import { applyTrackFx, setMasterVolume } from '../engine/audioEngine';
+import { applyTrackFx, setMasterVolume, getTrackNodes, getMasterMeter } from '../engine/audioEngine';
 
 export default function Mixer({ session, dispatch }) {
+  const [meterLevels, setMeterLevels] = useState({});
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    const poll = () => {
+      const levels = {};
+      session.tracks.forEach(t => {
+        const nodes = getTrackNodes(t.id);
+        if (nodes?.meter) {
+          const v = nodes.meter.getValue();
+          levels[t.id] = typeof v === 'number' ? v : (Array.isArray(v) ? v[0] : -60);
+        }
+      });
+      const masterMeter = getMasterMeter();
+      if (masterMeter) {
+        const v = masterMeter.getValue();
+        levels.__master = typeof v === 'number' ? v : (Array.isArray(v) ? v[0] : -60);
+      }
+      setMeterLevels(levels);
+      rafRef.current = requestAnimationFrame(poll);
+    };
+    rafRef.current = requestAnimationFrame(poll);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [session.tracks]);
+
   const updateEq = (track, band, val) => {
     const eq = { ...track.eq, [band]: val };
     dispatch({ type: 'UPDATE_TRACK', trackId: track.id, changes: { eq } });
@@ -48,8 +73,8 @@ export default function Mixer({ session, dispatch }) {
                 onChange={e => dispatch({ type: 'SET_TRACK_VOLUME', trackId: track.id, volume: parseFloat(e.target.value) })}
               />
               <div className="strip-meters">
-                <VUMeter level={track.volume * -6} vertical />
-                <VUMeter level={track.volume * -6} vertical />
+                <VUMeter level={meterLevels[track.id] ?? -60} vertical />
+                <VUMeter level={meterLevels[track.id] ?? -60} vertical />
               </div>
             </div>
             <div className="strip-buttons">
@@ -70,8 +95,8 @@ export default function Mixer({ session, dispatch }) {
               onChange={e => setMasterVolume(parseFloat(e.target.value))}
             />
             <div className="strip-meters">
-              <VUMeter level={-12} vertical />
-              <VUMeter level={-12} vertical />
+              <VUMeter level={meterLevels.__master ?? -60} vertical />
+              <VUMeter level={meterLevels.__master ?? -60} vertical />
             </div>
           </div>
         </div>

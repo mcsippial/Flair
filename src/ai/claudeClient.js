@@ -158,8 +158,11 @@ export async function sendMessage(userMessage, sessionContext, chatHistory = [])
 
   const contextStr = JSON.stringify(sessionContext, null, 2);
 
+  // Keep last 10 exchange pairs (20 messages) to avoid hitting token limits
+  const trimmedHistory = chatHistory.slice(-20);
+
   // Build conversation history, injecting fresh session state into the latest user message only
-  const historyMessages = chatHistory.flatMap(msg => {
+  const historyMessages = trimmedHistory.flatMap(msg => {
     if (msg.role === 'user') return [{ role: 'user', content: msg.text }];
     if (msg.role === 'assistant') {
       // Send the raw JSON back so Claude sees what actions it took

@@ -111,26 +111,22 @@ function scheduleAudioTrack(track) {
 
   track.clips.forEach(clip => {
     if (!clip.audioUrl) return;
-    const player = new Tone.Player({
-      url: clip.audioUrl,
-      loop: false,
-    });
+    const player = new Tone.Player({ url: clip.audioUrl, loop: false });
     player.disconnect();
     player.connect(fx.input);
     player.connect(meter);
     players.push(player);
 
-    // Schedule the player to start at clip.start bars
+    // Schedule a one-shot trigger at the clip's bar offset. Tone.Transport
+    // handles looping at the session level — we must NOT use a looping Part
+    // here or player.start() fires every iteration and players stack.
     Tone.loaded().then(() => {
-      // Use a Part with a single event at the clip start to trigger the player
-      const part = new Tone.Part((time) => {
+      const eventId = Tone.Transport.schedule(time => {
+        // Stop any prior playback of this player before re-triggering
+        try { player.stop(time); } catch (_) {}
         player.start(time);
-      }, [['0:0:0', {}]]);
-      part.start(`${clip.start}m`);
-      part.loop = true;
-      // Loop the audio clip itself based on its duration or the clip length
-      part.loopEnd = `${clip.length}m`;
-      scheduledParts.push(part);
+      }, `${clip.start}m`);
+      scheduledParts.push({ stop: () => Tone.Transport.clear(eventId), dispose: () => {} });
     });
   });
 

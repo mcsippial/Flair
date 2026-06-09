@@ -16,13 +16,19 @@ export async function ensureToneStarted() {
   }
 }
 
+let masterMeter;
+
 export function setupMasterBus() {
   masterLimiter = new Tone.Limiter(-3).toDestination();
+  masterMeter = new Tone.Meter();
   masterGain = new Tone.Gain(0.8).connect(masterLimiter);
+  masterGain.connect(masterMeter);
   masterReverb = new Tone.Reverb({ decay: 2.5, wet: 0 }).connect(masterGain);
   masterDelay = new Tone.FeedbackDelay('8n', 0.3).connect(masterGain);
   masterDelay.wet.value = 0;
 }
+
+export function getMasterMeter() { return masterMeter; }
 
 export function setMasterVolume(v) {
   if (masterGain) masterGain.gain.value = Math.max(0, Math.min(1, v));
