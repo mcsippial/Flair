@@ -1,3 +1,5 @@
+import Anthropic from '@anthropic-ai/sdk';
+
 const API_KEY_STORAGE = 'flair_claude_api_key';
 const BUILT_IN_KEY = import.meta.env.VITE_CLAUDE_API_KEY || '';
 
@@ -189,29 +191,15 @@ export async function sendMessage(userMessage, sessionContext, chatHistory = [])
 
   const newUserMessage = `Current session state:\n${contextStr}\n\nUser: ${userMessage}`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-allow-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 16000,
-      system: SYSTEM_PROMPT,
-      messages: [...historyMessages, { role: 'user', content: newUserMessage }],
-    }),
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 16000,
+    system: SYSTEM_PROMPT,
+    messages: [...historyMessages, { role: 'user', content: newUserMessage }],
   });
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Claude API error: ${response.status} ${err}`);
-  }
-
-  const data = await response.json();
-  const raw = data.content[0].text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+  const raw = response.content[0].text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
 
   try {
     return JSON.parse(raw);

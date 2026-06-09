@@ -1,3 +1,4 @@
+import Anthropic from '@anthropic-ai/sdk';
 import { getApiKey } from './claudeClient';
 import { generateSession } from '../music/generator';
 
@@ -60,25 +61,15 @@ export async function composeStarterSession(intent) {
   } Choose the key, scale, and chord progression that best fits this style. Make section B harmonically distinct from section A.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-allow-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000, // Parameters only — much less than full note JSON
-        system: PARAM_SYSTEM,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2000,
+      system: PARAM_SYSTEM,
+      messages: [{ role: 'user', content: prompt }],
     });
 
-    if (!response.ok) throw new Error(`API ${response.status}`);
-    const data = await response.json();
-    const text = data.content[0].text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+    const text = response.content[0].text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
     const params = JSON.parse(text);
 
     // Assign real IDs and defaults to the track list
