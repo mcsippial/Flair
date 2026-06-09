@@ -229,14 +229,28 @@ export function generateBass(chords, style, key, scale, bars = 16, description =
     const next   = nextChord(chords, bar);
     const root   = normalizeNote(chord.root);
     const type   = chord.type;
-    const isBreak = bar === 8;
-    const sectionB = bar >= 8;
+    const section  = arrangeSection(bar);
+    const isBreak  = section === 'drop';
+    const sectionB = section === 'build' || section === 'peak';
 
     const R2  = offsetNote(root, 0, 2);  // root, octave 2
     const R3  = offsetNote(root, 0, 3);  // root, octave 3
     const P5  = offsetNote(root, 7, 2);  // perfect fifth
     const M3  = offsetNote(root, type.includes('min') ? 3 : 4, 2); // third
     const app = next ? approachBelow(normalizeNote(next.root), 2) : P5; // approach to next
+
+    // Intro: just root whole note, very quiet
+    if (section === 'intro') {
+      out.push(midi(`${bar}:0:0`, R2, '1n', 0.5));
+      continue;
+    }
+
+    // Entry: root + fifth, simple quarter notes
+    if (section === 'entry') {
+      out.push(midi(`${bar}:0:0`, R2, '4n', humanize(0.62)));
+      out.push(midi(`${bar}:2:0`, P5, '4n', humanize(0.52)));
+      continue;
+    }
 
     if (isBreak) {
       out.push(midi(`${bar}:0:0`, R2, '1n', 0.7));
@@ -291,7 +305,20 @@ export function generateChords(chords, style, bars = 16, description = '') {
     const dur    = endBar - chord.bar; // bars this chord lasts
     const root   = normalizeNote(chord.root);
     const type   = chord.type;
-    const sectionB = chord.bar >= 8;
+    const section  = arrangeSection(chord.bar);
+    const sectionB = section === 'build' || section === 'peak';
+
+    // Intro: silence — let drums breathe
+    if (section === 'intro') return;
+
+    // Entry: just root chord, sustained whole note, quiet
+    if (section === 'entry') {
+      const rootNote   = chordNotes(root, type, 2)[0];
+      const upperNotes = chordNotes(root, type, 3).slice(1, 3);
+      const voicing    = [rootNote, ...upperNotes];
+      voicing.forEach(n => out.push(midi(`${chord.bar}:0:0`, n, '1n', humanize(0.35))));
+      return;
+    }
 
     // Spread voicing: root in octave 2, upper voices in octave 3
     const rootNote   = chordNotes(root, type, 2)[0];
@@ -392,17 +419,34 @@ export function generateMelody(chords, key, scale, style, bars = 16, description
     patterns[rhythmVariant % patterns.length]();
   }
 
-  // Section A (bars 0–7): 4 phrases, introduce and vary
-  phrase(0, 0, 0); // motif intro
-  phrase(2, 0, 1); // syncopated variation
-  phrase(4, 1, 0); // shifted chord tone
-  phrase(6, 1, 1); // syncopated variation on shifted tone
+  // Bars 0-1: intro — no melody
+  // Bar 2: entry — single long note
+  {
+    const chord = activeChord(chords, 2);
+    const root  = normalizeNote(chord.root);
+    const tones = chordNotes(root, chord.type, 4);
+    const s0    = tones[0] || sNotes[0];
+    out.push(midi('2:0:0', s0, '1n', 0.55));
+  }
+  // Bar 3: entry — silence
 
-  // Section B (bars 8–15): development
-  phrase(8,  2, 2); // high register active
-  phrase(10, 3, 2); // higher still
-  phrase(12, 2, 3); // space — let it breathe before climax
-  phrase(14, 0, 1); // resolve to root motif
+  // Section A (bars 4–7): full phrases
+  phrase(4, 0, 0);
+  phrase(6, 0, 1);
+
+  // Drop (bar 8): single sustained note
+  {
+    const chord = activeChord(chords, 8);
+    const root  = normalizeNote(chord.root);
+    const tones = chordNotes(root, chord.type, 4);
+    const s0    = tones[0] || sNotes[0];
+    out.push(midi('8:0:0', s0, '2n', 0.5));
+  }
+
+  // Build + peak (bars 10–15): full development
+  phrase(10, 2, 2);
+  phrase(12, 3, 3);
+  phrase(14, 0, 1);
 
   return out;
 }
