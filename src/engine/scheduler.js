@@ -45,7 +45,6 @@ function scheduleMidiTrack(track) {
   const meter = new Tone.Meter();
   const nodes = { synth, meter };
   setTrackNodes(track.id, nodes);
-  const { synth } = nodes;
 
   track.clips.forEach(clip => {
     if (!clip.notes || clip.notes.length === 0) return;
