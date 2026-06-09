@@ -198,7 +198,7 @@ export async function sendMessage(userMessage, sessionContext, chatHistory = [])
       'anthropic-dangerous-allow-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 16000,
       system: SYSTEM_PROMPT,
       messages: [...historyMessages, { role: 'user', content: newUserMessage }],
