@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import Knob from './Knob';
 import * as Tone from 'tone';
+import { setMasterVolume } from '../engine/audioEngine';
 
 const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
@@ -101,7 +102,7 @@ export default function TopBar({ session, dispatch, onPlayStop, onOpenSettings, 
       <div className="top-spacer" />
 
       <div className="master-volume">
-        <Knob value={0.8} min={0} max={1} label="VOL" size={28} />
+        <Knob value={0.8} min={0} max={1} label="VOL" size={28} onChange={setMasterVolume} />
       </div>
 
       <div className="top-right">

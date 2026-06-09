@@ -7,9 +7,9 @@ import Timeline from './components/Timeline';
 import AIPanel from './components/AIPanel';
 import Mixer from './components/Mixer';
 import PianoRoll from './components/PianoRoll';
-import { setupMasterBus, ensureToneStarted, getTrackNodes } from './engine/audioEngine';
+import { setupMasterBus, ensureToneStarted, getTrackNodes, disposeTrack } from './engine/audioEngine';
 import * as Tone from 'tone';
-import { scheduleSession, clearSchedule } from './engine/scheduler';
+import { scheduleSession, scheduleTrack, clearSchedule } from './engine/scheduler';
 
 export default function App() {
   const [state, dispatch] = useReducer(sessionReducer, initialState);
@@ -17,6 +17,7 @@ export default function App() {
   const [showStartScreen, setShowStartScreen] = useState(true);
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
   const toneSetup = useRef(false);
+  const scheduledTrackIds = useRef(new Set());
 
   useEffect(() => {
     if (!toneSetup.current) {
@@ -25,20 +26,39 @@ export default function App() {
     }
   }, []);
 
-  // Sync mute/solo/volume to audio engine
+  // Sync mute/solo/volume to audio engine; hot-add new tracks if playing
   useEffect(() => {
     const anySolo = session.tracks.some(t => t.solo);
+    const currentIds = new Set(session.tracks.map(t => t.id));
+
+    // Dispose removed tracks
+    for (const id of scheduledTrackIds.current) {
+      if (!currentIds.has(id)) {
+        disposeTrack(id);
+        scheduledTrackIds.current.delete(id);
+      }
+    }
+
     session.tracks.forEach(track => {
       const nodes = getTrackNodes(track.id);
-      if (!nodes) return;
+
+      // Hot-schedule new tracks added while playing
+      if (!nodes && session.isPlaying) {
+        scheduleTrack(track);
+        scheduledTrackIds.current.add(track.id);
+      }
+
+      const liveNodes = getTrackNodes(track.id);
+      if (!liveNodes) return;
+
       const shouldPlay = !track.muted && (!anySolo || track.solo);
       const dbVal = shouldPlay ? Tone.gainToDb(Math.max(0.0001, track.volume)) : -Infinity;
-      if (nodes.synth) nodes.synth.volume.value = dbVal;
-      if (nodes.kick) nodes.kick.volume.value = dbVal;
-      if (nodes.snare) nodes.snare.volume.value = dbVal;
-      if (nodes.hihat) nodes.hihat.volume.value = dbVal;
+      if (liveNodes.synth) liveNodes.synth.volume.value = dbVal;
+      if (liveNodes.kick)  liveNodes.kick.volume.value  = dbVal;
+      if (liveNodes.snare) liveNodes.snare.volume.value = dbVal;
+      if (liveNodes.hihat) liveNodes.hihat.volume.value = dbVal;
     });
-  }, [session.tracks]);
+  }, [session.tracks, session.isPlaying]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -74,11 +94,13 @@ export default function App() {
       Tone.Transport.bpm.value = session.bpm;
       clearSchedule();
       scheduleSession(session.tracks);
+      scheduledTrackIds.current = new Set(session.tracks.map(t => t.id));
       Tone.Transport.start();
       dispatch({ type: 'SET_PLAYING', isPlaying: true });
     } else {
       Tone.Transport.stop();
       clearSchedule();
+      scheduledTrackIds.current = new Set();
       dispatch({ type: 'SET_PLAYING', isPlaying: false });
       dispatch({ type: 'SET_PLAYHEAD', position: 0 });
     }

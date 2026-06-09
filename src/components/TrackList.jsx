@@ -19,7 +19,7 @@ export default function TrackList({ session, dispatch }) {
         type,
         color: TRACK_COLORS[session.tracks.length % TRACK_COLORS.length],
         muted: false, solo: false, armed: false,
-        volume: 0.8, pan: 0, eq: { low: 0, mid: 0, high: 0 },
+        volume: 0.8, pan: 0, reverb: 0, delay: 0, eq: { low: 0, mid: 0, high: 0 },
         clips: [],
       }
     });
@@ -78,6 +78,9 @@ export default function TrackList({ session, dispatch }) {
                 onClick={() => dispatch({ type: 'MUTE_TRACK', trackId: track.id })}>M</button>
               <button className={`track-btn${track.solo ? ' active' : ''}`}
                 onClick={() => dispatch({ type: 'SOLO_TRACK', trackId: track.id })}>S</button>
+              <button className="track-btn delete-btn"
+                onClick={() => dispatch({ type: 'REMOVE_TRACK', trackId: track.id })}
+                title="Delete track">×</button>
             </div>
 
             <input

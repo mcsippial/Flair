@@ -1,7 +1,7 @@
 import * as Tone from 'tone';
 
-let masterLimiter, masterReverb, masterDelay;
-const trackNodes = {}; // { trackId: { synth, meter, sequence } }
+let masterLimiter, masterGain, masterReverb, masterDelay;
+const trackNodes = {};
 let toneStarted = false;
 
 export async function ensureToneStarted() {
@@ -13,23 +13,39 @@ export async function ensureToneStarted() {
 
 export function setupMasterBus() {
   masterLimiter = new Tone.Limiter(-3).toDestination();
-  masterReverb = new Tone.Reverb({ decay: 2.5, wet: 0 }).connect(masterLimiter);
-  masterDelay = new Tone.FeedbackDelay("8n", 0.3).connect(masterLimiter);
+  masterGain = new Tone.Gain(0.8).connect(masterLimiter);
+  masterReverb = new Tone.Reverb({ decay: 2.5, wet: 0 }).connect(masterGain);
+  masterDelay = new Tone.FeedbackDelay('8n', 0.3).connect(masterGain);
   masterDelay.wet.value = 0;
+}
+
+export function setMasterVolume(v) {
+  if (masterGain) masterGain.gain.value = Math.max(0, Math.min(1, v));
 }
 
 export function getTrackNodes(trackId) { return trackNodes[trackId]; }
 export function setTrackNodes(trackId, nodes) { trackNodes[trackId] = nodes; }
+
+export function applyTrackFx(trackId, { eq, pan, reverb, delay } = {}) {
+  const nodes = trackNodes[trackId];
+  if (!nodes) return;
+  if (nodes.eq && eq) {
+    if (eq.low  !== undefined) nodes.eq.low.value  = eq.low  * 12;
+    if (eq.mid  !== undefined) nodes.eq.mid.value  = eq.mid  * 12;
+    if (eq.high !== undefined) nodes.eq.high.value = eq.high * 12;
+  }
+  if (nodes.panner && pan !== undefined) nodes.panner.pan.value = pan;
+  if (nodes.send_reverb && reverb !== undefined) nodes.send_reverb.gain.value = reverb;
+  if (nodes.send_delay  && delay  !== undefined) nodes.send_delay.gain.value  = delay;
+}
+
 export function disposeTrack(trackId) {
   const nodes = trackNodes[trackId];
   if (nodes) {
-    try { if (nodes.sequence) nodes.sequence.dispose(); } catch(e) {}
-    try { if (nodes.synth) nodes.synth.dispose(); } catch(e) {}
-    try { if (nodes.kick) nodes.kick.dispose(); } catch(e) {}
-    try { if (nodes.snare) nodes.snare.dispose(); } catch(e) {}
-    try { if (nodes.hihat) nodes.hihat.dispose(); } catch(e) {}
-    try { if (nodes.hihatFilter) nodes.hihatFilter.dispose(); } catch(e) {}
-    try { if (nodes.meter) nodes.meter.dispose(); } catch(e) {}
+    ['sequence','synth','kick','snare','hihat','hihatFilter',
+     'meter','eq','panner','send_reverb','send_delay'].forEach(k => {
+      try { if (nodes[k]) nodes[k].dispose(); } catch(e) {}
+    });
     delete trackNodes[trackId];
   }
 }
@@ -37,6 +53,8 @@ export function disposeTrack(trackId) {
 export function disposeAllTracks() {
   Object.keys(trackNodes).forEach(id => disposeTrack(id));
 }
+
 export function getMasterLimiter() { return masterLimiter; }
-export function getMasterReverb() { return masterReverb; }
-export function getMasterDelay() { return masterDelay; }
+export function getMasterGain()    { return masterGain; }
+export function getMasterReverb()  { return masterReverb; }
+export function getMasterDelay()   { return masterDelay; }
