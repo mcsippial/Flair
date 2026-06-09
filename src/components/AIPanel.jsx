@@ -3,10 +3,20 @@ import { sendMessage, getApiKey } from '../ai/claudeClient';
 import { parseAndDispatch } from '../ai/aiActions';
 import { buildSessionContext } from '../ai/sessionContext';
 
+const COMPOSING_HINTS = [
+  'Composing…',
+  'Writing chord progression…',
+  'Laying down the groove…',
+  'Building the arrangement…',
+  'Almost there…',
+];
+
 export default function AIPanel({ session, dispatch }) {
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
+  const [thinkingHint, setThinkingHint] = useState('');
   const chatRef = useRef(null);
+  const hintInterval = useRef(null);
   const hasKey = !!getApiKey();
 
   useEffect(() => {
@@ -19,6 +29,12 @@ export default function AIPanel({ session, dispatch }) {
     setInput('');
     dispatch({ type: 'ADD_AI_MESSAGE', message: { id: Math.random().toString(36).substr(2,9), role: 'user', text: userMsg, timestamp: Date.now() } });
     setThinking(true);
+    setThinkingHint(COMPOSING_HINTS[0]);
+    let hintIdx = 0;
+    hintInterval.current = setInterval(() => {
+      hintIdx = (hintIdx + 1) % COMPOSING_HINTS.length;
+      setThinkingHint(COMPOSING_HINTS[hintIdx]);
+    }, 2500);
     try {
       const response = await sendMessage(userMsg, buildSessionContext(session));
       dispatch({ type: 'ADD_AI_MESSAGE', message: { id: Math.random().toString(36).substr(2,9), role: 'assistant', text: response.message, actions: response.actions, timestamp: Date.now() } });
@@ -26,7 +42,9 @@ export default function AIPanel({ session, dispatch }) {
     } catch (err) {
       dispatch({ type: 'ADD_AI_MESSAGE', message: { id: Math.random().toString(36).substr(2,9), role: 'assistant', text: `Error: ${err.message}`, timestamp: Date.now() } });
     } finally {
+      clearInterval(hintInterval.current);
       setThinking(false);
+      setThinkingHint('');
     }
   };
 
@@ -66,6 +84,7 @@ export default function AIPanel({ session, dispatch }) {
             <span className="thinking-dot" />
             <span className="thinking-dot" />
             <span className="thinking-dot" />
+            {thinkingHint && <span className="thinking-hint">{thinkingHint}</span>}
           </div>
         )}
       </div>
