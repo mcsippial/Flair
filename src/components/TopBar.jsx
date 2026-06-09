@@ -44,28 +44,32 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
       <div className="transport">
         <button className="transport-btn" title="Rewind"
           onClick={() => { Tone.Transport.stop(); dispatch({ type: 'SET_PLAYHEAD', position: 0 }); }}>
-          ⏮
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="0" y="0" width="2" height="12"/><polygon points="11,0 3,6 11,12"/></svg>
         </button>
         <button
           className={`transport-btn play${session.isPlaying ? ' active' : ''}`}
           onClick={onPlayStop}
           title="Play / Stop (Space)"
         >
-          {session.isPlaying ? '⏸' : '▶'}
+          {session.isPlaying
+            ? <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="0" width="4" height="12"/><rect x="7" y="0" width="4" height="12"/></svg>
+            : <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><polygon points="1,0 11,6 1,12"/></svg>}
         </button>
         <button
           className={`transport-btn record${session.isRecording ? ' recording' : ''}`}
           onClick={onRecord}
           disabled={!session.armedTrackId}
           title={session.armedTrackId ? (session.isRecording ? 'Stop recording' : 'Record') : 'Arm a track to record'}
-        >⏺</button>
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5"/></svg>
+        </button>
       </div>
 
       <div className="top-divider" />
 
       <div className="undo-redo">
-        <button className="transport-btn" onClick={() => dispatch({ type: 'UNDO' })} disabled={!canUndo} title="Undo">↩</button>
-        <button className="transport-btn" onClick={() => dispatch({ type: 'REDO' })} disabled={!canRedo} title="Redo">↪</button>
+        <button className="transport-btn" onClick={() => dispatch({ type: 'UNDO' })} disabled={!canUndo} title="Undo">Undo</button>
+        <button className="transport-btn" onClick={() => dispatch({ type: 'REDO' })} disabled={!canRedo} title="Redo">Redo</button>
       </div>
 
       <div className="top-divider" />
@@ -127,7 +131,7 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
             </div>
           )}
         </div>
-        <button className="icon-btn" onClick={onOpenSettings} title="API Key Settings">⚙</button>
+        <button className="icon-btn" onClick={onOpenSettings} title="API Key Settings">Settings</button>
         <button className="export-btn" disabled title="Coming soon">Export</button>
       </div>
     </header>

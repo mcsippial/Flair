@@ -91,7 +91,7 @@ export default function AIPanel({ session, dispatch }) {
 
       <div className="ai-input-area">
         {!hasKey ? (
-          <div className="no-key-prompt">Add your Claude API key in ⚙ Settings to enable AI.</div>
+          <div className="no-key-prompt">Add your Claude API key in Settings to enable AI.</div>
         ) : (
           <>
             <input

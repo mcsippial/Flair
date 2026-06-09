@@ -97,7 +97,7 @@ export default function Timeline({ session, dispatch }) {
               top: 40 + (session.tracks.findIndex(t => t.id === chip.trackId) || 0) * 56
             }}
           >
-            <span>✨ {chip.message}</span>
+            <span>{chip.message}</span>
             <button className="chip-apply" onClick={() => dispatch({ type: 'REMOVE_AI_SUGGESTION', id: chip.id })}>Apply</button>
             <button className="chip-dismiss" onClick={() => dispatch({ type: 'REMOVE_AI_SUGGESTION', id: chip.id })}>✕</button>
           </div>

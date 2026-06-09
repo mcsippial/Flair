@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 const TRACK_COLORS = ['#c4a882','#6ba3c4','#9b82c4','#6bc49b','#c46b6b','#c4b86b','#6bc4bc','#c46bb8'];
-const TRACK_ICONS = { drum: '🥁', midi: '🎹', audio: '🎙', ai: '🤖' };
+const TRACK_ICONS = { drum: 'DR', midi: 'MD', audio: 'AU', ai: 'AI' };
 
 function genId() { return Math.random().toString(36).substr(2, 9); }
 
@@ -102,9 +102,9 @@ export default function TrackList({ session, dispatch }) {
         <button className="add-track-btn" onClick={() => setShowAddMenu(!showAddMenu)}>+ Add Track</button>
         {showAddMenu && (
           <div className="add-track-menu">
-            <button onClick={() => addTrack('midi')}>🎹 MIDI Track</button>
-            <button onClick={() => addTrack('drum')}>🥁 Drum Track</button>
-            <button onClick={() => addTrack('audio')}>🎙 Audio Track</button>
+            <button onClick={() => addTrack('midi')}>MIDI Track</button>
+            <button onClick={() => addTrack('drum')}>Drum Track</button>
+            <button onClick={() => addTrack('audio')}>Audio Track</button>
           </div>
         )}
       </div>

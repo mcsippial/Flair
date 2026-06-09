@@ -3,11 +3,11 @@ import { composeStarterSession } from '../ai/composeSession';
 import { getApiKey } from '../ai/claudeClient';
 
 const CHIPS = [
-  { id: 'beat', icon: '🥁', label: 'Beat' },
-  { id: 'song', icon: '🎵', label: 'Song' },
-  { id: 'loop', icon: '🔁', label: 'Loop' },
-  { id: 'freestyle', icon: '🎸', label: 'Freestyle' },
-  { id: 'surprise', icon: '✨', label: 'Surprise me' },
+  { id: 'beat', label: 'Beat' },
+  { id: 'song', label: 'Song' },
+  { id: 'loop', label: 'Loop' },
+  { id: 'freestyle', label: 'Freestyle' },
+  { id: 'surprise', label: 'Surprise me' },
 ];
 
 const KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -161,7 +161,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
           id: genId(), role: 'assistant', timestamp: Date.now(),
           text: getApiKey()
             ? `Composed a 16-bar ${intent.type} at ${result.bpm} BPM in ${result.key} ${result.scale}. Section A and B are distinct — hit play and tell me what to change.`
-            : `Built a starter session at ${result.bpm} BPM in ${result.key} ${result.scale}. Add your Claude API key in ⚙ Settings to unlock AI composition.`,
+            : `Built a starter session at ${result.bpm} BPM in ${result.key} ${result.scale}. Add your Claude API key in Settings to unlock AI composition.`,
         }
       });
       onDismiss();
@@ -236,7 +236,6 @@ export default function StartScreen({ onDismiss, dispatch }) {
                   className="start-chip"
                   onClick={() => handleChip(chip)}
                 >
-                  <span className="start-chip-icon">{chip.icon}</span>
                   {chip.label}
                 </button>
               ))}
