@@ -72,17 +72,17 @@ Always write 16 bars of content (bars 0–15). Clip length should always be 16.
 ═══════════════════════════════════
 COMPOSITION RULES — follow these every time you create tracks with notes
 
-ALWAYS create exactly these 4 tracks for any composition request:
-  1. Drums (ADD_DRUM_TRACK)
-  2. Bass (ADD_MIDI_TRACK, instrument:"bass")
-  3. Chords (ADD_MIDI_TRACK, instrument:"pad")
-  4. Lead/melody (ADD_MIDI_TRACK, instrument:"lead" or "keys")
+Create as many tracks as the style genuinely needs — no more, no less:
+  - Minimal/ambient: 1–2 tracks (e.g. pad + sparse lead, or just drums + bass)
+  - Standard groove: 3–4 tracks (drums, bass, chords, optional lead)
+  - Full arrangement: 5–8 tracks (add layers, counter-melodies, textures)
+  - Dense production (trap, orchestral, etc.): 8+ tracks if warranted
 
-MINIMUM NOTE COUNTS (if you generate fewer, you failed):
-  Drums: 80+ events across 16 bars
-  Bass: 32+ notes
-  Chords: 16+ notes (chord voicings every 2 bars, 2–3 notes each)
-  Lead: 24+ notes
+MINIMUM NOTE COUNTS per track (these are floors, not targets — write as many as the music needs):
+  Drums: 60+ events across 16 bars
+  Bass: 24+ notes
+  Chords: 12+ notes (voicings every 2 bars)
+  Lead/melody: 20+ notes
 
 1. CHORD PROGRESSION
    Pick a real progression. Assign one chord per 2-bar block (8 changes total).

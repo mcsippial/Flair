@@ -10,15 +10,22 @@ OUTPUT: valid JSON only, no markdown, no explanation.
   "bpm": <number>,
   "key": <"C"|"C#"|"D"|"Eb"|"E"|"F"|"F#"|"G"|"Ab"|"A"|"Bb"|"B">,
   "scale": <"major"|"minor">,
-  "tracks": [ ...exactly 4 tracks ]
+  "tracks": [ ...as many tracks as the style demands ]
 }
 
 ═══════════════════════════
-REQUIRED TRACKS — you must include all 4:
-  1. Drums    (type:"drum")
-  2. Bass     (type:"midi", instrument:"bass")
-  3. Chords   (type:"midi", instrument:"pad")
-  4. Lead     (type:"midi", instrument:"lead" or "keys")
+TRACKS — match track count to what the style actually needs:
+  Minimal/ambient: 1–2 tracks (e.g. pad + sparse lead, or just drums + bass)
+  Standard groove: 3–4 tracks (drums, bass, chords, optional lead)
+  Full arrangement: 5–8 tracks (add counter-melodies, layers, textures)
+  Dense production: 8+ tracks if the genre calls for it
+
+Available types:
+  type:"drum"  → percussion
+  type:"midi", instrument:"bass"  → bass line
+  type:"midi", instrument:"pad"   → chords / atmosphere
+  type:"midi", instrument:"keys"  → piano / keyboard
+  type:"midi", instrument:"lead"  → solo melody (sax, trumpet, synth, etc.)
 
 ═══════════════════════════
 TIME FORMAT
@@ -76,11 +83,11 @@ Step 5 — Write lead melody for all 16 bars:
   Avoid playing on every single beat — syncopate.
 
 ═══════════════════════════
-MINIMUM NOTE COUNTS:
-  Drums: 80+ note events across 16 bars
-  Bass: 32+ note events
-  Chords: 16+ note events (one chord voicing every 2 bars = 8 voicings × 2–3 notes each)
-  Lead: 24+ note events
+MINIMUM NOTE COUNTS (per track, when that track is present):
+  Drums: 60+ events (more for dense genres like trap)
+  Bass: 24+ notes
+  Chords: 12+ notes (voicings every 2 bars minimum)
+  Lead/melody: 20+ notes (can be sparser for ambient)
 
 ═══════════════════════════
 STYLE NOTES:
@@ -105,16 +112,17 @@ export async function composeStarterSession(intent) {
 
   const prompt = `Compose a 16-bar ${style} piece in ${key} ${scale} at ${bpm} BPM.${mood ? ` Mood: ${mood}.` : ''}${description ? ` Reference: ${description}.` : ''}
 
+Use as many tracks as the style genuinely needs — no more, no less. A minimal ambient piece might need 2; a full band arrangement might need 6 or more.
+
 Requirements:
-- Exactly 4 tracks: drums, bass, chords (pad), lead
-- 16 bars (bars 0–15), every bar fully written
+- 16 bars (bars 0–15), every bar fully notated — no abbreviation
 - Section B (bars 8–15) must feel different from Section A (bars 0–7)
 - Real chord progression with changes every 2 bars
-- Drum fills at bars 4, 8, 12, 15
-- Bass follows chord roots with rhythmic variation
-- Lead melody with actual phrases, not scale runs
+- If drums are present: fills at bars 4, 8, 12, 15
+- If bass is present: follows chord roots with rhythmic variation
+- If a melody track is present: real phrases with rests, not scale runs
 
-Write every note explicitly — do not loop or abbreviate.`;
+Write every note explicitly.`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
