@@ -128,12 +128,26 @@ EXAMPLE — "smooth jazz"
 Think: Dm7–Gmaj7–Cmaj7–Fmaj7 progression at 75 BPM, brushed drums, walking bass, piano comping, sax melody.
 Then generate all 4 tracks with 16 bars of real notes reflecting that intent.`;
 
-export async function sendMessage(userMessage, sessionContext) {
+export async function sendMessage(userMessage, sessionContext, chatHistory = []) {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error('No API key set');
 
   const contextStr = JSON.stringify(sessionContext, null, 2);
-  const fullMessage = `Current session:\n${contextStr}\n\nUser request: ${userMessage}`;
+
+  // Build conversation history, injecting fresh session state into the latest user message only
+  const historyMessages = chatHistory.flatMap(msg => {
+    if (msg.role === 'user') return [{ role: 'user', content: msg.text }];
+    if (msg.role === 'assistant') {
+      // Send the raw JSON back so Claude sees what actions it took
+      const content = msg.actions?.length
+        ? JSON.stringify({ message: msg.text, actions: msg.actions })
+        : msg.text;
+      return [{ role: 'assistant', content }];
+    }
+    return [];
+  });
+
+  const newUserMessage = `Current session state:\n${contextStr}\n\nUser: ${userMessage}`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -147,7 +161,7 @@ export async function sendMessage(userMessage, sessionContext) {
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8000,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: fullMessage }],
+      messages: [...historyMessages, { role: 'user', content: newUserMessage }],
     }),
   });
 

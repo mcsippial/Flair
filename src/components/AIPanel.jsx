@@ -36,7 +36,7 @@ export default function AIPanel({ session, dispatch }) {
       setThinkingHint(COMPOSING_HINTS[hintIdx]);
     }, 2500);
     try {
-      const response = await sendMessage(userMsg, buildSessionContext(session));
+      const response = await sendMessage(userMsg, buildSessionContext(session), session.aiMessages);
       dispatch({ type: 'ADD_AI_MESSAGE', message: { id: Math.random().toString(36).substr(2,9), role: 'assistant', text: response.message, actions: response.actions, timestamp: Date.now() } });
       if (response.actions?.length) parseAndDispatch(response, dispatch);
     } catch (err) {
