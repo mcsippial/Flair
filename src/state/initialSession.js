@@ -11,6 +11,8 @@ export const initialSession = {
   loopEnd: 16,
   loopEnabled: false,
   isPlaying: false,
+  isRecording: false,
+  armedTrackId: null,
   selectedTrackId: null,
   selectedClipId: null,
   openPanel: "mixer",

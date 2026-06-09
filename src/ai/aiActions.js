@@ -55,6 +55,25 @@ export function parseAndDispatch(aiResponse, dispatch) {
             }
           });
           break;
+        case 'CREATE_AUDIO_TRACK': {
+          const trackId = genId();
+          dispatch({
+            type: 'ADD_TRACK',
+            track: {
+              id: trackId,
+              name: action.trackName || 'Audio',
+              type: 'audio',
+              color: '#c46b6b',
+              muted: false, solo: false, armed: false,
+              volume: 0.8, pan: 0, reverb: 0, delay: 0,
+              eq: { low: 0, mid: 0, high: 0 },
+              clips: [],
+            }
+          });
+          // Auto-arm the new track
+          dispatch({ type: 'ARM_TRACK', trackId });
+          break;
+        }
         case 'ADD_CLIP':
           dispatch({
             type: 'ADD_CLIP',

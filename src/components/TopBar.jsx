@@ -5,7 +5,7 @@ import { setMasterVolume } from '../engine/audioEngine';
 
 const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
-export default function TopBar({ session, dispatch, onPlayStop, onOpenSettings, canUndo, canRedo }) {
+export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpenSettings, canUndo, canRedo }) {
   const [tapTimes, setTapTimes] = useState([]);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [timeDisplay, setTimeDisplay] = useState('0:0:0');
@@ -53,7 +53,12 @@ export default function TopBar({ session, dispatch, onPlayStop, onOpenSettings, 
         >
           {session.isPlaying ? '⏸' : '▶'}
         </button>
-        <button className="transport-btn" title="Recording — coming in v2" disabled>⏺</button>
+        <button
+          className={`transport-btn record${session.isRecording ? ' recording' : ''}`}
+          onClick={onRecord}
+          disabled={!session.armedTrackId}
+          title={session.armedTrackId ? (session.isRecording ? 'Stop recording' : 'Record') : 'Arm a track to record'}
+        >⏺</button>
       </div>
 
       <div className="top-divider" />

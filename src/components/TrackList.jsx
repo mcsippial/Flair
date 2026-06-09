@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 const TRACK_COLORS = ['#c4a882','#6ba3c4','#9b82c4','#6bc49b','#c46b6b','#c4b86b','#6bc4bc','#c46bb8'];
-const TRACK_ICONS = { drum: '🥁', midi: '🎹', audio: '🎙️', ai: '🤖' };
+const TRACK_ICONS = { drum: '🥁', midi: '🎹', audio: '🎙', ai: '🤖' };
 
 function genId() { return Math.random().toString(36).substr(2, 9); }
 
@@ -15,7 +15,7 @@ export default function TrackList({ session, dispatch }) {
       type: 'ADD_TRACK',
       track: {
         id: genId(),
-        name: type === 'drum' ? 'Drums' : type === 'midi' ? 'MIDI' : 'AI Track',
+        name: type === 'drum' ? 'Drums' : type === 'midi' ? 'MIDI' : type === 'audio' ? 'Audio' : 'AI Track',
         type,
         color: TRACK_COLORS[session.tracks.length % TRACK_COLORS.length],
         muted: false, solo: false, armed: false,
@@ -74,6 +74,10 @@ export default function TrackList({ session, dispatch }) {
                   ))}
                 </div>
               )}
+              <button
+                className={`track-btn arm-btn${session.armedTrackId === track.id ? ' armed' : ''}`}
+                onClick={() => dispatch({ type: 'ARM_TRACK', trackId: track.id })}
+                title="Arm for recording">R</button>
               <button className={`track-btn${track.muted ? ' active' : ''}`}
                 onClick={() => dispatch({ type: 'MUTE_TRACK', trackId: track.id })}>M</button>
               <button className={`track-btn${track.solo ? ' active' : ''}`}
@@ -100,7 +104,7 @@ export default function TrackList({ session, dispatch }) {
           <div className="add-track-menu">
             <button onClick={() => addTrack('midi')}>🎹 MIDI Track</button>
             <button onClick={() => addTrack('drum')}>🥁 Drum Track</button>
-            <button onClick={() => addTrack('ai')}>🤖 AI Track</button>
+            <button onClick={() => addTrack('audio')}>🎙 Audio Track</button>
           </div>
         )}
       </div>

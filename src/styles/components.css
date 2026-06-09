@@ -251,6 +251,15 @@
 
 .transport-btn:disabled { opacity: 0.22; cursor: not-allowed; }
 .transport-btn.play { width: 38px; font-size: 13px; }
+.transport-btn.record { color: #c45; }
+.transport-btn.record:not(:disabled):hover { color: #e06c6c; }
+.transport-btn.record.recording {
+  color: #e06c6c;
+  border-color: rgba(220,60,60,0.5);
+  background: rgba(220,60,60,0.15);
+  animation: pulse-record 1s ease-in-out infinite;
+}
+@keyframes pulse-record { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
 
 .transport-btn.play.active {
   background: var(--amber);
@@ -549,6 +558,9 @@
 .track-btn.delete-btn { opacity: 0; transition: opacity 0.15s; font-size: 14px; }
 .track-row:hover .delete-btn { opacity: 1; }
 .track-btn.delete-btn:hover { color: #e06c6c; border-color: rgba(224,108,108,0.3); }
+
+.track-btn.arm-btn.armed { background: rgba(220,60,60,0.2); border-color: rgba(220,60,60,0.4); color: #e06c6c; }
+.track-btn.arm-btn:not(.armed):hover { color: #e06c6c; border-color: rgba(220,60,60,0.3); }
 
 .track-btn.active {
   background: rgba(232,146,10,0.18);

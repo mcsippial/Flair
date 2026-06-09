@@ -7,7 +7,8 @@ import Timeline from './components/Timeline';
 import AIPanel from './components/AIPanel';
 import Mixer from './components/Mixer';
 import PianoRoll from './components/PianoRoll';
-import { setupMasterBus, ensureToneStarted, getTrackNodes, disposeTrack } from './engine/audioEngine';
+import { setupMasterBus, ensureToneStarted, getTrackNodes, disposeTrack,
+         startRecording, stopRecording } from './engine/audioEngine';
 import * as Tone from 'tone';
 import { scheduleSession, scheduleTrack, clearSchedule } from './engine/scheduler';
 
@@ -88,6 +89,37 @@ export default function App() {
     return () => document.removeEventListener('keydown', handleKey);
   }, [session.isPlaying, session.selectedTrackId]);
 
+  const handleRecord = useCallback(async () => {
+    if (!session.armedTrackId) return;
+    if (!session.isRecording) {
+      await ensureToneStarted();
+      await startRecording();
+      dispatch({ type: 'SET_RECORDING', isRecording: true });
+      // Auto-start transport if not playing
+      if (!session.isPlaying) {
+        Tone.Transport.bpm.value = session.bpm;
+        clearSchedule();
+        scheduleSession(session.tracks);
+        scheduledTrackIds.current = new Set(session.tracks.map(t => t.id));
+        Tone.Transport.start();
+        dispatch({ type: 'SET_PLAYING', isPlaying: true });
+      }
+    } else {
+      const audioUrl = await stopRecording();
+      dispatch({ type: 'SET_RECORDING', isRecording: false });
+      if (audioUrl) {
+        const durationBars = Math.ceil(Tone.Transport.seconds / (60 / session.bpm) / 4) || 4;
+        dispatch({ type: 'ADD_AUDIO_CLIP', trackId: session.armedTrackId, audioUrl, name: 'Recording', length: durationBars });
+      }
+      // Stop transport
+      Tone.Transport.stop();
+      clearSchedule();
+      scheduledTrackIds.current = new Set();
+      dispatch({ type: 'SET_PLAYING', isPlaying: false });
+      dispatch({ type: 'SET_PLAYHEAD', position: 0 });
+    }
+  }, [session.armedTrackId, session.isRecording, session.isPlaying, session.bpm, session.tracks]);
+
   const handlePlayStop = useCallback(async () => {
     if (!session.isPlaying) {
       await ensureToneStarted();
@@ -120,6 +152,7 @@ export default function App() {
           session={session}
           dispatch={dispatch}
           onPlayStop={handlePlayStop}
+          onRecord={handleRecord}
           onOpenSettings={() => setApiKeyModalOpen(true)}
           canUndo={state.past.length > 0}
           canRedo={state.future.length > 0}

@@ -1,5 +1,6 @@
 import * as Tone from 'tone';
-import { getTrackNodes, setTrackNodes, disposeAllTracks, getMasterGain, getMasterReverb, getMasterDelay } from './audioEngine';
+import { getTrackNodes, setTrackNodes, disposeAllTracks, disposeTrack,
+         getMasterGain, getMasterReverb, getMasterDelay } from './audioEngine';
 import { createDrumInstruments, createMidiInstrument } from './instruments';
 
 let scheduledParts = [];
@@ -11,21 +12,25 @@ export function scheduleSession(tracks) {
 }
 
 export function scheduleTrack(track) {
-  if (track.type === 'drum') scheduleDrumTrack(track);
+  if (track.type === 'drum')                    scheduleDrumTrack(track);
   else if (track.type === 'midi' || track.type === 'ai') scheduleMidiTrack(track);
+  else if (track.type === 'audio')              scheduleAudioTrack(track);
 }
 
+// ─── Per-track FX chain ───────────────────────────────────────────────────────
 function buildFxChain(track) {
-  const dest = getMasterGain() || Tone.getDestination();
-  const eq = new Tone.EQ3({ low: (track.eq?.low || 0) * 12, mid: (track.eq?.mid || 0) * 12, high: (track.eq?.high || 0) * 12 });
-  const panner = new Tone.Panner(track.pan || 0);
+  const masterDest = getMasterGain() || Tone.getDestination();
+  const eq = new Tone.EQ3({
+    low:  (track.eq?.low  || 0) * 12,
+    mid:  (track.eq?.mid  || 0) * 12,
+    high: (track.eq?.high || 0) * 12,
+  });
+  const panner     = new Tone.Panner(track.pan || 0);
   const send_reverb = new Tone.Gain(track.reverb || 0);
   const send_delay  = new Tone.Gain(track.delay  || 0);
 
-  // chain: instrument → eq → panner → master gain
-  panner.connect(dest);
+  panner.connect(masterDest);
   eq.connect(panner);
-  // parallel sends to reverb/delay buses
   if (getMasterReverb()) send_reverb.connect(getMasterReverb());
   if (getMasterDelay())  send_delay.connect(getMasterDelay());
   eq.connect(send_reverb);
@@ -34,12 +39,12 @@ function buildFxChain(track) {
   return { eq, panner, send_reverb, send_delay, input: eq };
 }
 
+// ─── Drum track ───────────────────────────────────────────────────────────────
 function scheduleDrumTrack(track) {
   const instruments = createDrumInstruments();
   const fx = buildFxChain(track);
   const meter = new Tone.Meter();
 
-  // reconnect instruments to eq instead of direct destination
   instruments.kick.disconnect();
   instruments.snare.disconnect();
   instruments.hihat.disconnect();
@@ -48,13 +53,12 @@ function scheduleDrumTrack(track) {
   instruments.hihat.connect(fx.input);
   instruments.kick.connect(meter);
 
-  const nodes = { ...instruments, meter, ...fx };
-  setTrackNodes(track.id, nodes);
-  const { kick, snare, hihat } = nodes;
+  setTrackNodes(track.id, { ...instruments, meter, ...fx });
+  const { kick, snare, hihat } = instruments;
 
   track.clips.forEach(clip => {
     const part = new Tone.Part((time, note) => {
-      if (note.drum === 'kick')   kick.triggerAttackRelease('C1', '8n', time, note.velocity || 0.8);
+      if      (note.drum === 'kick')  kick.triggerAttackRelease('C1', '8n', time, note.velocity || 0.8);
       else if (note.drum === 'snare') snare.triggerAttackRelease('8n', time, note.velocity || 0.6);
       else if (note.drum === 'hihat') hihat.triggerAttackRelease('16n', time, note.velocity || 0.4);
     }, clip.notes || []);
@@ -65,6 +69,7 @@ function scheduleDrumTrack(track) {
   });
 }
 
+// ─── MIDI track ───────────────────────────────────────────────────────────────
 function scheduleMidiTrack(track) {
   const synth = createMidiInstrument(track.instrument || 'keys');
   const fx = buildFxChain(track);
@@ -74,16 +79,15 @@ function scheduleMidiTrack(track) {
   synth.connect(fx.input);
   synth.connect(meter);
 
-  const nodes = { synth, meter, ...fx };
-  setTrackNodes(track.id, nodes);
+  setTrackNodes(track.id, { synth, meter, ...fx });
 
   track.clips.forEach(clip => {
     if (!clip.notes?.length) return;
     const events = clip.notes.map(n => {
       let t = n.time;
       if (typeof t === 'number') {
-        const bar = Math.floor(t / 4);
-        const beat = Math.floor(t % 4);
+        const bar      = Math.floor(t / 4);
+        const beat     = Math.floor(t % 4);
         const sixteenth = Math.round((t % 1) * 4);
         t = `${bar}:${beat}:${sixteenth}`;
       }
@@ -97,6 +101,40 @@ function scheduleMidiTrack(track) {
     part.loopEnd = `${clip.length}m`;
     scheduledParts.push(part);
   });
+}
+
+// ─── Audio track (recorded clips) ────────────────────────────────────────────
+function scheduleAudioTrack(track) {
+  const fx = buildFxChain(track);
+  const meter = new Tone.Meter();
+  const players = [];
+
+  track.clips.forEach(clip => {
+    if (!clip.audioUrl) return;
+    const player = new Tone.Player({
+      url: clip.audioUrl,
+      loop: false,
+    });
+    player.disconnect();
+    player.connect(fx.input);
+    player.connect(meter);
+    players.push(player);
+
+    // Schedule the player to start at clip.start bars
+    Tone.loaded().then(() => {
+      // Use a Part with a single event at the clip start to trigger the player
+      const part = new Tone.Part((time) => {
+        player.start(time);
+      }, [['0:0:0', {}]]);
+      part.start(`${clip.start}m`);
+      part.loop = true;
+      // Loop the audio clip itself based on its duration or the clip length
+      part.loopEnd = `${clip.length}m`;
+      scheduledParts.push(part);
+    });
+  });
+
+  setTrackNodes(track.id, { players, meter, ...fx });
 }
 
 export function clearSchedule() {

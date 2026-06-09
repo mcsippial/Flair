@@ -47,6 +47,19 @@ function sessionReducerCore(session, action) {
       return { ...session, key: action.key, scale: action.scale };
     case 'SET_PLAYING':
       return { ...session, isPlaying: action.isPlaying };
+    case 'SET_RECORDING':
+      return { ...session, isRecording: action.isRecording };
+    case 'ARM_TRACK':
+      return { ...session, armedTrackId: session.armedTrackId === action.trackId ? null : action.trackId };
+    case 'ADD_AUDIO_CLIP': {
+      const clipId = genId();
+      return {
+        ...session,
+        tracks: session.tracks.map(t => t.id === action.trackId
+          ? { ...t, clips: [...t.clips, { id: clipId, name: action.name || 'Recording', start: 0, length: action.length || 16, audioUrl: action.audioUrl, type: 'audio', trackId: t.id }] }
+          : t),
+      };
+    }
     case 'SET_PLAYHEAD':
       return { ...session, playheadPosition: action.position };
     case 'ADD_AI_MESSAGE':
@@ -95,7 +108,7 @@ export function sessionReducer(state, action) {
   }
 
   // Non-undoable actions
-  const nonUndoable = ['SET_PLAYING', 'SET_PLAYHEAD', 'SELECT_TRACK', 'SELECT_CLIP', 'ADD_AI_MESSAGE', 'ADD_AI_SUGGESTION', 'REMOVE_AI_SUGGESTION', 'NEW_CHAT', 'SELECT_CHAT'];
+  const nonUndoable = ['SET_PLAYING', 'SET_RECORDING', 'ARM_TRACK', 'SET_PLAYHEAD', 'SELECT_TRACK', 'SELECT_CLIP', 'ADD_AI_MESSAGE', 'ADD_AI_SUGGESTION', 'REMOVE_AI_SUGGESTION', 'NEW_CHAT', 'SELECT_CHAT'];
   if (nonUndoable.includes(action.type)) {
     return { ...state, present: sessionReducerCore(state.present, action) };
   }
