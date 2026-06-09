@@ -65,10 +65,9 @@ export function createMidiInstrument(preset = 'keys') {
 }
 
 // ─── Drums ────────────────────────────────────────────────────────────────────
-// Returns an object with triggerKick/triggerSnare/triggerHihat methods plus
-// individual nodes and _nodes array for disposal.
-// destination: the drum bus compressor input
-export function createDrumInstruments(destination) {
+
+// buildSynthKit: synthesized drum kit (always available, used as fallback)
+function buildSynthKit(destination) {
   // Kick: deep membrane with Chebyshev punch, parallel dry+dist
   const kick = new Tone.MembraneSynth({
     pitchDecay: 0.15,
@@ -121,5 +120,56 @@ export function createDrumInstruments(destination) {
     kick, snareNoise, snareBody, hihat,
     // all nodes for disposal
     _nodes: [kick, kickDist, snareNoise, snareBody, snareHPF, snareMerge, hihat, hihatHPF],
+  };
+}
+
+const DRUM_BASE = 'https://tonejs.github.io/audio/drum-rack/';
+
+// Returns an object with triggerKick/triggerSnare/triggerHihat methods plus
+// individual nodes and _nodes array for disposal.
+// destination: the drum bus compressor input
+export function createDrumInstruments(destination) {
+  // Synthesis fallback - always ready immediately
+  const synthKit = buildSynthKit(destination);
+
+  // Real sample kit - takes a moment to load
+  let sampleKit = null;
+  const sampler = new Tone.Sampler({
+    urls: {
+      C2: 'kick.mp3',
+      D2: 'snare.mp3',
+      'F#2': 'hihat.mp3',
+      A2: 'openhat.mp3',
+      B2: 'crash.mp3',
+      'C#2': 'clap.mp3',
+    },
+    baseUrl: DRUM_BASE,
+    onload: () => {
+      sampler.connect(destination);
+      sampleKit = {
+        triggerKick:    (t, v) => sampler.triggerAttackRelease('C2',  '8n', t, v),
+        triggerSnare:   (t, v) => { sampler.triggerAttackRelease('D2', '8n', t, v); sampler.triggerAttackRelease('C#2', '8n', t, v * 0.5); },
+        triggerHihat:   (t, v) => sampler.triggerAttackRelease('F#2', '16n', t, v),
+        triggerOpenhat: (t, v) => sampler.triggerAttackRelease('A2', '4n', t, v),
+      };
+    },
+    onerror: () => { sampleKit = null; },
+  });
+
+  const kit = () => sampleKit || synthKit;
+
+  return {
+    triggerKick:    (t, v) => kit().triggerKick(t, v),
+    triggerSnare:   (t, v) => kit().triggerSnare(t, v),
+    triggerHihat:   (t, v) => kit().triggerHihat(t, v),
+    triggerOpenhat: (t, v) => kit().triggerOpenhat ? kit().triggerOpenhat(t, v) : kit().triggerHihat(t, v * 1.3),
+    // expose for volume control + disposal
+    _synth: synthKit,
+    _sampler: sampler,
+    _nodes: [...synthKit._nodes, sampler],
+    // volume references point at synthesis nodes for the track volume system
+    kick: synthKit.kick,
+    snareNoise: synthKit.snareNoise,
+    hihat: synthKit.hihat,
   };
 }

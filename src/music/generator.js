@@ -23,14 +23,78 @@ function styleFamily(style = '', description = '') {
   return 'pop';
 }
 
+// ─── Arrangement sections ─────────────────────────────────────────────────────
+// Returns which arrangement section a bar falls in
+// intro: bars 0-1 (sparse, elements drop in)
+// entry: bars 2-3 (groove establishes)
+// verse: bars 4-7 (full groove, section A)
+// drop:  bar 8 (breakdown moment)
+// build: bars 9-11 (energy returns and builds)
+// peak:  bars 12-15 (maximum energy, section B)
+function arrangeSection(bar) {
+  if (bar <= 1)  return 'intro';
+  if (bar <= 3)  return 'entry';
+  if (bar <= 7)  return 'verse';
+  if (bar === 8) return 'drop';
+  if (bar <= 11) return 'build';
+  return 'peak';
+}
+
 // ─── DRUMS ────────────────────────────────────────────────────────────────────
 function drumBar(bar, style) {
-  const sectionB = bar >= 8;
-  const isFill   = bar === 4 || bar === 12 || bar === 15;
-  const isBreak  = bar === 8;
+  const section  = arrangeSection(bar);
+  const sectionB = section === 'build' || section === 'peak';
+  const isFill   = bar === 15 || (section === 'peak' && bar === 12);
+  const isBreak  = section === 'drop';
   // h: note helper that applies humanize to all velocities
   const h = (beat, s, drum, vel) => note(`${bar}:${beat}:${s}`, drum, humanize(vel));
   const hits = [];
+
+  // ── Intro: single kick to set tempo, no snare, no hihat ──────────────────
+  if (section === 'intro') {
+    hits.push(h(0, 0, 'kick', 0.8));
+    if (style === 'jazz') hits.push(h(0, 0, 'hihat', 0.3)); // just ride context
+    return hits;
+  }
+
+  // ── Entry: kick + hihat establishes, snare enters only on bar 3 ──────────
+  if (section === 'entry') {
+    const velScale = 0.8;
+    if (style === 'jazz') {
+      hits.push(h(0, 0, 'kick', 0.84 * velScale));
+      for (let b = 0; b < 4; b++) hits.push(h(b, 0, 'hihat', 0.45 * velScale));
+      if (bar === 3) {
+        hits.push(h(1, 0, 'snare', 0.76 * velScale));
+        hits.push(h(3, 0, 'snare', 0.72 * velScale));
+      }
+    } else if (style === 'trap') {
+      hits.push(h(0, 0, 'kick', 0.88 * velScale));
+      for (let b = 0; b < 4; b++) hits.push(h(b, 0, 'hihat', 0.35 * velScale));
+      if (bar === 3) hits.push(h(1, 0, 'snare', 0.82 * velScale));
+    } else if (style === 'house') {
+      for (let b = 0; b < 4; b++) hits.push(h(b, 0, 'kick', 0.8 * velScale));
+      for (let b = 0; b < 4; b++) hits.push(h(b, 2, 'hihat', 0.4 * velScale));
+      if (bar === 3) {
+        hits.push(h(1, 0, 'snare', 0.72 * velScale));
+        hits.push(h(3, 0, 'snare', 0.68 * velScale));
+      }
+    } else {
+      // pop / lofi
+      hits.push(h(0, 0, 'kick', 0.82 * velScale));
+      hits.push(h(2, 0, 'kick', 0.7 * velScale));
+      for (let b = 0; b < 4; b++) hits.push(h(b, 0, 'hihat', 0.4 * velScale));
+      if (bar === 3) {
+        hits.push(h(1, 0, 'snare', 0.72 * velScale));
+        hits.push(h(3, 0, 'snare', 0.68 * velScale));
+      }
+    }
+    return hits;
+  }
+
+  // ── Build: slightly increasing velocity each bar ───────────────────────────
+  const buildVelBoost = section === 'build' ? (bar - 9) * 0.04 : 0;
+  // bh: boosted note helper, adds build velocity boost on top of humanize
+  const bh = (beat, s, drum, vel) => note(`${bar}:${beat}:${s}`, drum, humanize(Math.min(1.0, vel + buildVelBoost)));
 
   if (style === 'jazz') {
     // Ride pattern (hihat as ride): ding ding-a ding ding-a
