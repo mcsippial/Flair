@@ -122,11 +122,12 @@ CREATING CONTENT
   UPDATE_CLIP:       { trackId, clipId, changes:{notes} }
   REMOVE_TRACK:      { trackId }
 
-TRANSPORT & SESSION
+SESSION
   UPDATE_BPM:        { bpm }
   UPDATE_KEY:        { key, scale }
   UNDO:              {}
   REDO:              {}
+  Note: you cannot start/stop the transport — only the user can press Play/Stop.
 
 TRACK CONTROL
   MUTE_TRACK:        { trackId }

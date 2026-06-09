@@ -18,7 +18,7 @@ export function parseAndDispatch(aiResponse, dispatch, session = null) {
               instrument: action.instrument || 'keys',
               color: action.color || '#7eb8d4',
               muted: false, solo: false, armed: false,
-              volume: 0.8, pan: 0,
+              volume: 0.8, pan: 0, reverb: 0, delay: 0,
               eq: { low: 0, mid: 0, high: 0 },
               clips: (action.clips || []).map(c => ({
                 id: genId(),
@@ -41,7 +41,7 @@ export function parseAndDispatch(aiResponse, dispatch, session = null) {
               type: 'drum',
               color: action.color || '#c4a882',
               muted: false, solo: false, armed: false,
-              volume: 0.8, pan: 0,
+              volume: 0.8, pan: 0, reverb: 0, delay: 0,
               eq: { low: 0, mid: 0, high: 0 },
               clips: (action.clips || []).map(c => ({
                 id: genId(),
@@ -137,10 +137,6 @@ export function parseAndDispatch(aiResponse, dispatch, session = null) {
         }
         case 'OPEN_MIXER':
           dispatch({ type: 'SET_OPEN_PANEL', panel: 'mixer' });
-          break;
-        case 'SET_TRANSPORT':
-          dispatch({ type: action.playing ? 'SET_PLAYING' : 'SET_PLAYING', isPlaying: action.playing });
-          // Note: actual transport start/stop is handled by App.jsx — this just signals intent
           break;
         case 'UNDO':
           dispatch({ type: 'UNDO' });
