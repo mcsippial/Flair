@@ -28,32 +28,34 @@ function drumBar(bar, style) {
   const sectionB = bar >= 8;
   const isFill   = bar === 4 || bar === 12 || bar === 15;
   const isBreak  = bar === 8;
-  const h = (beat, s, drum, vel) => note(`${bar}:${beat}:${s}`, drum, vel);
+  // h: note helper that applies humanize to all velocities
+  const h = (beat, s, drum, vel) => note(`${bar}:${beat}:${s}`, drum, humanize(vel));
   const hits = [];
 
   if (style === 'jazz') {
     // Ride pattern (hihat as ride): ding ding-a ding ding-a
+    // Swing: the "a" beat (sixteenth 2) is pushed to 2.55 for a laid-back feel
     if (!isBreak) {
       for (let b = 0; b < 4; b++) {
         hits.push(h(b, 0, 'hihat', b % 2 === 0 ? 0.52 : 0.44));
-        hits.push(h(b, 2, 'hihat', 0.22)); // swing "a"
+        hits.push(h(b, '2.55', 'hihat', 0.22)); // swung "a"
       }
     }
     // Kick
     hits.push(h(0, 0, 'kick', 0.84));
     if (!isBreak) {
       hits.push(h(2, 0, 'kick', sectionB ? 0.68 : 0.62));
-      if (sectionB) hits.push(h(3, 2, 'kick', 0.52));
+      if (sectionB) hits.push(h(3, '2.55', 'kick', 0.52));
     }
     // Snare + ghosts
     if (!isBreak) {
       hits.push(h(1, 0, 'snare', 0.76));
       hits.push(h(3, 0, 'snare', 0.82));
-      hits.push(h(0, 2, 'snare', 0.14)); // ghost
-      hits.push(h(2, 2, 'snare', 0.16)); // ghost
+      hits.push(h(0, '2.55', 'snare', 0.14)); // ghost (swung)
+      hits.push(h(2, '2.55', 'snare', 0.16)); // ghost (swung)
       if (sectionB) {
-        hits.push(h(1, 2, 'snare', 0.12));
-        hits.push(h(3, 2, 'snare', 0.13));
+        hits.push(h(1, '2.55', 'snare', 0.12));
+        hits.push(h(3, '2.55', 'snare', 0.13));
       }
     } else {
       hits.push(h(2, 0, 'snare', 0.65));
@@ -80,10 +82,12 @@ function drumBar(bar, style) {
     if (!isBreak) hits.push(h(3, 0, 'snare', 0.82));
 
   } else if (style === 'lofi') {
-    // Simple, slightly loose feel
+    // Simple, slightly loose feel with light swing (2.33)
     if (!isBreak) {
       for (let b = 0; b < 4; b++) hits.push(h(b, 0, 'hihat', 0.32));
-      if (sectionB) for (let b = 0; b < 4; b++) hits.push(h(b, 2, 'hihat', 0.14));
+      // Lofi swing: light push on the offbeat hihat
+      if (sectionB) for (let b = 0; b < 4; b++) hits.push(h(b, '2.33', 'hihat', 0.14));
+      else          for (let b = 0; b < 4; b++) hits.push(h(b, 2,      'hihat', 0.14));
     }
     hits.push(h(0, 0, 'kick', 0.76));
     if (!isBreak) { hits.push(h(2, 0, 'kick', 0.62)); hits.push(h(2, 2, 'kick', 0.42)); }
@@ -135,7 +139,7 @@ function drumBar(bar, style) {
 
   // Fills (all styles)
   if (isFill && bar !== 8) {
-    [0, 1, 2, 3].forEach((s, i) => hits.push(h(3, s, 'snare', 0.55 + i * 0.13)));
+    [0, 1, 2, 3].forEach((s, i) => hits.push(h(3, s, 'snare', humanize(0.55 + i * 0.13))));
     if (bar === 15) { // ending fill: kick every beat
       for (let b = 0; b < 4; b++) hits.push(h(b, 0, 'kick', 0.72 + b * 0.06));
     }
@@ -177,34 +181,34 @@ export function generateBass(chords, style, key, scale, bars = 16) {
 
     if (sf === 'jazz') {
       // Walking bass: root → third → fifth → approach
-      out.push(midi(`${bar}:0:0`, R2, '4n', sectionB ? 0.82 : 0.78));
-      out.push(midi(`${bar}:1:0`, M3, '4n', sectionB ? 0.65 : 0.62));
-      out.push(midi(`${bar}:2:0`, P5, '4n', sectionB ? 0.7  : 0.66));
-      out.push(midi(`${bar}:3:0`, app, '4n', 0.56));
+      out.push(midi(`${bar}:0:0`, R2, '4n', humanize(sectionB ? 0.82 : 0.78)));
+      out.push(midi(`${bar}:1:0`, M3, '4n', humanize(sectionB ? 0.65 : 0.62)));
+      out.push(midi(`${bar}:2:0`, P5, '4n', humanize(sectionB ? 0.7  : 0.66)));
+      out.push(midi(`${bar}:3:0`, app, '4n', humanize(0.56)));
 
     } else if (sf === 'trap') {
-      out.push(midi(`${bar}:0:0`, R2, '4n', 0.88));
-      out.push(midi(`${bar}:0:2`, R2, '8n', 0.42));
-      out.push(midi(`${bar}:2:0`, P5, '4n', 0.72));
-      if (sectionB) out.push(midi(`${bar}:1:2`, M3, '8n', 0.5));
-      if (next && bar % 2 === 1) out.push(midi(`${bar}:3:2`, app, '8n', 0.4));
+      out.push(midi(`${bar}:0:0`, R2, '4n', humanize(0.88)));
+      out.push(midi(`${bar}:0:2`, R2, '8n', humanize(0.42)));
+      out.push(midi(`${bar}:2:0`, P5, '4n', humanize(0.72)));
+      if (sectionB) out.push(midi(`${bar}:1:2`, M3, '8n', humanize(0.5)));
+      if (next && bar % 2 === 1) out.push(midi(`${bar}:3:2`, app, '8n', humanize(0.4)));
 
     } else if (sf === 'lofi') {
-      out.push(midi(`${bar}:0:0`, R2, '4n', 0.75));
-      out.push(midi(`${bar}:2:0`, P5, '4n', 0.62));
+      out.push(midi(`${bar}:0:0`, R2, '4n', humanize(0.75)));
+      out.push(midi(`${bar}:2:0`, P5, '4n', humanize(0.62)));
       if (sectionB) {
-        out.push(midi(`${bar}:1:0`, M3, '8n', 0.44));
-        out.push(midi(`${bar}:3:2`, app, '8n', 0.38));
+        out.push(midi(`${bar}:1:0`, M3, '8n', humanize(0.44)));
+        out.push(midi(`${bar}:3:2`, app, '8n', humanize(0.38)));
       }
 
     } else {
       // Pop / RnB
-      out.push(midi(`${bar}:0:0`, R2, '4n', 0.82));
-      out.push(midi(`${bar}:2:0`, P5, '4n', 0.68));
-      out.push(midi(`${bar}:1:2`, R2, '8n', 0.38)); // ghost
+      out.push(midi(`${bar}:0:0`, R2, '4n', humanize(0.82)));
+      out.push(midi(`${bar}:2:0`, P5, '4n', humanize(0.68)));
+      out.push(midi(`${bar}:1:2`, R2, '8n', humanize(0.38))); // ghost
       if (sectionB) {
-        out.push(midi(`${bar}:3:0`, R3, '8n', 0.58)); // octave jump
-        if (next && bar % 2 === 1) out.push(midi(`${bar}:3:2`, app, '8n', 0.45));
+        out.push(midi(`${bar}:3:0`, R3, '8n', humanize(0.58))); // octave jump
+        if (next && bar % 2 === 1) out.push(midi(`${bar}:3:2`, app, '8n', humanize(0.45)));
       }
     }
   }
@@ -225,21 +229,28 @@ export function generateChords(chords, style, bars = 16) {
     const type   = chord.type;
     const sectionB = chord.bar >= 8;
 
-    // Voicing: 2-3 notes close position, register 3
-    const voicing = chordNotes(root, type, 3).slice(0, type.includes('7') || type.includes('9') ? 4 : 3);
-    const velocity = sectionB ? 0.58 : 0.52;
+    // Spread voicing: root in octave 2, upper voices in octave 3
+    const rootNote   = chordNotes(root, type, 2)[0];
+    const upperNotes = chordNotes(root, type, 3).slice(1, type.includes('7') || type.includes('9') ? 4 : 3);
+    const voicing    = [rootNote, ...upperNotes];
+    const velocity   = sectionB ? 0.58 : 0.52;
 
-    // Play chord on bar start
-    voicing.forEach(n => out.push(midi(`${chord.bar}:0:0`, n, dur >= 2 ? '1n' : '2n', velocity)));
-
-    // Sustained second bar of a 2+ bar chord
-    if (dur >= 2) {
-      voicing.forEach(n => out.push(midi(`${chord.bar + 1}:0:0`, n, '1n', velocity - 0.06)));
-    }
-
-    // Section B: add rhythmic stabs for energy
-    if (sectionB && sf !== 'ambient' && dur >= 2) {
-      voicing.forEach(n => out.push(midi(`${chord.bar + 1}:2:0`, n, '4n', velocity + 0.08)));
+    if (sectionB && sf !== 'ambient') {
+      // Section B: quarter-note stabs on beats 1 and 3 for energy
+      voicing.forEach(n => out.push(midi(`${chord.bar}:0:0`, n, '2n', humanize(velocity))));
+      if (dur >= 2) {
+        voicing.forEach(n => out.push(midi(`${chord.bar}:2:0`, n, '4n', humanize(velocity + 0.08))));
+        voicing.forEach(n => out.push(midi(`${chord.bar + 1}:0:0`, n, '2n', humanize(velocity - 0.04))));
+        voicing.forEach(n => out.push(midi(`${chord.bar + 1}:2:0`, n, '4n', humanize(velocity + 0.06))));
+      }
+    } else {
+      // Section A: half note, retrigger on beat 3
+      voicing.forEach(n => out.push(midi(`${chord.bar}:0:0`, n, '2n', humanize(velocity))));
+      voicing.forEach(n => out.push(midi(`${chord.bar}:2:0`, n, '2n', humanize(velocity - 0.04))));
+      if (dur >= 2) {
+        voicing.forEach(n => out.push(midi(`${chord.bar + 1}:0:0`, n, '2n', humanize(velocity - 0.06))));
+        voicing.forEach(n => out.push(midi(`${chord.bar + 1}:2:0`, n, '2n', humanize(velocity - 0.08))));
+      }
     }
   });
 
