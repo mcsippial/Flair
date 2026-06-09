@@ -7,7 +7,7 @@ import Timeline from './components/Timeline';
 import AIPanel from './components/AIPanel';
 import Mixer from './components/Mixer';
 import PianoRoll from './components/PianoRoll';
-import { setupMasterBus, ensureToneStarted } from './engine/audioEngine';
+import { setupMasterBus, ensureToneStarted, getTrackNodes } from './engine/audioEngine';
 import * as Tone from 'tone';
 import { scheduleSession, clearSchedule } from './engine/scheduler';
 
@@ -24,6 +24,21 @@ export default function App() {
       toneSetup.current = true;
     }
   }, []);
+
+  // Sync mute/solo/volume to audio engine
+  useEffect(() => {
+    const anySolo = session.tracks.some(t => t.solo);
+    session.tracks.forEach(track => {
+      const nodes = getTrackNodes(track.id);
+      if (!nodes) return;
+      const shouldPlay = !track.muted && (!anySolo || track.solo);
+      const dbVal = shouldPlay ? Tone.gainToDb(Math.max(0.0001, track.volume)) : -Infinity;
+      if (nodes.synth) nodes.synth.volume.value = dbVal;
+      if (nodes.kick) nodes.kick.volume.value = dbVal;
+      if (nodes.snare) nodes.snare.volume.value = dbVal;
+      if (nodes.hihat) nodes.hihat.volume.value = dbVal;
+    });
+  }, [session.tracks]);
 
   // Keyboard shortcuts
   useEffect(() => {

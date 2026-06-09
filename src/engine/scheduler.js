@@ -57,8 +57,14 @@ function scheduleMidiTrack(track) {
     if (!clip.notes || clip.notes.length === 0) return;
     const startTime = `${clip.start}m`;
     const events = clip.notes.map(n => {
-      const beat = typeof n.time === 'string' ? n.time : `${n.time}`;
-      return [beat, n];
+      let t = n.time;
+      if (typeof t === 'number') {
+        const bar = Math.floor(t / 4);
+        const beat = Math.floor(t % 4);
+        const sixteenth = Math.round((t % 1) * 4);
+        t = `${bar}:${beat}:${sixteenth}`;
+      }
+      return [t, n];
     });
     const part = new Tone.Part((time, note) => {
       synth.triggerAttackRelease(note.note, note.duration || '8n', time, note.velocity || 0.7);

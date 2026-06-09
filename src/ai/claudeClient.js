@@ -26,7 +26,10 @@ Always respond with valid JSON in this shape:
   "actions": []
 }
 
-Supported action types: ADD_MIDI_TRACK, ADD_DRUM_TRACK, ADD_CLIP, UPDATE_BPM, UPDATE_KEY, MUTE_TRACK, SOLO_TRACK, SET_TRACK_VOLUME, ADD_AI_SUGGESTION, UNDO`;
+Supported action types: ADD_MIDI_TRACK, ADD_DRUM_TRACK, ADD_CLIP, UPDATE_BPM, UPDATE_KEY, MUTE_TRACK, SOLO_TRACK, SET_TRACK_VOLUME, ADD_AI_SUGGESTION, UNDO
+
+When generating notes for ADD_MIDI_TRACK or ADD_CLIP, use Tone.js time string format for the "time" field: "bar:beat:sixteenth" (e.g. "0:0:0", "0:1:0", "0:2:0", "0:3:0", "1:0:0").
+One bar = 4 beats. Generate at least 4 bars (16 beats) of notes for a full loop. Example note: { "time": "0:1:0", "note": "C3", "duration": "4n", "velocity": 0.8 }`;
 
 export async function sendMessage(userMessage, sessionContext) {
   const apiKey = getApiKey();

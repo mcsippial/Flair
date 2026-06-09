@@ -88,7 +88,7 @@ export default function PianoRoll({ session, dispatch }) {
             let beatPos = 0;
             if (typeof note.time === 'string') {
               const parts = note.time.split(':').map(Number);
-              beatPos = (parts[0] || 0) + (parts[1] || 0) / 4 + (parts[2] || 0) / 16;
+              beatPos = (parts[0] || 0) * 4 + (parts[1] || 0) + (parts[2] || 0) / 4;
             } else {
               beatPos = parseFloat(note.time) || 0;
             }
