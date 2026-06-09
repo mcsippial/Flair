@@ -2,7 +2,7 @@ function genId() {
   return Math.random().toString(36).substr(2, 9);
 }
 
-export function parseAndDispatch(aiResponse, dispatch) {
+export function parseAndDispatch(aiResponse, dispatch, session = null) {
   const { actions = [] } = aiResponse;
 
   actions.forEach(action => {
@@ -121,8 +121,32 @@ export function parseAndDispatch(aiResponse, dispatch) {
             }
           });
           break;
+        case 'ARM_TRACK':
+          dispatch({ type: 'ARM_TRACK', trackId: action.trackId });
+          break;
+        case 'SELECT_TRACK':
+          dispatch({ type: 'SELECT_TRACK', trackId: action.trackId });
+          break;
+        case 'OPEN_PIANO_ROLL': {
+          dispatch({ type: 'SELECT_TRACK', trackId: action.trackId });
+          // Use provided clipId or fall back to first clip on the track
+          const clipId = action.clipId || (session?.tracks.find(t => t.id === action.trackId)?.clips[0]?.id);
+          if (clipId) dispatch({ type: 'SELECT_CLIP', clipId });
+          dispatch({ type: 'SET_OPEN_PANEL', panel: 'pianoroll' });
+          break;
+        }
+        case 'OPEN_MIXER':
+          dispatch({ type: 'SET_OPEN_PANEL', panel: 'mixer' });
+          break;
+        case 'SET_TRANSPORT':
+          dispatch({ type: action.playing ? 'SET_PLAYING' : 'SET_PLAYING', isPlaying: action.playing });
+          // Note: actual transport start/stop is handled by App.jsx — this just signals intent
+          break;
         case 'UNDO':
           dispatch({ type: 'UNDO' });
+          break;
+        case 'REDO':
+          dispatch({ type: 'REDO' });
           break;
         default:
           console.warn('Unknown AI action type:', action.type);

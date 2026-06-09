@@ -38,7 +38,7 @@ export default function AIPanel({ session, dispatch }) {
     try {
       const response = await sendMessage(userMsg, buildSessionContext(session), session.aiMessages);
       dispatch({ type: 'ADD_AI_MESSAGE', message: { id: Math.random().toString(36).substr(2,9), role: 'assistant', text: response.message, actions: response.actions, timestamp: Date.now() } });
-      if (response.actions?.length) parseAndDispatch(response, dispatch);
+      if (response.actions?.length) parseAndDispatch(response, dispatch, session);
     } catch (err) {
       dispatch({ type: 'ADD_AI_MESSAGE', message: { id: Math.random().toString(36).substr(2,9), role: 'assistant', text: `Error: ${err.message}`, timestamp: Date.now() } });
     } finally {
@@ -72,7 +72,7 @@ export default function AIPanel({ session, dispatch }) {
             {msg.actions?.length > 0 && (
               <div className="msg-actions">
                 <button className="action-chip apply"
-                  onClick={() => parseAndDispatch({ message: msg.text, actions: msg.actions }, dispatch)}>
+                  onClick={() => parseAndDispatch({ message: msg.text, actions: msg.actions }, dispatch, session)}>
                   Apply changes
                 </button>
               </div>

@@ -112,21 +112,38 @@ COMPOSITION RULES — follow these for every session you build
    Ambient: long pad durations (1n, 2n), sparse lead, minimal drums
 
 ═══════════════════════════════════
-ACTIONS REFERENCE
+ACTIONS REFERENCE — you can dispatch any combination of these
 
-ADD_MIDI_TRACK: { type: "ADD_MIDI_TRACK", trackName, instrument, color, clips: [{ name, start:0, length:16, notes }] }
-ADD_DRUM_TRACK: { type: "ADD_DRUM_TRACK", trackName, color, clips: [{ name, start:0, length:16, notes }] }
-CREATE_AUDIO_TRACK: { type: "CREATE_AUDIO_TRACK", trackName } — creates an armed audio track, prompts user to hit record
-ADD_CLIP: { type: "ADD_CLIP", trackId, name, start, length, clipType, notes }
-UPDATE_CLIP: { type: "UPDATE_CLIP", trackId, clipId, changes: { notes } }
-REMOVE_TRACK: { type: "REMOVE_TRACK", trackId }
-UPDATE_BPM: { type: "UPDATE_BPM", bpm }
-UPDATE_KEY: { type: "UPDATE_KEY", key, scale }
-MUTE_TRACK: { type: "MUTE_TRACK", trackId }
-SOLO_TRACK: { type: "SOLO_TRACK", trackId }
-SET_TRACK_VOLUME: { type: "SET_TRACK_VOLUME", trackId, volume }
+CREATING CONTENT
+  ADD_MIDI_TRACK:    { trackName, instrument, color, clips:[{name,start:0,length:16,notes}] }
+  ADD_DRUM_TRACK:    { trackName, color, clips:[{name,start:0,length:16,notes}] }
+  CREATE_AUDIO_TRACK:{ trackName } — creates + arms an audio track; tell user to hit ⏺ to record
+  ADD_CLIP:          { trackId, name, start, length, clipType, notes }
+  UPDATE_CLIP:       { trackId, clipId, changes:{notes} }
+  REMOVE_TRACK:      { trackId }
 
-Track IDs are provided in the session context. Use them when modifying existing tracks.
+TRANSPORT & SESSION
+  UPDATE_BPM:        { bpm }
+  UPDATE_KEY:        { key, scale }
+  UNDO:              {}
+  REDO:              {}
+
+TRACK CONTROL
+  MUTE_TRACK:        { trackId }
+  SOLO_TRACK:        { trackId }
+  SET_TRACK_VOLUME:  { trackId, volume }
+  ARM_TRACK:         { trackId } — arms for recording; tell user to hit ⏺ after
+  SELECT_TRACK:      { trackId } — focuses/highlights the track
+
+UI NAVIGATION
+  OPEN_PIANO_ROLL:   { trackId, clipId? } — opens piano roll for that track's clip
+  OPEN_MIXER:        {} — switches bottom panel to mixer
+
+RECORDING LIMITATION
+  You CANNOT start or stop recording — the browser requires a physical button click for mic access.
+  When the user asks to record: use CREATE_AUDIO_TRACK or ARM_TRACK, then tell them to click ⏺.
+
+Track and clip IDs are in the session context. Always use them when referencing existing content.
 
 ═══════════════════════════════════
 EXAMPLE — "smooth jazz"
