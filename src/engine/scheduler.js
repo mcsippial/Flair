@@ -45,15 +45,17 @@ function scheduleDrumTrack(track) {
   const fx = buildFxChain(track);
   const meter = new Tone.Meter();
 
-  instruments.kick.disconnect();
-  instruments.snare.disconnect();
-  instruments.hihat.disconnect();
-  instruments.kick.connect(fx.input);
-  instruments.snare.connect(fx.input);
-  instruments.hihat.connect(fx.input);
+  // Compressor glues kick/snare/hihat into a cohesive drum bus
+  const drumBus = new Tone.Compressor({ threshold: -16, ratio: 4, attack: 0.003, release: 0.15 });
+  drumBus.connect(fx.input);
+
+  // Snare already has internal snareFilter — connect that, not snare directly
+  instruments.kick.connect(drumBus);
+  instruments.snareFilter.connect(drumBus);
+  instruments.hihat.connect(drumBus);
   instruments.kick.connect(meter);
 
-  setTrackNodes(track.id, { ...instruments, meter, ...fx });
+  setTrackNodes(track.id, { ...instruments, drumBus, meter, ...fx });
   const { kick, snare, hihat } = instruments;
 
   track.clips.forEach(clip => {
@@ -80,6 +82,8 @@ function scheduleMidiTrack(track) {
   if (synth._padFilter) {
     synth._padFilter.connect(fx.input);
     synth._padFilter.connect(meter);
+    // Pads always get reverb — dry pads sound terrible. Use track value or default 0.35.
+    if (fx.send_reverb) fx.send_reverb.gain.value = Math.max(track.reverb || 0, 0.35);
   } else {
     synth.connect(fx.input);
     synth.connect(meter);

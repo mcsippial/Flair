@@ -78,50 +78,50 @@ Create as many tracks as the style genuinely needs — no more, no less:
   - Full arrangement: 5–8 tracks (add layers, counter-melodies, textures)
   - Dense production (trap, orchestral, etc.): 8+ tracks if warranted
 
-MINIMUM NOTE COUNTS per track (these are floors, not targets — write as many as the music needs):
-  Drums: 60+ events across 16 bars
-  Bass: 24+ notes
-  Chords: 12+ notes (voicings every 2 bars)
-  Lead/melody: 20+ notes
+VELOCITY IS EVERYTHING — music sounds mechanical when every note has the same velocity.
+  Rule: within any pattern, vary velocities constantly. Use the full range:
+  Ghost notes 0.1–0.2 | Supporting notes 0.4–0.6 | Accents 0.75–0.95
+  No two consecutive notes should have the same velocity value.
+
+MINIMUM NOTE COUNTS (floors, not targets):
+  Drums: 60+ events  |  Bass: 24+  |  Chords: 12+  |  Lead: 20+
 
 1. CHORD PROGRESSION
-   Pick a real progression. Assign one chord per 2-bar block (8 changes total).
-   Every bar must have notes — do NOT repeat bars by omission.
+   Pick a real progression, assign one chord per 2-bar block (8 changes total).
+   Every bar must have notes — do NOT leave bars empty by omission.
 
-2. DRUMS — write each bar explicitly:
-   Bars 0–3: kick beat0+beat2, snare beat1+beat3, hihat every 8th
-   Bar 4: drum fill — add 4+ extra hits on sixteenth subdivisions
-   Bars 5–7: groove + ghost snare (velocity 0.25) on offbeat sixteenths
-   Bar 8: breakdown — drop to sparse (kick beat0, snare beat2 only)
-   Bars 9–11: section B — denser hihat (every 16th), extra kick
-   Bar 12: snare roll across the bar
-   Bars 13–14: dense push
-   Bar 15: ending fill — 4-note kick run
+2. DRUMS — write each bar explicitly, vary velocities within every pattern:
+   Foundation (bars 0–3): kick "N:0:0" (0.9), "N:2:0" (0.75); snare "N:1:0" (0.8), "N:3:0" (0.8);
+     hihat on beats (0.45) and offbeats (0.2)
+   Fill (bar 4): extra hits on sixteenths at beat 3, velocities stepping up 0.5→0.7→0.85→0.95
+   Groove (bars 5–7): same foundation + ghost snare on sixteenth 2 of beats 0 and 2 (vel 0.15)
+   Breakdown (bar 8): kick beat 0 only, snare beat 2 only — maximum space
+   Section B (bars 9–11): 16th hihats alternating vel 0.15/0.4, extra syncopated kick
+   Build (bar 12): 8 snare hits rising 0.3→0.9
+   Push (bars 13–14): dense, all instruments
+   Ending fill (bar 15): kick on every beat with snare rolls
 
-3. BASS
-   Section A (bars 0–7): root on beat 0, fifth on beat 2, approach note beat 3+sixteenth2
-   Section B (bars 8–15): add syncopation, octave jumps, more movement
-   Follow chord roots when the chord changes.
+3. BASS — velocities: root downbeat 0.8, upbeat notes 0.5, ghost notes 0.25
+   Section A (bars 0–7): root beat 0, fifth beat 2, chromatic approach beat 3+sixteenth 2
+   Section B (bars 8–15): add syncopation, octave jumps, anticipate chord changes
 
-4. CHORDS (PAD)
-   2–3 note voicings per chord change. Duration "2n" or "1n".
-   Register 3–4 (e.g. "C3","E3","G3"). For jazz: add 7ths and 9ths.
+4. CHORDS (PAD) — velocity 0.5–0.65 (pads sit behind everything else)
+   Hold full chords with "1n" or "2n" durations. Let them breathe — don't arpeggiate.
+   2–3 close voicings per chord. Register 3–4. Jazz: 7ths and 9ths.
 
-5. LEAD / MELODY
-   Write a real singable phrase — not scale runs.
-   Section A: introduce a 4-bar phrase, then a response.
-   Section B: develop it — vary rhythm, extend range, or answer with new phrase.
-   Use "8n"+"16n". Leave rests (skip beats). Syncopate — don't play on every beat.
+5. LEAD / MELODY — velocities: peaks 0.8, regular 0.55–0.65, pickups 0.4
+   Write a real phrase with shape: a motif, a response, a development.
+   Bars 0–3: introduce motif. Bars 4–7: vary it. Bars 8–11: develop upward. Bars 12–15: resolve.
+   Use "8n"+"16n". Leave deliberate rests. Never play on every 16th note.
 
-6. SECTION DIFFERENTIATION
-   Bars 8–15 MUST sound different from bars 0–7 in at least 2 tracks.
+6. SECTION DIFFERENTIATION — bars 8–15 must feel different from bars 0–7 in at least 2 tracks.
 
-7. STYLE SPECIFICS
-   Jazz: swing phrasing, chord tones on downbeats, chromatic approach notes, ghost snares
-   Trap: 16th hihat runs, heavy syncopation, bass on beat 0 + offbeat
-   Lo-fi: simple groove, laid-back bass, sparse melody
-   Bossa nova: bass on beats 0+2, cross-stick snare pattern, sparse chord stabs
-   Ambient: long pad durations (1n), very sparse lead, minimal drums
+7. STYLE SPECIFICS:
+   Jazz: swing 8ths (push to the "and"), chord tones on downbeats, chromatic approaches, ghost snares, walking bass
+   Trap: 16th hihat runs alternating velocities, heavy kick syncopation, 808 bass slides
+   Lo-fi: simple groove, laid-back bass, sparse lead with space, ghost snares for texture
+   Bossa nova: bass on beats 0+2, cross-stick snare, guitar-stab chord rhythms
+   Ambient: whole-bar pad sustains, extremely sparse lead, no or minimal drums
 
 ═══════════════════════════════════
 ACTIONS REFERENCE — you can dispatch any combination of these

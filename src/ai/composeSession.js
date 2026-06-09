@@ -54,50 +54,57 @@ Step 1 — Choose a chord progression. Example for minor key: Am7–Dm7–G7–C
     Bars 12–13: chord IV
     Bars 14–15: chord I (cadence home)
 
-Step 2 — Write drums for all 16 bars following these EXACT rules:
-  FOUNDATION (bars 0,1,2,3): kick on beats 0+2, snare on beats 1+3, hihat every 8th note (0+2+4+6 sixteenths)
-  FILL AT BAR 4: add 4–6 extra kick/snare hits on sixteenths (e.g. "4:3:0","4:3:1","4:3:2","4:3:3")
-  GROOVE (bars 5,6,7): same as foundation but add one ghost snare (velocity 0.25) on offbeats
-  BIG BREAK (bar 8): drop to just kick on beat 0 and snare on beat 2 — create space
-  SECTION B GROOVE (bars 9,10,11): denser — add 16th hihat (every sixteenth), extra kick on beat 2+sixteenth 2
-  BUILD FILL (bar 12): roll of 8 snare hits across the bar at sixteenth resolution
-  CLIMAX (bars 13,14): keep dense pattern
-  ENDING FILL (bar 15): 4-note kick run into downbeat on every beat
+Step 2 — Write drums for all 16 bars:
+  FOUNDATION (bars 0–3):
+    Kick: "N:0:0" (vel 0.9), "N:2:0" (vel 0.75)
+    Snare: "N:1:0" (vel 0.8), "N:3:0" (vel 0.8)
+    Hihat: beats 0,2 (vel 0.5) and off-beats 0:2, 1:2, 2:2, 3:2 (vel 0.25)
+  FILL BAR 4: extra snare/kick hits at sixteenths 1,2,3 of beat 3 (vel 0.6–0.9 varying)
+  GROOVE bars 5–7: add ghost snares (vel 0.15–0.20) on sixteenth 2 of beats 0 and 2
+  BAR 8 BREAKDOWN: kick on beat 0 only, snare on beat 2 only — maximum space
+  SECTION B (bars 9–11): 16th hihats every sixteenth (vel 0.15–0.45 alternating), extra kick on beat 1+sixteenth 2
+  BUILD (bar 12): 8 snare hits spread across the bar on sixteenths, velocity rising 0.3→0.9
+  PUSH (bars 13–14): dense hihat + kick on all 4 beats
+  ENDING FILL (bar 15): kick on every beat with snare rolls
 
 Step 3 — Write bass for all 16 bars:
-  Section A (bars 0–7): root note on beat 0, fifth on beat 2, approach note on beat 3+sixteenth 2
-  Section B (bars 8–15): add syncopation — root on beat 0, ghost on beat 0+sixteenth 2, fifth on beat 1+sixteenth 2, octave jump on beat 3
-  Follow chord roots: when chord changes, bass root changes with it.
+  Use these velocities: downbeat root 0.8, upbeat notes 0.55, ghost/passing notes 0.3
+  Section A (bars 0–7): root on beat 0, fifth on beat 2, chromatic approach on beat 3+sixteenth 2
+  Section B (bars 8–15): syncopated — root on beat 0, anticipate next chord on beat 3+sixteenth 2 of prior bar, add octave jumps for tension
+  When chord changes, bass root changes with it immediately on the downbeat.
 
 Step 4 — Write chords (pad) for all 16 bars:
-  Play each chord as 2–3 note voicing.
-  Duration "2n" (half note) or "1n" (whole note) for pad sustain.
-  Change chord at the bar boundary matching your progression.
-  Use register 3–4 for piano voicings (e.g. "C3","E3","G3" for C major).
+  2–3 note close voicings. Duration "1n" for whole-bar sustain or "2n" for 2-beat sustain.
+  Let chords breathe — silence between voicings is fine. Don't arpeggiate, hold them.
+  Velocity 0.5–0.65 (pads are background, not foreground).
+  Register 3–4. Jazz: include 7ths and 9ths ("C3","E3","G3","B3" for Cmaj7).
 
 Step 5 — Write lead melody for all 16 bars:
-  Section A melody (bars 0–7): one 4-bar phrase, then a response phrase.
-  Section B melody (bars 8–15): develop the phrase — invert it, extend it, or modulate.
-  Use scale degrees, aim for strong beats on chord tones.
-  Use "8n" and "16n" durations. Leave rests (just skip beats — silence is important).
-  Avoid playing on every single beat — syncopate.
+  Velocities: phrase peaks 0.8, regular notes 0.55–0.65, pickup notes 0.4
+  Section A (bars 0–3): introduce a memorable 2-bar motif, then a 2-bar response
+  Section A (bars 4–7): repeat motif with slight variation (different end note, different rhythm)
+  Section B (bars 8–11): develop — raise the register, extend the phrase, add runs
+  Section B (bars 12–15): climax and resolution — reach the highest note of the piece, then resolve down to the root
+  Use "8n" and "16n". Leave deliberate rests — silence shapes the phrase. Never play on every 16th.
 
 ═══════════════════════════
-MINIMUM NOTE COUNTS (per track, when that track is present):
-  Drums: 60+ events (more for dense genres like trap)
-  Bass: 24+ notes
-  Chords: 12+ notes (voicings every 2 bars minimum)
-  Lead/melody: 20+ notes (can be sparser for ambient)
+VELOCITY IS EVERYTHING — mechanical music happens when every note has the same velocity.
+  Rule: within any pattern, no two consecutive notes should have the same velocity.
+  Use the full range: ghost notes 0.1–0.2, supporting notes 0.4–0.6, accents 0.75–0.95.
 
 ═══════════════════════════
-STYLE NOTES:
-  Jazz: swing phrasing, chord tones on downbeats, chromatic approach notes, ghost snares on offbeats
-  Trap: 808 slides, 16th hihat runs, heavy syncopation, bass on beat 0 + offbeat
-  Lo-fi: simple groove, laid-back feel, sparse lead with lots of space
-  Bossa nova: bass on 1 and 3, cross-stick snare, guitar-style chord stabs
-  Ambient: long pad durations (1n), extremely sparse lead, minimal drums
+MINIMUM NOTE COUNTS (per track, when present):
+  Drums: 60+ events  |  Bass: 24+ notes  |  Chords: 12+ notes  |  Lead: 20+ notes
 
-Every bar must be explicitly notated. Do not assume bars repeat — write each bar fully.`;
+═══════════════════════════
+STYLE SPECIFICS:
+  Jazz: swing feel (push 8th notes to the "and"), chord tones on downbeats, chromatic approach notes (semitone below target), ghost snares, walking bass
+  Trap: 16th hihat runs with alternating velocities (0.1, 0.4, 0.1, 0.4…), heavy kick syncopation, 808-style bass slides (two notes overlapping)
+  Lo-fi: simple 4-bar loop groove, laid-back bass, sparse lead with lots of space, vinyl-feel ghost snares
+  Bossa nova: bass on beats 0+2, cross-stick snare on beat 1+sixteenth 2, guitar-stab chord rhythms
+  Ambient: whole-bar pad sustains (1n), extremely sparse lead (one note every 2–4 bars), minimal or no drums
+
+Every bar must be fully written. Do not repeat prior bars by omission — each bar is its own block of JSON.`;
 
 export async function composeStarterSession(intent) {
   const apiKey = getApiKey();

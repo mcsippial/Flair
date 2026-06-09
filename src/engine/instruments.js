@@ -3,8 +3,7 @@ import { getMasterGain } from './audioEngine';
 
 function dest() { return getMasterGain() || Tone.getDestination(); }
 
-// ─── Sampler configs ────────────────────────────────────────────────────────
-// Keys: Salamander Grand Piano (official Tone.js CDN, very reliable)
+// ─── Sampler configs ──────────────────────────────────────────────────────────
 const PIANO_URLS = {
   A0:'A0.mp3', C1:'C1.mp3', F1:'F1.mp3', A1:'A1.mp3',
   C2:'C2.mp3', F2:'F2.mp3', A2:'A2.mp3', C3:'C3.mp3',
@@ -13,14 +12,12 @@ const PIANO_URLS = {
   C6:'C6.mp3', F6:'F6.mp3', A6:'A6.mp3', C7:'C7.mp3',
 };
 
-// Bass: bass-electric (nbrosowsky tonejs-instruments)
 const BASS_URLS = {
   'A1':'A1.mp3','A2':'A2.mp3','A3':'A3.mp3','A4':'A4.mp3',
   'E1':'E1.mp3','E2':'E2.mp3','E3':'E3.mp3','E4':'E4.mp3',
   'G1':'G1.mp3','G2':'G2.mp3','G3':'G3.mp3',
 };
 
-// Lead: trumpet (nbrosowsky tonejs-instruments)
 const TRUMPET_URLS = {
   'A3':'A3.mp3','A4':'A4.mp3','A#4':'As4.mp3',
   'C4':'C4.mp3','C5':'C5.mp3',
@@ -29,22 +26,21 @@ const TRUMPET_URLS = {
   'G3':'G3.mp3','G4':'G4.mp3','A#3':'As3.mp3',
 };
 
-const NBRO = 'https://nbrosowsky.github.io/tonejs-instruments/samples/';
+const NBRO   = 'https://nbrosowsky.github.io/tonejs-instruments/samples/';
 const TONEJS = 'https://tonejs.github.io/audio/salamander/';
 
-// ─── Sampler factory ─────────────────────────────────────────────────────────
 function makeSampler(urls, baseUrl) {
   return new Tone.Sampler({ urls, baseUrl, release: 1 }).connect(dest());
 }
 
-// ─── Pad: warm sawtooth through lowpass filter, sounds like strings/Rhodes ────
-// The filter is attached as ._padFilter so scheduler.js can store + dispose it.
-function makePad() {
-  const filter = new Tone.Filter({ frequency: 1800, type: 'lowpass', rolloff: -24 });
+// ─── Pad: warm triangle through lowpass, auto-wired for reverb ───────────────
+// _padFilter is stored so scheduler.js can route it into the FX chain
+export function makePad() {
+  const filter = new Tone.Filter({ frequency: 1400, type: 'lowpass', rolloff: -12 });
   const synth = new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: 'sawtooth' },
-    envelope: { attack: 0.4, decay: 0.2, sustain: 0.85, release: 2.5 },
-    volume: -12,
+    oscillator: { type: 'triangle' },
+    envelope: { attack: 1.0, decay: 0.2, sustain: 0.85, release: 4.0 },
+    volume: -14,
   });
   synth.connect(filter);
   synth._padFilter = filter;
@@ -53,40 +49,45 @@ function makePad() {
 
 export function createMidiInstrument(preset = 'keys') {
   switch (preset) {
-    case 'bass':
-      return makeSampler(BASS_URLS, `${NBRO}bass-electric/`);
-    case 'lead':
-      return makeSampler(TRUMPET_URLS, `${NBRO}trumpet/`);
-    case 'pad':
-      return makePad();
+    case 'bass': return makeSampler(BASS_URLS, `${NBRO}bass-electric/`);
+    case 'lead': return makeSampler(TRUMPET_URLS, `${NBRO}trumpet/`);
+    case 'pad':  return makePad();
     case 'keys':
-    default:
-      return makeSampler(PIANO_URLS, TONEJS);
+    default:     return makeSampler(PIANO_URLS, TONEJS);
   }
 }
 
-// ─── Drums: synthesis (MembraneSynth + NoiseSynth) ───────────────────────────
+// ─── Drums ────────────────────────────────────────────────────────────────────
+// Returns { kick, snare, snareFilter, hihat } — all disconnected from dest()
+// so the scheduler can route them through the drum bus compressor.
 export function createDrumInstruments() {
-  const d = dest();
-
+  // Kick: deep membrane with fast pitch drop
   const kick = new Tone.MembraneSynth({
-    pitchDecay: 0.05, octaves: 6,
-    envelope: { attack: 0.001, decay: 0.35, sustain: 0, release: 0.1 },
-    volume: 2,
-  }).connect(d);
+    pitchDecay: 0.08,
+    octaves: 10,
+    envelope: { attack: 0.001, decay: 0.38, sustain: 0, release: 0.18 },
+    volume: 6,
+  });
 
+  // Snare: white noise through a bandpass filter centered around the body frequency
+  const snareFilter = new Tone.Filter({ frequency: 2800, type: 'bandpass', rolloff: -12 });
   const snare = new Tone.NoiseSynth({
     noise: { type: 'white' },
-    envelope: { attack: 0.001, decay: 0.18, sustain: 0, release: 0.06 },
-    volume: -2,
-  }).connect(d);
+    envelope: { attack: 0.001, decay: 0.14, sustain: 0, release: 0.05 },
+    volume: 2,
+  });
+  snare.connect(snareFilter);
 
-  const hihatFilter = new Tone.Filter(10000, 'highpass').connect(d);
-  const hihat = new Tone.NoiseSynth({
-    noise: { type: 'white' },
-    envelope: { attack: 0.001, decay: 0.04, sustain: 0, release: 0.01 },
-    volume: -8,
-  }).connect(hihatFilter);
+  // Hihat: MetalSynth sounds dramatically more realistic than NoiseSynth+highpass
+  const hihat = new Tone.MetalSynth({
+    frequency: 400,
+    envelope: { attack: 0.001, decay: 0.08, release: 0.01 },
+    harmonicity: 5.1,
+    modulationIndex: 32,
+    resonance: 4000,
+    octaves: 1.5,
+    volume: -10,
+  });
 
-  return { kick, snare, hihat, hihatFilter };
+  return { kick, snare, snareFilter, hihat };
 }
