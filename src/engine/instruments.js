@@ -1,24 +1,26 @@
 import * as Tone from 'tone';
+import { getMasterLimiter } from './audioEngine';
+
+function destination() {
+  return getMasterLimiter() || Tone.getDestination();
+}
 
 export function createDrumInstruments() {
+  const dest = destination();
   const kick = new Tone.MembraneSynth({
     pitchDecay: 0.08, octaves: 5,
     envelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.1 }
-  });
+  }).connect(dest);
   const snare = new Tone.NoiseSynth({
     noise: { type: 'white' },
     envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.05 }
-  });
+  }).connect(dest);
+  const hihatFilter = new Tone.Filter(8000, 'highpass').connect(dest);
   const hihat = new Tone.NoiseSynth({
     noise: { type: 'white' },
     envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.01 }
-  });
-  const hihatFilter = new Tone.Filter(8000, 'highpass');
-  hihat.connect(hihatFilter);
-  hihatFilter.toDestination();
-  kick.toDestination();
-  snare.toDestination();
-  return { kick, snare, hihat };
+  }).connect(hihatFilter);
+  return { kick, snare, hihat, hihatFilter };
 }
 
 export function createMidiInstrument(preset = 'keys') {
@@ -29,6 +31,6 @@ export function createMidiInstrument(preset = 'keys') {
     lead: { oscillator: { type: 'sawtooth' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.5 } },
   };
   const synth = new Tone.PolySynth(Tone.Synth, presets[preset] || presets.keys);
-  synth.toDestination();
+  synth.connect(destination());
   return synth;
 }

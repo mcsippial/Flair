@@ -19,8 +19,22 @@ function getNote(root, semitones) {
   return notes[(notes.indexOf(root) + semitones) % 12] + '3';
 }
 
+const LOOP_BARS = 16;
+
+function repeatPattern(notes, patternBars, totalBars) {
+  const result = [];
+  for (let rep = 0; rep < totalBars / patternBars; rep++) {
+    notes.forEach(n => {
+      const parts = n.time.split(':').map(Number);
+      const newBar = parts[0] + rep * patternBars;
+      result.push({ ...n, time: `${newBar}:${parts[1] || 0}:${parts[2] || 0}` });
+    });
+  }
+  return result;
+}
+
 function buildSession(key, scale, bpm, type) {
-  const drumNotes = [
+  const drumPattern = [
     { time: '0:0:0', drum: 'kick', velocity: 0.9 },
     { time: '0:1:0', drum: 'snare', velocity: 0.7 },
     { time: '0:0:2', drum: 'hihat', velocity: 0.35 },
@@ -30,13 +44,13 @@ function buildSession(key, scale, bpm, type) {
     { time: '0:3:0', drum: 'snare', velocity: 0.7 },
     { time: '0:3:2', drum: 'hihat', velocity: 0.35 },
   ];
-  const bassNotes = [
+  const bassPattern = [
     { time: '0:0:0', note: `${key}2`, duration: '4n', velocity: 0.8 },
     { time: '0:1:2', note: `${key}2`, duration: '8n', velocity: 0.6 },
     { time: '0:2:0', note: `${key}2`, duration: '4n', velocity: 0.75 },
     { time: '0:3:0', note: `${key}2`, duration: '8n', velocity: 0.6 },
   ];
-  const padNotes = [
+  const padPattern = [
     { time: '0:0:0', note: `${key}3`, duration: '2n', velocity: 0.45 },
     { time: '0:0:0', note: getNote(key, scale === 'minor' ? 3 : 4), duration: '2n', velocity: 0.38 },
     { time: '0:2:0', note: `${key}3`, duration: '2n', velocity: 0.45 },
@@ -48,13 +62,13 @@ function buildSession(key, scale, bpm, type) {
       id: genId(), name: 'Drums', type: 'drum', color: '#c4a882',
       muted: false, solo: false, armed: false, volume: 0.8, pan: 0,
       eq: { low: 0, mid: 0, high: 0 },
-      clips: [{ id: genId(), name: 'Pattern', start: 0, length: 4, notes: drumNotes, type: 'drum' }],
+      clips: [{ id: genId(), name: 'Pattern', start: 0, length: LOOP_BARS, notes: repeatPattern(drumPattern, 1, LOOP_BARS), type: 'drum' }],
     },
     {
       id: genId(), name: 'Bass', type: 'midi', instrument: 'bass', color: '#6ba3c4',
       muted: false, solo: false, armed: false, volume: 0.75, pan: 0,
       eq: { low: 0, mid: 0, high: 0 },
-      clips: [{ id: genId(), name: 'Bass Line', start: 0, length: 4, notes: bassNotes, type: 'midi' }],
+      clips: [{ id: genId(), name: 'Bass Line', start: 0, length: LOOP_BARS, notes: repeatPattern(bassPattern, 1, LOOP_BARS), type: 'midi' }],
     },
   ];
 
@@ -63,7 +77,7 @@ function buildSession(key, scale, bpm, type) {
       id: genId(), name: 'Chords', type: 'midi', instrument: 'pad', color: '#9b82c4',
       muted: false, solo: false, armed: false, volume: 0.55, pan: 0,
       eq: { low: 0, mid: 0, high: 0 },
-      clips: [{ id: genId(), name: 'Chords', start: 0, length: 4, notes: padNotes, type: 'midi' }],
+      clips: [{ id: genId(), name: 'Chords', start: 0, length: LOOP_BARS, notes: repeatPattern(padPattern, 1, LOOP_BARS), type: 'midi' }],
     });
   }
 

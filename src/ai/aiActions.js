@@ -55,6 +55,26 @@ export function parseAndDispatch(aiResponse, dispatch) {
             }
           });
           break;
+        case 'ADD_CLIP':
+          dispatch({
+            type: 'ADD_CLIP',
+            trackId: action.trackId,
+            clip: {
+              id: genId(),
+              name: action.name || 'Clip',
+              start: action.start || 0,
+              length: action.length || 16,
+              notes: action.notes || [],
+              type: action.clipType || 'midi',
+            }
+          });
+          break;
+        case 'UPDATE_CLIP':
+          dispatch({ type: 'UPDATE_CLIP', trackId: action.trackId, clipId: action.clipId, changes: action.changes || {} });
+          break;
+        case 'REMOVE_TRACK':
+          dispatch({ type: 'REMOVE_TRACK', trackId: action.trackId });
+          break;
         case 'UPDATE_BPM':
           dispatch({ type: 'UPDATE_BPM', bpm: action.bpm });
           break;

@@ -8,7 +8,7 @@ export const initialSession = {
   tracks: [],
   playheadPosition: 0,
   loopStart: 0,
-  loopEnd: 8,
+  loopEnd: 16,
   loopEnabled: false,
   isPlaying: false,
   selectedTrackId: null,

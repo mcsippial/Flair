@@ -1,11 +1,12 @@
 import * as Tone from 'tone';
-import { getTrackNodes, setTrackNodes } from './audioEngine';
+import { getTrackNodes, setTrackNodes, disposeAllTracks } from './audioEngine';
 import { createDrumInstruments, createMidiInstrument } from './instruments';
 
 let scheduledParts = [];
 
 export function scheduleSession(tracks) {
   clearSchedule();
+  disposeAllTracks();
   tracks.forEach(track => scheduleTrack(track));
 }
 
@@ -18,13 +19,10 @@ export function scheduleTrack(track) {
 }
 
 function scheduleDrumTrack(track) {
-  let nodes = getTrackNodes(track.id);
-  if (!nodes) {
-    const instruments = createDrumInstruments();
-    const meter = new Tone.Meter();
-    nodes = { ...instruments, meter };
-    setTrackNodes(track.id, nodes);
-  }
+  const instruments = createDrumInstruments();
+  const meter = new Tone.Meter();
+  const nodes = { ...instruments, meter };
+  setTrackNodes(track.id, nodes);
   const { kick, snare, hihat } = nodes;
 
   track.clips.forEach(clip => {
@@ -42,15 +40,11 @@ function scheduleDrumTrack(track) {
 }
 
 function scheduleMidiTrack(track) {
-  let nodes = getTrackNodes(track.id);
-  if (!nodes) {
-    const preset = track.instrument || 'keys';
-    const synth = createMidiInstrument(preset);
-    const meter = new Tone.Meter();
-    synth.connect(meter);
-    nodes = { synth, meter };
-    setTrackNodes(track.id, nodes);
-  }
+  const preset = track.instrument || 'keys';
+  const synth = createMidiInstrument(preset);
+  const meter = new Tone.Meter();
+  const nodes = { synth, meter };
+  setTrackNodes(track.id, nodes);
   const { synth } = nodes;
 
   track.clips.forEach(clip => {

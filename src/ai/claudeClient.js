@@ -26,10 +26,25 @@ Always respond with valid JSON in this shape:
   "actions": []
 }
 
-Supported action types: ADD_MIDI_TRACK, ADD_DRUM_TRACK, ADD_CLIP, UPDATE_BPM, UPDATE_KEY, MUTE_TRACK, SOLO_TRACK, SET_TRACK_VOLUME, ADD_AI_SUGGESTION, UNDO
+Supported action types and their required fields:
 
-When generating notes for ADD_MIDI_TRACK or ADD_CLIP, use Tone.js time string format for the "time" field: "bar:beat:sixteenth" (e.g. "0:0:0", "0:1:0", "0:2:0", "0:3:0", "1:0:0").
-One bar = 4 beats. Generate at least 4 bars (16 beats) of notes for a full loop. Example note: { "time": "0:1:0", "note": "C3", "duration": "4n", "velocity": 0.8 }`;
+ADD_MIDI_TRACK: { trackName, instrument ("bass"|"pad"|"keys"|"lead"), color (hex), clips: [{ name, start, length, notes }] }
+ADD_DRUM_TRACK: { trackName, color (hex), clips: [{ name, start, length, notes }] }
+ADD_CLIP: { trackId (from session context), name, start, length, clipType ("midi"|"drum"), notes }
+UPDATE_CLIP: { trackId, clipId, changes: { notes } }
+REMOVE_TRACK: { trackId }
+UPDATE_BPM: { bpm }
+UPDATE_KEY: { key, scale }
+MUTE_TRACK: { trackId }
+SOLO_TRACK: { trackId }
+SET_TRACK_VOLUME: { trackId, volume (0-1) }
+
+Note format — ALWAYS use Tone.js "bar:beat:sixteenth" strings for time (e.g. "0:0:0", "0:1:0", "1:2:0").
+One bar = 4 beats. Generate 16 bars of notes for a full loop. Duration values: "16n", "8n", "4n", "2n", "1n".
+Drum note fields: { time, drum ("kick"|"snare"|"hihat"), velocity }
+MIDI note fields: { time, note (e.g. "C3", "F#2"), duration, velocity }
+
+The session context includes track IDs — use them when referencing existing tracks.`;
 
 export async function sendMessage(userMessage, sessionContext) {
   const apiKey = getApiKey();

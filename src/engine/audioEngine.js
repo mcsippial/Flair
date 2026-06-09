@@ -23,11 +23,19 @@ export function setTrackNodes(trackId, nodes) { trackNodes[trackId] = nodes; }
 export function disposeTrack(trackId) {
   const nodes = trackNodes[trackId];
   if (nodes) {
-    if (nodes.sequence) nodes.sequence.dispose();
-    if (nodes.synth) nodes.synth.dispose();
-    if (nodes.meter) nodes.meter.dispose();
+    try { if (nodes.sequence) nodes.sequence.dispose(); } catch(e) {}
+    try { if (nodes.synth) nodes.synth.dispose(); } catch(e) {}
+    try { if (nodes.kick) nodes.kick.dispose(); } catch(e) {}
+    try { if (nodes.snare) nodes.snare.dispose(); } catch(e) {}
+    try { if (nodes.hihat) nodes.hihat.dispose(); } catch(e) {}
+    try { if (nodes.hihatFilter) nodes.hihatFilter.dispose(); } catch(e) {}
+    try { if (nodes.meter) nodes.meter.dispose(); } catch(e) {}
     delete trackNodes[trackId];
   }
+}
+
+export function disposeAllTracks() {
+  Object.keys(trackNodes).forEach(id => disposeTrack(id));
 }
 export function getMasterLimiter() { return masterLimiter; }
 export function getMasterReverb() { return masterReverb; }
