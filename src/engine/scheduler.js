@@ -41,28 +41,27 @@ function buildFxChain(track) {
 
 // ─── Drum track ───────────────────────────────────────────────────────────────
 function scheduleDrumTrack(track) {
-  const instruments = createDrumInstruments();
   const fx = buildFxChain(track);
   const meter = new Tone.Meter();
 
   // Compressor glues kick/snare/hihat into a cohesive drum bus
   const drumBus = new Tone.Compressor({ threshold: -16, ratio: 4, attack: 0.003, release: 0.15 });
   drumBus.connect(fx.input);
+  drumBus.connect(meter);
 
-  // Snare already has internal snareFilter — connect that, not snare directly
-  instruments.kick.connect(drumBus);
-  instruments.snareFilter.connect(drumBus);
-  instruments.hihat.connect(drumBus);
-  instruments.kick.connect(meter);
+  // createDrumInstruments now takes the destination and wires internally
+  const drums = createDrumInstruments(drumBus);
 
-  setTrackNodes(track.id, { ...instruments, drumBus, meter, ...fx });
-  const { kick, snare, hihat } = instruments;
+  setTrackNodes(track.id, {
+    kick: drums.kick, snareNoise: drums.snareNoise, hihat: drums.hihat,
+    drumBus, meter, ...fx, _drumNodes: drums._nodes,
+  });
 
   track.clips.forEach(clip => {
     const part = new Tone.Part((time, note) => {
-      if      (note.drum === 'kick')  kick.triggerAttackRelease('C1', '8n', time, note.velocity || 0.8);
-      else if (note.drum === 'snare') snare.triggerAttackRelease('8n', time, note.velocity || 0.6);
-      else if (note.drum === 'hihat') hihat.triggerAttackRelease('16n', time, note.velocity || 0.4);
+      if      (note.drum === 'kick')  drums.triggerKick(time, note.velocity || 0.8);
+      else if (note.drum === 'snare') drums.triggerSnare(time, note.velocity || 0.6);
+      else if (note.drum === 'hihat') drums.triggerHihat(time, note.velocity || 0.4);
     }, clip.notes || []);
     part.start(`${clip.start}m`);
     part.loop = true;

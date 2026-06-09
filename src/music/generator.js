@@ -7,6 +7,11 @@ function genId() { return Math.random().toString(36).substr(2, 9); }
 function note(time, drum, velocity) { return { id: genId(), time, drum, velocity }; }
 function midi(time, n, duration, velocity) { return { id: genId(), time, note: n, duration, velocity }; }
 
+// Humanize velocity by ±amount (small random deviation for organic feel)
+function humanize(vel, amount = 0.07) {
+  return Math.max(0.04, Math.min(1.0, vel + (Math.random() - 0.5) * 2 * amount));
+}
+
 // ─── Style classifier ─────────────────────────────────────────────────────────
 function styleFamily(style = '') {
   const s = style.toLowerCase();

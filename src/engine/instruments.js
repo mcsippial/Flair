@@ -33,17 +33,24 @@ function makeSampler(urls, baseUrl) {
   return new Tone.Sampler({ urls, baseUrl, release: 1 }).connect(dest());
 }
 
-// ─── Pad: warm triangle through lowpass, auto-wired for reverb ───────────────
+// ─── Pad: warm AM synth with chorus, auto-wired for reverb ───────────────────
 // _padFilter is stored so scheduler.js can route it into the FX chain
 export function makePad() {
-  const filter = new Tone.Filter({ frequency: 1400, type: 'lowpass', rolloff: -12 });
-  const synth = new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: 'triangle' },
-    envelope: { attack: 1.0, decay: 0.2, sustain: 0.85, release: 4.0 },
-    volume: -14,
+  const filter = new Tone.Filter({ frequency: 1800, type: 'lowpass', rolloff: -24 });
+  const chorus = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.4, wet: 0.35 }).start();
+  const synth = new Tone.PolySynth(Tone.AMSynth, {
+    harmonicity: 1.5,
+    oscillator: { type: 'sawtooth' },
+    envelope: { attack: 0.8, decay: 0.3, sustain: 0.75, release: 3.5 },
+    modulation: { type: 'sine' },
+    modulationEnvelope: { attack: 0.5, decay: 0.4, sustain: 0.5, release: 2 },
+    volume: -16,
   });
   synth.connect(filter);
-  synth._padFilter = filter;
+  filter.connect(chorus);
+  // scheduler routes _padFilter (the chorus output) into the FX chain
+  synth._padFilter = chorus;
+  synth._padChorus = chorus;
   return synth;
 }
 
@@ -58,36 +65,61 @@ export function createMidiInstrument(preset = 'keys') {
 }
 
 // ─── Drums ────────────────────────────────────────────────────────────────────
-// Returns { kick, snare, snareFilter, hihat } — all disconnected from dest()
-// so the scheduler can route them through the drum bus compressor.
-export function createDrumInstruments() {
-  // Kick: deep membrane with fast pitch drop
+// Returns an object with triggerKick/triggerSnare/triggerHihat methods plus
+// individual nodes and _nodes array for disposal.
+// destination: the drum bus compressor input
+export function createDrumInstruments(destination) {
+  // Kick: deep membrane with Chebyshev punch, parallel dry+dist
   const kick = new Tone.MembraneSynth({
-    pitchDecay: 0.08,
-    octaves: 10,
-    envelope: { attack: 0.001, decay: 0.38, sustain: 0, release: 0.18 },
-    volume: 6,
+    pitchDecay: 0.15,
+    octaves: 14,
+    oscillator: { type: 'sine' },
+    envelope: { attack: 0.001, decay: 0.55, sustain: 0, release: 0.25 },
+    volume: 8,
   });
+  const kickDist = new Tone.Chebyshev(2);
+  kick.connect(kickDist);
+  kickDist.connect(destination);
+  kick.connect(destination); // dry parallel
 
-  // Snare: white noise through a bandpass filter centered around the body frequency
-  const snareFilter = new Tone.Filter({ frequency: 2800, type: 'bandpass', rolloff: -12 });
-  const snare = new Tone.NoiseSynth({
+  // Snare: two-layer — noise crack + tonal body
+  const snareNoise = new Tone.NoiseSynth({
     noise: { type: 'white' },
-    envelope: { attack: 0.001, decay: 0.14, sustain: 0, release: 0.05 },
+    envelope: { attack: 0.001, decay: 0.14, sustain: 0, release: 0.06 },
     volume: 2,
   });
-  snare.connect(snareFilter);
-
-  // Hihat: MetalSynth sounds dramatically more realistic than NoiseSynth+highpass
-  const hihat = new Tone.MetalSynth({
-    frequency: 400,
-    envelope: { attack: 0.001, decay: 0.08, release: 0.01 },
-    harmonicity: 5.1,
-    modulationIndex: 32,
-    resonance: 4000,
-    octaves: 1.5,
-    volume: -10,
+  const snareBody = new Tone.Synth({
+    oscillator: { type: 'triangle' },
+    envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.04 },
+    volume: -8,
   });
+  const snareHPF = new Tone.Filter({ frequency: 3000, type: 'highpass', rolloff: -24 });
+  const snareMerge = new Tone.Gain(1);
+  snareNoise.connect(snareHPF);
+  snareHPF.connect(snareMerge);
+  snareBody.connect(snareMerge);
+  snareMerge.connect(destination);
 
-  return { kick, snare, snareFilter, hihat };
+  // Hihat: white noise through steep HPF — cleaner than MetalSynth
+  const hihat = new Tone.NoiseSynth({
+    noise: { type: 'white' },
+    envelope: { attack: 0.001, decay: 0.07, sustain: 0, release: 0.01 },
+    volume: -6,
+  });
+  const hihatHPF = new Tone.Filter({ frequency: 9000, type: 'highpass', rolloff: -48 });
+  hihat.connect(hihatHPF);
+  hihatHPF.connect(destination);
+
+  return {
+    triggerKick:   (time, vel) => kick.triggerAttackRelease('C1', '8n', time, vel),
+    triggerSnare:  (time, vel) => {
+      snareNoise.triggerAttackRelease('8n', time, vel);
+      snareBody.triggerAttackRelease('D2', '16n', time, vel * 0.6);
+    },
+    triggerHihat:  (time, vel, duration = '16n') => hihat.triggerAttackRelease(duration, time, vel),
+    // individual nodes for volume control
+    kick, snareNoise, snareBody, hihat,
+    // all nodes for disposal
+    _nodes: [kick, kickDist, snareNoise, snareBody, snareHPF, snareMerge, hihat, hihatHPF],
+  };
 }
