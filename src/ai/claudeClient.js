@@ -1,7 +1,8 @@
 const API_KEY_STORAGE = 'flair_claude_api_key';
+const BUILT_IN_KEY = import.meta.env.VITE_CLAUDE_API_KEY || '';
 
 export function getApiKey() {
-  return localStorage.getItem(API_KEY_STORAGE);
+  return localStorage.getItem(API_KEY_STORAGE) || BUILT_IN_KEY || null;
 }
 
 export function setApiKey(key) {
