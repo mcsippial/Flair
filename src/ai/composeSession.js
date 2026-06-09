@@ -55,10 +55,9 @@ export async function composeStarterSession(intent) {
   const apiKey = getApiKey();
   if (!apiKey) return buildFallback(intent);
 
-  const prompt = `Compose a 16-bar ${intent.type || 'track'} at ${intent.bpm || 'appropriate'} BPM in any key.${
-    intent.mood ? ` Mood: ${intent.mood}.` : ''
-  }${intent.description ? ` Reference: "${intent.description}".` : ''
-  } Choose the key, scale, and chord progression that best fits this style. Make section B harmonically distinct from section A.`;
+  const prompt = `${intent.description
+    ? `User request: "${intent.description}"\n\n`
+    : ''}Compose a 16-bar ${intent.type || 'track'}${intent.bpm ? ` at ${intent.bpm} BPM` : ''}. Interpret the request literally — if they say "dark trap", use a dark minor key and trap style; if they say "smooth jazz", use jazz chords and a relaxed tempo; if they say "energetic house", use a fast BPM and house style. Choose every parameter to serve the vibe. Make section B harmonically distinct from section A.`;
 
   try {
     const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
@@ -85,7 +84,8 @@ export async function composeStarterSession(intent) {
     }));
 
     // JS generates all note data from Claude's musical parameters
-    const session = generateSession(params);
+    // Pass description so styleFamily() can match more specific terms
+    const session = generateSession({ ...params, description: intent.description || '' });
 
     return {
       bpm: session.bpm,

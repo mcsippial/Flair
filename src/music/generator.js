@@ -13,13 +13,13 @@ function humanize(vel, amount = 0.07) {
 }
 
 // ─── Style classifier ─────────────────────────────────────────────────────────
-function styleFamily(style = '') {
-  const s = style.toLowerCase();
-  if (/jazz|swing|bossa|bebop/.test(s)) return 'jazz';
-  if (/trap|drill|hiphop|hip.hop|rap/.test(s)) return 'trap';
-  if (/lofi|lo.fi|chill|study/.test(s)) return 'lofi';
-  if (/house|techno|edm|electronic|dance/.test(s)) return 'house';
-  if (/ambient|drone|pad|space/.test(s)) return 'ambient';
+function styleFamily(style = '', description = '') {
+  const s = (style + ' ' + description).toLowerCase();
+  if (/jazz|swing|bossa|bebop|blues/.test(s)) return 'jazz';
+  if (/trap|drill|hiphop|hip.hop|rap|808/.test(s)) return 'trap';
+  if (/lofi|lo.fi|chill|study|bedroom/.test(s)) return 'lofi';
+  if (/house|techno|edm|electronic|dance|club/.test(s)) return 'house';
+  if (/ambient|drone|pad|space|meditation/.test(s)) return 'ambient';
   return 'pop';
 }
 
@@ -148,16 +148,16 @@ function drumBar(bar, style) {
   return hits;
 }
 
-export function generateDrums(chords, style, bars = 16) {
-  const sf = styleFamily(style);
+export function generateDrums(chords, style, bars = 16, description = '') {
+  const sf = styleFamily(style, description);
   const out = [];
   for (let bar = 0; bar < bars; bar++) out.push(...drumBar(bar, sf));
   return out;
 }
 
 // ─── BASS ─────────────────────────────────────────────────────────────────────
-export function generateBass(chords, style, key, scale, bars = 16) {
-  const sf = styleFamily(style);
+export function generateBass(chords, style, key, scale, bars = 16, description = '') {
+  const sf = styleFamily(style, description);
   const out = [];
 
   for (let bar = 0; bar < bars; bar++) {
@@ -217,8 +217,8 @@ export function generateBass(chords, style, key, scale, bars = 16) {
 }
 
 // ─── CHORDS ───────────────────────────────────────────────────────────────────
-export function generateChords(chords, style, bars = 16) {
-  const sf = styleFamily(style);
+export function generateChords(chords, style, bars = 16, description = '') {
+  const sf = styleFamily(style, description);
   const out = [];
 
   chords.forEach((chord, i) => {
@@ -258,8 +258,8 @@ export function generateChords(chords, style, bars = 16) {
 }
 
 // ─── MELODY ───────────────────────────────────────────────────────────────────
-export function generateMelody(chords, key, scale, style, bars = 16) {
-  const sf = styleFamily(style);
+export function generateMelody(chords, key, scale, style, bars = 16, description = '') {
+  const sf = styleFamily(style, description);
   const sNotes = scaleNotes(normalizeNote(key), scale, 4, 2);
   const out = [];
 
@@ -345,19 +345,19 @@ export function generateMelody(chords, key, scale, style, bars = 16) {
 
 // ─── Main assembler ───────────────────────────────────────────────────────────
 export function generateSession(params) {
-  const { bpm, key, scale, style, chords, trackList, bars = 16 } = params;
+  const { bpm, key, scale, style, chords, trackList, bars = 16, description = '' } = params;
 
   const tracks = trackList.map(t => {
     let notes = [];
 
     if (t.type === 'drum') {
-      notes = generateDrums(chords, style, bars);
+      notes = generateDrums(chords, style, bars, description);
     } else if (t.instrument === 'bass') {
-      notes = generateBass(chords, style, key, scale, bars);
+      notes = generateBass(chords, style, key, scale, bars, description);
     } else if (t.instrument === 'pad') {
-      notes = generateChords(chords, style, bars);
+      notes = generateChords(chords, style, bars, description);
     } else if (t.instrument === 'lead' || t.instrument === 'keys') {
-      notes = generateMelody(chords, key, scale, style, bars);
+      notes = generateMelody(chords, key, scale, style, bars, description);
     }
 
     return {
