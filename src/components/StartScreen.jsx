@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { composeStarterSession } from '../ai/composeSession';
+import { getApiKey } from '../ai/claudeClient';
 
 const CHIPS = [
   { id: 'beat', icon: '🥁', label: 'Beat' },
@@ -19,119 +21,159 @@ function getNote(root, semitones) {
   return notes[(notes.indexOf(root) + semitones) % 12] + '3';
 }
 
-const LOOP_BARS = 16;
+// Fallback procedural generator used when no API key is present
+function buildFallbackSession(key, scale, type) {
+  const chordRoots = scale === 'minor'
+    ? [0, 8, 7, 10] // i - VI - VII - VII (Am-F-G-G style)
+    : [0, 5, 7, 5];  // I - IV - V - IV
+  const notes = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const rootIdx = notes.indexOf(key);
 
-function repeatPattern(notes, patternBars, totalBars) {
-  const result = [];
-  for (let rep = 0; rep < totalBars / patternBars; rep++) {
-    notes.forEach(n => {
-      const parts = n.time.split(':').map(Number);
-      const newBar = parts[0] + rep * patternBars;
-      result.push({ ...n, time: `${newBar}:${parts[1] || 0}:${parts[2] || 0}` });
-    });
+  const drumNotes = [];
+  const bassNotes = [];
+  const padNotes = [];
+
+  for (let bar = 0; bar < 16; bar++) {
+    const chordRoot = notes[(rootIdx + chordRoots[Math.floor(bar / 2) % 4]) % 12];
+    const isFill = bar % 4 === 3;
+    const isDropBar = bar === 8;
+
+    // Drums
+    if (!isDropBar) {
+      drumNotes.push({ time: `${bar}:0:0`, drum: 'kick', velocity: 0.9 });
+      drumNotes.push({ time: `${bar}:1:0`, drum: 'snare', velocity: 0.7 });
+      drumNotes.push({ time: `${bar}:2:0`, drum: 'kick', velocity: bar >= 8 ? 0.85 : 0.75 });
+      drumNotes.push({ time: `${bar}:3:0`, drum: 'snare', velocity: 0.7 });
+      [0, 1, 2, 3].forEach(beat => {
+        drumNotes.push({ time: `${bar}:${beat}:2`, drum: 'hihat', velocity: bar >= 8 ? 0.4 : 0.3 });
+      });
+      if (isFill) {
+        drumNotes.push({ time: `${bar}:3:1`, drum: 'kick', velocity: 0.8 });
+        drumNotes.push({ time: `${bar}:3:2`, drum: 'snare', velocity: 0.6 });
+        drumNotes.push({ time: `${bar}:3:3`, drum: 'kick', velocity: 0.75 });
+      }
+    } else {
+      // drop bar: just kick and snare
+      drumNotes.push({ time: `${bar}:0:0`, drum: 'kick', velocity: 0.9 });
+      drumNotes.push({ time: `${bar}:2:0`, drum: 'snare', velocity: 0.65 });
+    }
+
+    // Bass - busier in section B
+    bassNotes.push({ time: `${bar}:0:0`, note: `${chordRoot}2`, duration: '4n', velocity: 0.8 });
+    bassNotes.push({ time: `${bar}:1:2`, note: `${chordRoot}2`, duration: '8n', velocity: 0.6 });
+    bassNotes.push({ time: `${bar}:2:0`, note: `${chordRoot}2`, duration: '4n', velocity: 0.75 });
+    if (bar >= 8) {
+      bassNotes.push({ time: `${bar}:3:0`, note: `${chordRoot}2`, duration: '8n', velocity: 0.65 });
+      bassNotes.push({ time: `${bar}:3:2`, note: `${chordRoot}2`, duration: '8n', velocity: 0.55 });
+    }
+
+    // Pad chords (change every 2 bars)
+    if (bar % 2 === 0) {
+      padNotes.push({ time: `${bar}:0:0`, note: `${chordRoot}3`, duration: '2n', velocity: 0.45 });
+      padNotes.push({ time: `${bar}:0:0`, note: getNote(chordRoot, scale === 'minor' ? 3 : 4), duration: '2n', velocity: 0.38 });
+      padNotes.push({ time: `${bar}:0:0`, note: getNote(chordRoot, 7), duration: '2n', velocity: 0.32 });
+    }
   }
-  return result;
-}
-
-function buildSession(key, scale, bpm, type) {
-  const drumPattern = [
-    { time: '0:0:0', drum: 'kick', velocity: 0.9 },
-    { time: '0:1:0', drum: 'snare', velocity: 0.7 },
-    { time: '0:0:2', drum: 'hihat', velocity: 0.35 },
-    { time: '0:1:2', drum: 'hihat', velocity: 0.35 },
-    { time: '0:2:0', drum: 'kick', velocity: 0.85 },
-    { time: '0:2:2', drum: 'hihat', velocity: 0.35 },
-    { time: '0:3:0', drum: 'snare', velocity: 0.7 },
-    { time: '0:3:2', drum: 'hihat', velocity: 0.35 },
-  ];
-  const bassPattern = [
-    { time: '0:0:0', note: `${key}2`, duration: '4n', velocity: 0.8 },
-    { time: '0:1:2', note: `${key}2`, duration: '8n', velocity: 0.6 },
-    { time: '0:2:0', note: `${key}2`, duration: '4n', velocity: 0.75 },
-    { time: '0:3:0', note: `${key}2`, duration: '8n', velocity: 0.6 },
-  ];
-  const padPattern = [
-    { time: '0:0:0', note: `${key}3`, duration: '2n', velocity: 0.45 },
-    { time: '0:0:0', note: getNote(key, scale === 'minor' ? 3 : 4), duration: '2n', velocity: 0.38 },
-    { time: '0:2:0', note: `${key}3`, duration: '2n', velocity: 0.45 },
-    { time: '0:2:0', note: getNote(key, 7), duration: '2n', velocity: 0.35 },
-  ];
 
   const tracks = [
-    {
-      id: genId(), name: 'Drums', type: 'drum', color: '#c4a882',
-      muted: false, solo: false, armed: false, volume: 0.8, pan: 0,
-      eq: { low: 0, mid: 0, high: 0 },
-      clips: [{ id: genId(), name: 'Pattern', start: 0, length: LOOP_BARS, notes: repeatPattern(drumPattern, 1, LOOP_BARS), type: 'drum' }],
-    },
-    {
-      id: genId(), name: 'Bass', type: 'midi', instrument: 'bass', color: '#6ba3c4',
-      muted: false, solo: false, armed: false, volume: 0.75, pan: 0,
-      eq: { low: 0, mid: 0, high: 0 },
-      clips: [{ id: genId(), name: 'Bass Line', start: 0, length: LOOP_BARS, notes: repeatPattern(bassPattern, 1, LOOP_BARS), type: 'midi' }],
-    },
+    { id: genId(), name: 'Drums', type: 'drum', color: '#c4a882', muted: false, solo: false, armed: false, volume: 0.8, pan: 0, eq: { low: 0, mid: 0, high: 0 }, clips: [{ id: genId(), name: 'Pattern', start: 0, length: 16, notes: drumNotes, type: 'drum' }] },
+    { id: genId(), name: 'Bass', type: 'midi', instrument: 'bass', color: '#6ba3c4', muted: false, solo: false, armed: false, volume: 0.75, pan: 0, eq: { low: 0, mid: 0, high: 0 }, clips: [{ id: genId(), name: 'Bass Line', start: 0, length: 16, notes: bassNotes, type: 'midi' }] },
   ];
-
   if (type !== 'beat') {
-    tracks.push({
-      id: genId(), name: 'Chords', type: 'midi', instrument: 'pad', color: '#9b82c4',
-      muted: false, solo: false, armed: false, volume: 0.55, pan: 0,
-      eq: { low: 0, mid: 0, high: 0 },
-      clips: [{ id: genId(), name: 'Chords', start: 0, length: LOOP_BARS, notes: repeatPattern(padPattern, 1, LOOP_BARS), type: 'midi' }],
-    });
+    tracks.push({ id: genId(), name: 'Chords', type: 'midi', instrument: 'pad', color: '#9b82c4', muted: false, solo: false, armed: false, volume: 0.55, pan: 0, eq: { low: 0, mid: 0, high: 0 }, clips: [{ id: genId(), name: 'Chords', start: 0, length: 16, notes: padNotes, type: 'midi' }] });
   }
-
-  return tracks;
+  return { tracks, bpm: Math.floor(Math.random() * 50) + 90, key, scale };
 }
 
-function parseIntent(text) {
-  const lower = text.toLowerCase();
-  const type = lower.includes('beat') || lower.includes('drum') ? 'beat'
-    : lower.includes('loop') ? 'loop'
+function parseIntent(text, chipId) {
+  const lower = (text || '').toLowerCase();
+  const type = chipId === 'beat' || lower.includes('beat') || lower.includes('drum') ? 'beat'
+    : chipId === 'loop' || lower.includes('loop') ? 'loop'
     : 'song';
 
-  const keyMatch = text.match(/\b([A-G]#?)\s*(major|minor|maj|min)?\b/i);
+  const keyMatch = text?.match(/\b([A-G]#?)\s*(major|minor|maj|min)?\b/i);
   const key = keyMatch ? keyMatch[1] : KEYS[Math.floor(Math.random() * 12)];
   const scale = lower.includes('major') || lower.includes('maj') ? 'major' : 'minor';
 
-  const bpmMatch = text.match(/(\d{2,3})\s*bpm/i);
+  const bpmMatch = text?.match(/(\d{2,3})\s*bpm/i);
   const bpm = bpmMatch ? parseInt(bpmMatch[1]) : Math.floor(Math.random() * 50) + 90;
 
   const mood = MOODS.find(m => lower.includes(m)) || MOODS[Math.floor(Math.random() * MOODS.length)];
 
-  return { type, key, scale, bpm: Math.max(60, Math.min(200, bpm)), mood };
+  return { type, key, scale, bpm: Math.max(60, Math.min(200, bpm)), mood, description: text };
 }
+
+const LOADING_LINES = [
+  'Setting the key and tempo…',
+  'Writing chord progression…',
+  'Laying down the groove…',
+  'Composing the bass line…',
+  'Building section B…',
+  'Almost there…',
+];
 
 export default function StartScreen({ onDismiss, dispatch }) {
   const [input, setInput] = useState('');
   const [building, setBuilding] = useState(false);
+  const [loadingLine, setLoadingLine] = useState(LOADING_LINES[0]);
   const inputRef = useRef(null);
+  const loadingInterval = useRef(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
 
-  const scaffold = (text, chipId) => {
+  const startLoadingLines = () => {
+    let i = 0;
+    loadingInterval.current = setInterval(() => {
+      i = (i + 1) % LOADING_LINES.length;
+      setLoadingLine(LOADING_LINES[i]);
+    }, 1800);
+  };
+
+  const stopLoadingLines = () => {
+    if (loadingInterval.current) clearInterval(loadingInterval.current);
+  };
+
+  const scaffold = async (text, chipId) => {
     const intent = chipId === 'surprise'
-      ? { type: 'song', key: KEYS[Math.floor(Math.random()*12)], scale: SCALES[Math.floor(Math.random()*2)], bpm: Math.floor(Math.random()*60)+80, mood: MOODS[Math.floor(Math.random()*6)] }
-      : parseIntent(text || chipId || 'song');
+      ? { type: 'song', key: KEYS[Math.floor(Math.random()*12)], scale: SCALES[Math.floor(Math.random()*2)], bpm: Math.floor(Math.random()*60)+80, mood: MOODS[Math.floor(Math.random()*6)], description: text }
+      : parseIntent(text, chipId);
 
     setBuilding(true);
+    setLoadingLine(LOADING_LINES[0]);
+    startLoadingLines();
 
-    setTimeout(() => {
-      const tracks = buildSession(intent.key, intent.scale, intent.bpm, intent.type);
-      dispatch({ type: 'UPDATE_BPM', bpm: intent.bpm });
-      dispatch({ type: 'UPDATE_KEY', key: intent.key, scale: intent.scale });
-      tracks.forEach(track => dispatch({ type: 'ADD_TRACK', track }));
+    try {
+      let result = null;
+      if (getApiKey()) {
+        result = await composeStarterSession(intent);
+      }
+      if (!result) {
+        result = buildFallbackSession(intent.key, intent.scale, intent.type);
+      }
+
+      stopLoadingLines();
+      dispatch({ type: 'UPDATE_BPM', bpm: result.bpm });
+      dispatch({ type: 'UPDATE_KEY', key: result.key, scale: result.scale });
+      result.tracks.forEach(track => dispatch({ type: 'ADD_TRACK', track }));
       dispatch({
         type: 'ADD_AI_MESSAGE',
         message: {
           id: genId(), role: 'assistant', timestamp: Date.now(),
-          text: chipId === 'surprise'
-            ? `I went with ${intent.bpm} BPM in ${intent.key} ${intent.scale} — something ${intent.mood}. Drums, bass, and chords ready. Hit play.`
-            : `Built you a ${intent.type === 'beat' ? 'drum and bass pattern' : 'full starter session'} at ${intent.bpm} BPM in ${intent.key} ${intent.scale}. ${text ? `Vibing with: "${text}".` : ''} Hit play.`,
+          text: getApiKey()
+            ? `Composed a 16-bar ${intent.type} at ${result.bpm} BPM in ${result.key} ${result.scale}. Section A and B are distinct — hit play and tell me what to change.`
+            : `Built a starter session at ${result.bpm} BPM in ${result.key} ${result.scale}. Add your Claude API key in ⚙ Settings to unlock AI composition.`,
         }
       });
       onDismiss();
-    }, 600);
+    } catch (err) {
+      stopLoadingLines();
+      const fallback = buildFallbackSession(intent.key, intent.scale, intent.type);
+      dispatch({ type: 'UPDATE_BPM', bpm: fallback.bpm });
+      dispatch({ type: 'UPDATE_KEY', key: fallback.key, scale: fallback.scale });
+      fallback.tracks.forEach(track => dispatch({ type: 'ADD_TRACK', track }));
+      dispatch({ type: 'ADD_AI_MESSAGE', message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: `Composition failed (${err.message}) — loaded a starter session instead.` } });
+      onDismiss();
+    }
   };
 
   const handleSubmit = () => {
@@ -140,7 +182,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
   };
 
   const handleChip = (chip) => {
-    scaffold(input.trim(), chip.id);
+    scaffold(input.trim() || null, chip.id);
   };
 
   const handleBlank = () => {
@@ -161,7 +203,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
 
         {building ? (
           <div className="start-building">
-            <p className="start-building-text">Building your session...</p>
+            <p className="start-building-text">{loadingLine}</p>
             <div className="start-building-dots">
               <span /><span /><span />
             </div>
