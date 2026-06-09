@@ -76,10 +76,16 @@ function scheduleMidiTrack(track) {
   const meter = new Tone.Meter();
 
   synth.disconnect();
-  synth.connect(fx.input);
-  synth.connect(meter);
+  // Pad has its own internal lowpass filter; connect that into the FX chain
+  if (synth._padFilter) {
+    synth._padFilter.connect(fx.input);
+    synth._padFilter.connect(meter);
+  } else {
+    synth.connect(fx.input);
+    synth.connect(meter);
+  }
 
-  setTrackNodes(track.id, { synth, meter, ...fx });
+  setTrackNodes(track.id, { synth, padFilter: synth._padFilter || null, meter, ...fx });
 
   track.clips.forEach(clip => {
     if (!clip.notes?.length) return;

@@ -54,7 +54,7 @@ export function applyTrackFx(trackId, { eq, pan, reverb, delay } = {}) {
 export function disposeTrack(trackId) {
   const nodes = trackNodes[trackId];
   if (nodes) {
-    ['sequence','synth','player','kick','snare','hihat','hihatFilter',
+    ['sequence','synth','padFilter','player','kick','snare','hihat','hihatFilter',
      'meter','eq','panner','send_reverb','send_delay'].forEach(k => {
       try { if (nodes[k]) nodes[k].dispose(); } catch(e) {}
     });

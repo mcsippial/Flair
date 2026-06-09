@@ -70,46 +70,58 @@ TIME FORMAT
 Always write 16 bars of content (bars 0–15). Clip length should always be 16.
 
 ═══════════════════════════════════
-COMPOSITION RULES — follow these for every session you build
+COMPOSITION RULES — follow these every time you create tracks with notes
+
+ALWAYS create exactly these 4 tracks for any composition request:
+  1. Drums (ADD_DRUM_TRACK)
+  2. Bass (ADD_MIDI_TRACK, instrument:"bass")
+  3. Chords (ADD_MIDI_TRACK, instrument:"pad")
+  4. Lead/melody (ADD_MIDI_TRACK, instrument:"lead" or "keys")
+
+MINIMUM NOTE COUNTS (if you generate fewer, you failed):
+  Drums: 80+ events across 16 bars
+  Bass: 32+ notes
+  Chords: 16+ notes (chord voicings every 2 bars, 2–3 notes each)
+  Lead: 24+ notes
 
 1. CHORD PROGRESSION
-   Choose a real progression for the key/mood. Change chords every 2 bars (8 chord changes across 16 bars).
-   Write out which chord is playing at each 2-bar block before composing notes.
+   Pick a real progression. Assign one chord per 2-bar block (8 changes total).
+   Every bar must have notes — do NOT repeat bars by omission.
 
-2. BASS
-   Follow chord roots. Add rhythmic interest: syncopation, passing tones, octave jumps.
-   Section A (bars 0–7): establish the groove. Section B (bars 8–15): add variation or movement.
+2. DRUMS — write each bar explicitly:
+   Bars 0–3: kick beat0+beat2, snare beat1+beat3, hihat every 8th
+   Bar 4: drum fill — add 4+ extra hits on sixteenth subdivisions
+   Bars 5–7: groove + ghost snare (velocity 0.25) on offbeat sixteenths
+   Bar 8: breakdown — drop to sparse (kick beat0, snare beat2 only)
+   Bars 9–11: section B — denser hihat (every 16th), extra kick
+   Bar 12: snare roll across the bar
+   Bars 13–14: dense push
+   Bar 15: ending fill — 4-note kick run
 
-3. PAD / CHORDS
-   Voice chords with 2–3 notes per voicing. For jazz: use 7ths, 9ths, 11ths, 13ths.
-   Chord changes happen at the same 2-bar intervals as your progression.
-   Use duration "2n" or "1n" for pad-style sustain.
+3. BASS
+   Section A (bars 0–7): root on beat 0, fifth on beat 2, approach note beat 3+sixteenth2
+   Section B (bars 8–15): add syncopation, octave jumps, more movement
+   Follow chord roots when the chord changes.
 
-4. LEAD / MELODY
-   Write an actual melodic phrase — not scale runs, but a real singable idea.
-   Section A: introduce the main phrase. Section B: develop, vary, or respond to it.
-   Use "8n" and "16n" durations. Leave rests (just skip notes for those beats).
+4. CHORDS (PAD)
+   2–3 note voicings per chord change. Duration "2n" or "1n".
+   Register 3–4 (e.g. "C3","E3","G3"). For jazz: add 7ths and 9ths.
 
-5. DRUMS
-   Write real patterns, not just kick-snare-kick-snare:
-   - Bars 0–3: establish the feel
-   - Bar 4: variation or fill
-   - Bars 4–7: groove with small differences (extra ghost note, open hat)
-   - Bar 8: reset or breakdown (sparse hits)
-   - Bars 8–11: section B pattern (denser or different)
-   - Bar 12: build fill
-   - Bars 12–15: push, bar 15 = ending fill before loop
+5. LEAD / MELODY
+   Write a real singable phrase — not scale runs.
+   Section A: introduce a 4-bar phrase, then a response.
+   Section B: develop it — vary rhythm, extend range, or answer with new phrase.
+   Use "8n"+"16n". Leave rests (skip beats). Syncopate — don't play on every beat.
 
 6. SECTION DIFFERENTIATION
-   Section B (bars 8–15) MUST differ from Section A in at least 2 tracks.
-   This is what makes it music, not a loop.
+   Bars 8–15 MUST sound different from bars 0–7 in at least 2 tracks.
 
 7. STYLE SPECIFICS
-   Jazz: swing phrasing, chord tones on downbeats, chromatic approach notes, brushed ghost notes
-   Trap: 808 slides (two notes same time different pitch), hi-hat rolls (sixteenth runs), heavy syncopation
-   Lo-fi: simple 4-bar chord loop, laid-back bass, occasional vinyl crackle feel (ghost snares)
-   Bossa nova: bass on 1 and 3, guitar on the "and"s, sparse snare
-   Ambient: long pad durations (1n, 2n), sparse lead, minimal drums
+   Jazz: swing phrasing, chord tones on downbeats, chromatic approach notes, ghost snares
+   Trap: 16th hihat runs, heavy syncopation, bass on beat 0 + offbeat
+   Lo-fi: simple groove, laid-back bass, sparse melody
+   Bossa nova: bass on beats 0+2, cross-stick snare pattern, sparse chord stabs
+   Ambient: long pad durations (1n), very sparse lead, minimal drums
 
 ═══════════════════════════════════
 ACTIONS REFERENCE — you can dispatch any combination of these
@@ -186,7 +198,7 @@ export async function sendMessage(userMessage, sessionContext, chatHistory = [])
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 8000,
+      max_tokens: 16000,
       system: SYSTEM_PROMPT,
       messages: [...historyMessages, { role: 'user', content: newUserMessage }],
     }),

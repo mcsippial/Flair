@@ -37,13 +37,18 @@ function makeSampler(urls, baseUrl) {
   return new Tone.Sampler({ urls, baseUrl, release: 1 }).connect(dest());
 }
 
-// ─── Pad: rich PolySynth (pads are inherently synthetic) ─────────────────────
+// ─── Pad: warm sawtooth through lowpass filter, sounds like strings/Rhodes ────
+// The filter is attached as ._padFilter so scheduler.js can store + dispose it.
 function makePad() {
-  return new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: 'fatsine', spread: 30, count: 3 },
-    envelope: { attack: 0.6, decay: 0.4, sustain: 0.9, release: 3 },
-    volume: -8,
-  }).connect(dest());
+  const filter = new Tone.Filter({ frequency: 1800, type: 'lowpass', rolloff: -24 });
+  const synth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: 'sawtooth' },
+    envelope: { attack: 0.4, decay: 0.2, sustain: 0.85, release: 2.5 },
+    volume: -12,
+  });
+  synth.connect(filter);
+  synth._padFilter = filter;
+  return synth;
 }
 
 export function createMidiInstrument(preset = 'keys') {
