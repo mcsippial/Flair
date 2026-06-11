@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { composeStarterSession } from '../ai/composeSession';
 import { getApiKey, setApiKey } from '../ai/claudeClient';
+import { getReplicateKey, setReplicateKey } from '../ai/musicGen';
 
 const CHIPS = [
   { id: 'beat', label: 'Beat' },
@@ -10,100 +11,34 @@ const CHIPS = [
   { id: 'surprise', label: 'Surprise me' },
 ];
 
-const KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const SCALES = ['minor', 'major'];
-const MOODS = ['cinematic', 'energetic', 'melancholic', 'hypnotic', 'dark', 'uplifting'];
+const KEYS   = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const SCALES = ['minor','major'];
+const MOODS  = ['cinematic','energetic','melancholic','hypnotic','dark','uplifting'];
 
 function genId() { return Math.random().toString(36).substr(2, 9); }
-
-function getNote(root, semitones) {
-  const notes = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  return notes[(notes.indexOf(root) + semitones) % 12] + '3';
-}
-
-// Fallback procedural generator used when no API key is present
-function buildFallbackSession(key, scale, type) {
-  const chordRoots = scale === 'minor'
-    ? [0, 8, 7, 10] // i - VI - VII - VII (Am-F-G-G style)
-    : [0, 5, 7, 5];  // I - IV - V - IV
-  const notes = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  const rootIdx = notes.indexOf(key);
-
-  const drumNotes = [];
-  const bassNotes = [];
-  const padNotes = [];
-
-  for (let bar = 0; bar < 16; bar++) {
-    const chordRoot = notes[(rootIdx + chordRoots[Math.floor(bar / 2) % 4]) % 12];
-    const isFill = bar % 4 === 3;
-    const isDropBar = bar === 8;
-
-    // Drums
-    if (!isDropBar) {
-      drumNotes.push({ time: `${bar}:0:0`, drum: 'kick', velocity: 0.9 });
-      drumNotes.push({ time: `${bar}:1:0`, drum: 'snare', velocity: 0.7 });
-      drumNotes.push({ time: `${bar}:2:0`, drum: 'kick', velocity: bar >= 8 ? 0.85 : 0.75 });
-      drumNotes.push({ time: `${bar}:3:0`, drum: 'snare', velocity: 0.7 });
-      [0, 1, 2, 3].forEach(beat => {
-        drumNotes.push({ time: `${bar}:${beat}:2`, drum: 'hihat', velocity: bar >= 8 ? 0.4 : 0.3 });
-      });
-      if (isFill) {
-        drumNotes.push({ time: `${bar}:3:1`, drum: 'kick', velocity: 0.8 });
-        drumNotes.push({ time: `${bar}:3:2`, drum: 'snare', velocity: 0.6 });
-        drumNotes.push({ time: `${bar}:3:3`, drum: 'kick', velocity: 0.75 });
-      }
-    } else {
-      // drop bar: just kick and snare
-      drumNotes.push({ time: `${bar}:0:0`, drum: 'kick', velocity: 0.9 });
-      drumNotes.push({ time: `${bar}:2:0`, drum: 'snare', velocity: 0.65 });
-    }
-
-    // Bass - busier in section B
-    bassNotes.push({ time: `${bar}:0:0`, note: `${chordRoot}2`, duration: '4n', velocity: 0.8 });
-    bassNotes.push({ time: `${bar}:1:2`, note: `${chordRoot}2`, duration: '8n', velocity: 0.6 });
-    bassNotes.push({ time: `${bar}:2:0`, note: `${chordRoot}2`, duration: '4n', velocity: 0.75 });
-    if (bar >= 8) {
-      bassNotes.push({ time: `${bar}:3:0`, note: `${chordRoot}2`, duration: '8n', velocity: 0.65 });
-      bassNotes.push({ time: `${bar}:3:2`, note: `${chordRoot}2`, duration: '8n', velocity: 0.55 });
-    }
-
-    // Pad chords (change every 2 bars)
-    if (bar % 2 === 0) {
-      padNotes.push({ time: `${bar}:0:0`, note: `${chordRoot}3`, duration: '2n', velocity: 0.45 });
-      padNotes.push({ time: `${bar}:0:0`, note: getNote(chordRoot, scale === 'minor' ? 3 : 4), duration: '2n', velocity: 0.38 });
-      padNotes.push({ time: `${bar}:0:0`, note: getNote(chordRoot, 7), duration: '2n', velocity: 0.32 });
-    }
-  }
-
-  const tracks = [
-    { id: genId(), name: 'Drums', type: 'drum', color: '#c4a882', muted: false, solo: false, armed: false, volume: 0.8, pan: 0, eq: { low: 0, mid: 0, high: 0 }, clips: [{ id: genId(), name: 'Pattern', start: 0, length: 16, notes: drumNotes, type: 'drum' }] },
-    { id: genId(), name: 'Bass', type: 'midi', instrument: 'bass', color: '#6ba3c4', muted: false, solo: false, armed: false, volume: 0.75, pan: 0, eq: { low: 0, mid: 0, high: 0 }, clips: [{ id: genId(), name: 'Bass Line', start: 0, length: 16, notes: bassNotes, type: 'midi' }] },
-  ];
-  if (type !== 'beat') {
-    tracks.push({ id: genId(), name: 'Chords', type: 'midi', instrument: 'pad', color: '#9b82c4', muted: false, solo: false, armed: false, volume: 0.55, pan: 0, eq: { low: 0, mid: 0, high: 0 }, clips: [{ id: genId(), name: 'Chords', start: 0, length: 16, notes: padNotes, type: 'midi' }] });
-  }
-  return { tracks, bpm: Math.floor(Math.random() * 50) + 90, key, scale };
-}
 
 function parseIntent(text, chipId) {
   const lower = (text || '').toLowerCase();
   const type = chipId === 'beat' || lower.includes('beat') || lower.includes('drum') ? 'beat'
     : chipId === 'loop' || lower.includes('loop') ? 'loop'
     : 'song';
-
   const keyMatch = text?.match(/\b([A-G]#?)\s*(major|minor|maj|min)?\b/i);
-  const key = keyMatch ? keyMatch[1] : KEYS[Math.floor(Math.random() * 12)];
+  const key   = keyMatch ? keyMatch[1] : KEYS[Math.floor(Math.random() * 12)];
   const scale = lower.includes('major') || lower.includes('maj') ? 'major' : 'minor';
-
   const bpmMatch = text?.match(/(\d{2,3})\s*bpm/i);
-  const bpm = bpmMatch ? parseInt(bpmMatch[1]) : Math.floor(Math.random() * 50) + 90;
-
-  const mood = MOODS.find(m => lower.includes(m)) || MOODS[Math.floor(Math.random() * MOODS.length)];
-
+  const bpm   = bpmMatch ? parseInt(bpmMatch[1]) : Math.floor(Math.random() * 50) + 90;
+  const mood  = MOODS.find(m => lower.includes(m)) || MOODS[Math.floor(Math.random() * MOODS.length)];
   return { type, key, scale, bpm: Math.max(60, Math.min(200, bpm)), mood, description: text };
 }
 
-const LOADING_LINES = [
+const LOADING_LINES_AUDIO = [
+  'Sending to MusicGen…',
+  'AI is composing your track…',
+  'Rendering audio…',
+  'Mixing and mastering…',
+  'Almost done…',
+];
+const LOADING_LINES_MIDI = [
   'Setting the key and tempo…',
   'Writing chord progression…',
   'Laying down the groove…',
@@ -112,35 +47,49 @@ const LOADING_LINES = [
   'Almost there…',
 ];
 
+// screen: 'replicate' | 'claude' | 'prompt'
+function initialScreen() {
+  if (!getReplicateKey() && !getApiKey()) return 'replicate';
+  return 'prompt';
+}
+
 export default function StartScreen({ onDismiss, dispatch }) {
-  const [input, setInput] = useState('');
-  const [apiKey, setApiKeyLocal] = useState(getApiKey() || '');
-  const [showApiKey, setShowApiKey] = useState(!getApiKey());
-  const [building, setBuilding] = useState(false);
-  const [loadingLine, setLoadingLine] = useState(LOADING_LINES[0]);
-  const inputRef = useRef(null);
-  const apiKeyRef = useRef(null);
+  const [input, setInput]           = useState('');
+  const [screen, setScreen]         = useState(initialScreen);
+  const [replicateKey, setRepKey]   = useState(getReplicateKey() || '');
+  const [claudeKey, setClaudeKey]   = useState(getApiKey() || '');
+  const [building, setBuilding]     = useState(false);
+  const [loadingLine, setLoadingLine] = useState('');
+  const inputRef    = useRef(null);
+  const repKeyRef   = useRef(null);
+  const claudeKeyRef = useRef(null);
   const loadingInterval = useRef(null);
 
-  useEffect(() => {
-    if (showApiKey) {
-      apiKeyRef.current?.focus();
-    } else {
-      inputRef.current?.focus();
-    }
-  }, [showApiKey]);
+  const usingAudio = !!getReplicateKey();
 
-  const saveApiKey = () => {
-    setApiKey(apiKey.trim());
-    setShowApiKey(false);
+  useEffect(() => {
+    if (screen === 'replicate') repKeyRef.current?.focus();
+    else if (screen === 'claude') claudeKeyRef.current?.focus();
+    else inputRef.current?.focus();
+  }, [screen]);
+
+  const saveReplicateKey = () => {
+    setReplicateKey(replicateKey.trim());
+    setScreen('prompt');
   };
 
-  const startLoadingLines = () => {
+  const saveClaudeKey = () => {
+    setApiKey(claudeKey.trim());
+    setScreen('prompt');
+  };
+
+  const startLoadingLines = (lines) => {
     let i = 0;
+    setLoadingLine(lines[0]);
     loadingInterval.current = setInterval(() => {
-      i = (i + 1) % LOADING_LINES.length;
-      setLoadingLine(LOADING_LINES[i]);
-    }, 1800);
+      i = (i + 1) % lines.length;
+      setLoadingLine(lines[i]);
+    }, 2200);
   };
 
   const stopLoadingLines = () => {
@@ -153,57 +102,41 @@ export default function StartScreen({ onDismiss, dispatch }) {
       : parseIntent(text, chipId);
 
     setBuilding(true);
-    setLoadingLine(LOADING_LINES[0]);
-    startLoadingLines();
+    const lines = getReplicateKey() ? LOADING_LINES_AUDIO : LOADING_LINES_MIDI;
+    startLoadingLines(lines);
 
     try {
-      let result = null;
-      if (getApiKey()) {
-        result = await composeStarterSession(intent);
-      }
-      if (!result) {
-        result = buildFallbackSession(intent.key, intent.scale, intent.type);
-      }
-
+      const result = await composeStarterSession(intent);
       stopLoadingLines();
+
       dispatch({ type: 'UPDATE_BPM', bpm: result.bpm });
       dispatch({ type: 'UPDATE_KEY', key: result.key, scale: result.scale });
       result.tracks.forEach(track => dispatch({ type: 'ADD_TRACK', track }));
+
+      const isAudio = result.tracks.some(t => t.type === 'audio');
+      const desc = isAudio
+        ? `Generated ${result.tracks[0]?.name || 'track'} at ${result.bpm} BPM in ${result.key} ${result.scale} using MusicGen. Hit play to hear it.`
+        : `Composed a 16-bar ${intent.type} at ${result.bpm} BPM in ${result.key} ${result.scale}. Hit play and tell me what to change.`;
+
       dispatch({
         type: 'ADD_AI_MESSAGE',
-        message: {
-          id: genId(), role: 'assistant', timestamp: Date.now(),
-          text: getApiKey()
-            ? `Composed a 16-bar ${intent.type} at ${result.bpm} BPM in ${result.key} ${result.scale}. Section A and B are distinct — hit play and tell me what to change.`
-            : `Built a starter session at ${result.bpm} BPM in ${result.key} ${result.scale}. Add your Claude API key in Settings to unlock AI composition.`,
-        }
+        message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: desc },
       });
       onDismiss();
     } catch (err) {
       stopLoadingLines();
-      const fallback = buildFallbackSession(intent.key, intent.scale, intent.type);
-      dispatch({ type: 'UPDATE_BPM', bpm: fallback.bpm });
-      dispatch({ type: 'UPDATE_KEY', key: fallback.key, scale: fallback.scale });
-      fallback.tracks.forEach(track => dispatch({ type: 'ADD_TRACK', track }));
-      dispatch({ type: 'ADD_AI_MESSAGE', message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: `Composition failed (${err.message}) — loaded a starter session instead.` } });
+      dispatch({
+        type: 'ADD_AI_MESSAGE',
+        message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: `Generation failed: ${err.message}` },
+      });
       onDismiss();
     }
   };
 
-  const handleSubmit = () => {
-    if (!input.trim()) return;
-    scaffold(input.trim(), null);
-  };
-
-  const handleChip = (chip) => {
-    scaffold(input.trim() || null, chip.id);
-  };
-
-  const handleBlank = () => {
-    dispatch({
-      type: 'ADD_AI_MESSAGE',
-      message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: "Blank session. Tell me what you're building and I'll help from here." }
-    });
+  const handleSubmit = () => { if (input.trim()) scaffold(input.trim(), null); };
+  const handleChip   = (chip) => scaffold(input.trim() || null, chip.id);
+  const handleBlank  = () => {
+    dispatch({ type: 'ADD_AI_MESSAGE', message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: "Blank session. Tell me what you're building and I'll help." } });
     onDismiss();
   };
 
@@ -218,38 +151,67 @@ export default function StartScreen({ onDismiss, dispatch }) {
         {building ? (
           <div className="start-building">
             <p className="start-building-text">{loadingLine}</p>
-            <div className="start-building-dots">
-              <span /><span /><span />
-            </div>
+            <div className="start-building-dots"><span /><span /><span /></div>
           </div>
-        ) : showApiKey ? (
+
+        ) : screen === 'replicate' ? (
           <div className="start-input-section">
-            <p className="start-prompt-label">Enter your Claude API key to enable AI composition</p>
+            <p className="start-prompt-label">Replicate API key — for AI audio generation</p>
+            <p className="start-key-desc">
+              MusicGen generates real recorded-quality music from your prompts.<br />
+              Get a free key at <span className="start-key-link">replicate.com</span>
+            </p>
             <div className="start-input-wrap">
               <input
-                ref={apiKeyRef}
+                ref={repKeyRef}
                 className="start-input"
                 type="password"
-                value={apiKey}
-                onChange={e => setApiKeyLocal(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && apiKey.trim() && saveApiKey()}
-                placeholder="sk-ant-api03-..."
+                value={replicateKey}
+                onChange={e => setRepKey(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && replicateKey.trim() && saveReplicateKey()}
+                placeholder="r8_..."
               />
-              <button
-                className="start-input-submit"
-                onClick={saveApiKey}
-                disabled={!apiKey.trim()}
-              >
-                →
-              </button>
+              <button className="start-input-submit" onClick={saveReplicateKey} disabled={!replicateKey.trim()}>→</button>
             </div>
-            <button className="start-blank" onClick={() => setShowApiKey(false)}>
-              skip — start blank without AI
+            <button className="start-blank" onClick={() => setScreen('claude')}>
+              use Claude API key instead (MIDI synthesis)
+            </button>
+            <button className="start-blank" style={{ marginTop: 6, fontSize: 11, opacity: 0.5 }} onClick={() => setScreen('prompt')}>
+              skip — start without AI
             </button>
           </div>
+
+        ) : screen === 'claude' ? (
+          <div className="start-input-section">
+            <p className="start-prompt-label">Claude API key — for AI chat and MIDI composition</p>
+            <div className="start-input-wrap">
+              <input
+                ref={claudeKeyRef}
+                className="start-input"
+                type="password"
+                value={claudeKey}
+                onChange={e => setClaudeKey(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && claudeKey.trim() && saveClaudeKey()}
+                placeholder="sk-ant-api03-..."
+              />
+              <button className="start-input-submit" onClick={saveClaudeKey} disabled={!claudeKey.trim()}>→</button>
+            </div>
+            <button className="start-blank" onClick={() => setScreen('replicate')}>
+              ← back
+            </button>
+            <button className="start-blank" style={{ marginTop: 6, fontSize: 11, opacity: 0.5 }} onClick={() => setScreen('prompt')}>
+              skip
+            </button>
+          </div>
+
         ) : (
           <div className="start-input-section">
-            <p className="start-prompt-label">What do you want to make?</p>
+            <p className="start-prompt-label">
+              {usingAudio ? 'What do you want to make?' : 'What do you want to make?'}
+            </p>
+            {usingAudio && (
+              <p className="start-mode-badge">MusicGen · real audio</p>
+            )}
             <div className="start-input-wrap">
               <input
                 ref={inputRef}
@@ -257,35 +219,26 @@ export default function StartScreen({ onDismiss, dispatch }) {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                placeholder="Describe a vibe, tempo, genre, anything..."
+                placeholder="Dark trap beat at 140 BPM, lo-fi jazz, 80s synthwave…"
               />
-              <button
-                className="start-input-submit"
-                onClick={handleSubmit}
-                disabled={!input.trim()}
-              >
-                →
-              </button>
+              <button className="start-input-submit" onClick={handleSubmit} disabled={!input.trim()}>→</button>
             </div>
 
             <div className="start-chips">
               {CHIPS.map(chip => (
-                <button
-                  key={chip.id}
-                  className="start-chip"
-                  onClick={() => handleChip(chip)}
-                >
+                <button key={chip.id} className="start-chip" onClick={() => handleChip(chip)}>
                   {chip.label}
                 </button>
               ))}
             </div>
 
-            <button className="start-blank" onClick={handleBlank}>
-              or start blank
-            </button>
-            <button className="start-blank" style={{ marginTop: '6px', opacity: 0.5, fontSize: '11px' }} onClick={() => setShowApiKey(true)}>
-              change API key
-            </button>
+            <button className="start-blank" onClick={handleBlank}>or start blank</button>
+            <div style={{ display: 'flex', gap: 14, marginTop: 8 }}>
+              <button className="start-blank" style={{ fontSize: 11, opacity: 0.45, marginTop: 0 }}
+                onClick={() => setScreen('replicate')}>change Replicate key</button>
+              <button className="start-blank" style={{ fontSize: 11, opacity: 0.45, marginTop: 0 }}
+                onClick={() => setScreen('claude')}>change Claude key</button>
+            </div>
           </div>
         )}
       </div>

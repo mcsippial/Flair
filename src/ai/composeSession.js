@@ -1,12 +1,40 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getApiKey } from './claudeClient';
+import { getReplicateKey, generateMusicClip } from './musicGen';
 import { generateSession } from '../music/generator';
 
 function genId() { return Math.random().toString(36).substr(2, 9); }
 
-// Claude's only job here is musical DECISIONS — not individual notes.
-// The JS generator converts those decisions into actual note data.
-const PARAM_SYSTEM = `You are a music director. Given a style or brief, output the musical parameters for a 16-bar composition as JSON.
+// ─── Claude → MusicGen prompt ─────────────────────────────────────────────────
+// Claude's job here is to translate a vague user description into a precise
+// MusicGen prompt — specific instruments, tempo, key, production style.
+
+const MUSICGEN_SYSTEM = `You are a music production prompt engineer for MusicGen, an AI audio model that generates real recorded-quality music from text.
+
+Given a user request, write a precise MusicGen prompt and return metadata as JSON.
+
+Output ONLY valid JSON — no markdown, no explanation:
+{
+  "audioPrompt": "<20-140 word description for MusicGen>",
+  "bpm": <number 60-180>,
+  "key": <"C"|"C#"|"D"|"D#"|"E"|"F"|"F#"|"G"|"G#"|"A"|"A#"|"B">,
+  "scale": <"major"|"minor">,
+  "name": "<short evocative track name, 2-4 words>"
+}
+
+MusicGen prompt guidelines:
+- Name specific instruments: "Fender Rhodes, upright bass, brushed snare, ride cymbal"
+- State the BPM explicitly: "90 BPM", "at 140 BPM"
+- Name the key and mode: "in A minor", "D Dorian", "G major"
+- Describe the energy arc if relevant: "sparse intro building into a full drop"
+- Use production descriptors: "warm tape saturation", "lo-fi vinyl crackle", "crispy digital mix", "live room reverb"
+- Reference genres or eras precisely: "early J Dilla boom bap", "UK drill 2020", "late 70s Philly soul", "minimal Berlin techno"
+- Describe the mix: "heavy punchy kick, sub bass, bright hi-hats panned wide"
+- Avoid vague words like "nice", "good", "cool" — be specific`;
+
+// ─── Claude → MIDI parameters (fallback when no Replicate key) ────────────────
+
+const MIDI_SYSTEM = `You are a music director. Given a style or brief, output the musical parameters for a 16-bar composition as JSON.
 
 Output ONLY valid JSON — no markdown, no explanation:
 {
@@ -29,79 +57,135 @@ Output ONLY valid JSON — no markdown, no explanation:
   ]
 }
 
-CHORD TYPES (use these exact strings):
-  maj, min, maj7, min7, dom7, dim, aug, sus2, sus4, maj9, min9, 6, min6
+CHORD TYPES: maj, min, maj7, min7, dom7, dim, aug, sus2, sus4, maj9, min9, 6, min6
 
-KEY RULES:
-- Write a real 8-chord progression across bars 0–14 (one chord per 2 bars)
-- Section B (bars 8–14) should use a different harmonic direction than Section A (bars 0–6)
-  — e.g. section A: i–VI–VII–III, section B: iv–V–i–V
-- For jazz: use min7/maj7/dom7/min9, and include a ii–V–I somewhere
-- For minor: start and end on the tonic minor, go to relative major mid-way
-- For pop/lofi: use I–V–vi–IV or I–IV–vi–V type progressions
-- For dorian/mixolydian: exploit the modal character (flat VII for mixolydian, natural 6 for dorian)
+Section A (bars 0-6) and Section B (bars 8-14) must be harmonically distinct.`;
 
-TRACK RULES:
-- Choose tracks appropriate for the style (drums, bass, chords, melody — not all required)
-- Jazz: drums + walking bass + piano (keys) + lead sax/trumpet (lead) = 4 tracks
-- Trap: drums + bass + pad = 3 tracks (no melody unless requested)
-- Lo-fi: drums + bass + keys = 3 tracks
-- Ambient: pad only, or pad + sparse lead = 1–2 tracks
-- Full arrangement: up to 5 tracks max
 
-Generate a specific hex color per track (something fitting the vibe — dark purple for trap, warm amber for jazz, etc.)`;
+// ─── Main entry point ─────────────────────────────────────────────────────────
 
 export async function composeStarterSession(intent) {
-  const apiKey = getApiKey();
-  if (!apiKey) return buildFallback(intent);
+  const replicateKey = getReplicateKey();
+  const claudeKey    = getApiKey();
 
-  const prompt = `${intent.description
-    ? `User request: "${intent.description}"\n\n`
-    : ''}Compose a 16-bar ${intent.type || 'track'}${intent.bpm ? ` at ${intent.bpm} BPM` : ''}. Interpret the request literally — if they say "dark trap", use a dark minor key and trap style; if they say "smooth jazz", use jazz chords and a relaxed tempo; if they say "energetic house", use a fast BPM and house style. Choose every parameter to serve the vibe. Make section B harmonically distinct from section A.`;
-
-  try {
-    const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
-      system: PARAM_SYSTEM,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const text = response.content[0].text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
-    const params = JSON.parse(text);
-
-    // Assign real IDs and defaults to the track list
-    params.trackList = (params.trackList || []).map(t => ({
-      id: genId(),
-      name: t.name || t.type,
-      type: t.type || 'midi',
-      instrument: t.instrument || null,
-      color: t.color || '#7eb8d4',
-      muted: false, solo: false, armed: false,
-      volume: 0.8, pan: 0, reverb: 0, delay: 0,
-      eq: { low: 0, mid: 0, high: 0 },
-    }));
-
-    // JS generates all note data from Claude's musical parameters
-    // Pass description so styleFamily() can match more specific terms
-    const session = generateSession({ ...params, description: intent.description || '' });
-
-    return {
-      bpm: session.bpm,
-      key: session.key,
-      scale: session.scale,
-      tracks: session.tracks,
-    };
-
-  } catch (err) {
-    console.error('Composition API error:', err);
-    return buildFallback(intent);
+  if (replicateKey) {
+    return composeWithAudio(intent, claudeKey);
   }
+  if (claudeKey) {
+    return composeWithMidi(intent, claudeKey);
+  }
+  return buildFallback(intent);
 }
 
-// ─── Fallback (no API key or API error) ──────────────────────────────────────
-// Uses the JS generator with pre-baked parameters so the app always sounds decent.
+
+// ─── Audio path (Replicate MusicGen) ─────────────────────────────────────────
+
+async function composeWithAudio(intent, claudeKey) {
+  let audioPrompt, bpm, key, scale, name;
+
+  if (claudeKey) {
+    // Claude crafts the optimized MusicGen prompt
+    const client = new Anthropic({ apiKey: claudeKey, dangerouslyAllowBrowser: true });
+    const userMsg = intent.description
+      ? `Create a MusicGen prompt for: "${intent.description}". Type: ${intent.type}, mood: ${intent.mood}.`
+      : `Create a MusicGen prompt for a ${intent.mood} ${intent.type} at ${intent.bpm} BPM in ${intent.key} ${intent.scale}.`;
+
+    const resp = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 600,
+      system: MUSICGEN_SYSTEM,
+      messages: [{ role: 'user', content: userMsg }],
+    });
+
+    const parsed = JSON.parse(
+      resp.content[0].text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim()
+    );
+    audioPrompt = parsed.audioPrompt;
+    bpm         = parsed.bpm   || intent.bpm;
+    key         = parsed.key   || intent.key;
+    scale       = parsed.scale || intent.scale;
+    name        = parsed.name  || 'AI Track';
+  } else {
+    // Build prompt directly from intent without Claude
+    audioPrompt = buildDirectPrompt(intent);
+    bpm   = intent.bpm;
+    key   = intent.key;
+    scale = intent.scale;
+    name  = `${intent.mood} ${intent.type}`;
+  }
+
+  // Duration in seconds for 16 bars at the chosen BPM
+  const durationSecs = Math.min(30, Math.round((16 * 4 * 60) / bpm));
+
+  const audioUrl = await generateMusicClip(audioPrompt, durationSecs);
+
+  const barsGenerated = Math.round((durationSecs / 60) * bpm / 4);
+
+  return {
+    bpm, key, scale,
+    audioPrompt, // expose so the AI panel can show what was generated
+    tracks: [{
+      id: genId(),
+      name,
+      type: 'audio',
+      color: '#9b82c4',
+      muted: false, solo: false, armed: false,
+      volume: 0.85, pan: 0, reverb: 0.1, delay: 0,
+      eq: { low: 0, mid: 0, high: 0 },
+      clips: [{
+        id: genId(),
+        name,
+        type: 'audio',
+        start: 0,
+        length: barsGenerated,
+        audioUrl,
+      }],
+    }],
+  };
+}
+
+function buildDirectPrompt(intent) {
+  const style = intent.type === 'beat' ? 'drum beat and bass' : intent.type;
+  return `${intent.mood} ${style} at ${intent.bpm} BPM in ${intent.key} ${intent.scale}. Professional mix, full arrangement.`;
+}
+
+
+// ─── MIDI path (Claude only, no Replicate) ────────────────────────────────────
+
+async function composeWithMidi(intent, claudeKey) {
+  const prompt = `${intent.description
+    ? `User request: "${intent.description}"\n\n`
+    : ''}Compose a 16-bar ${intent.type || 'track'}${intent.bpm ? ` at ${intent.bpm} BPM` : ''}. Make section B harmonically distinct from section A.`;
+
+  const client = new Anthropic({ apiKey: claudeKey, dangerouslyAllowBrowser: true });
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 2000,
+    system: MIDI_SYSTEM,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const text = response.content[0].text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
+  const params = JSON.parse(text);
+
+  params.trackList = (params.trackList || []).map(t => ({
+    id: genId(),
+    name: t.name || t.type,
+    type: t.type || 'midi',
+    instrument: t.instrument || null,
+    color: t.color || '#7eb8d4',
+    muted: false, solo: false, armed: false,
+    volume: 0.8, pan: 0, reverb: 0, delay: 0,
+    eq: { low: 0, mid: 0, high: 0 },
+  }));
+
+  const session = generateSession({ ...params, description: intent.description || '' });
+  return { bpm: session.bpm, key: session.key, scale: session.scale, tracks: session.tracks };
+}
+
+
+// ─── Fallback (no API keys) ───────────────────────────────────────────────────
+
 function buildFallback(intent) {
   const type = (intent?.type || 'pop').toLowerCase();
 
@@ -109,30 +193,15 @@ function buildFallback(intent) {
     beat: {
       bpm: 90, key: 'A', scale: 'minor', style: 'trap',
       chords: [
-        { bar:0,  root:'A', type:'min7' }, { bar:2,  root:'F', type:'maj7' },
-        { bar:4,  root:'G', type:'dom7' }, { bar:6,  root:'A', type:'min7' },
-        { bar:8,  root:'D', type:'min7' }, { bar:10, root:'G', type:'dom7' },
-        { bar:12, root:'C', type:'maj7' }, { bar:14, root:'A', type:'min7' },
+        { bar:0, root:'A', type:'min7' }, { bar:2, root:'F', type:'maj7' },
+        { bar:4, root:'G', type:'dom7' }, { bar:6, root:'A', type:'min7' },
+        { bar:8, root:'D', type:'min7' }, { bar:10,root:'G', type:'dom7' },
+        { bar:12,root:'C', type:'maj7' }, { bar:14,root:'A', type:'min7' },
       ],
       trackList: [
-        { id: genId(), name:'Drums', type:'drum', instrument:null, color:'#c4a882', muted:false,solo:false,armed:false,volume:0.8,pan:0,reverb:0,delay:0,eq:{low:0,mid:0,high:0} },
-        { id: genId(), name:'Bass',  type:'midi', instrument:'bass', color:'#6ba3c4', muted:false,solo:false,armed:false,volume:0.8,pan:0,reverb:0,delay:0,eq:{low:0,mid:0,high:0} },
-        { id: genId(), name:'Chords',type:'midi', instrument:'pad',  color:'#9b82c4', muted:false,solo:false,armed:false,volume:0.75,pan:0,reverb:0,delay:0,eq:{low:0,mid:0,high:0} },
-      ],
-    },
-    jazz: {
-      bpm: 130, key: 'D', scale: 'minor', style: 'jazz',
-      chords: [
-        { bar:0,  root:'D', type:'min7' }, { bar:2,  root:'G', type:'dom7' },
-        { bar:4,  root:'C', type:'maj7' }, { bar:6,  root:'A', type:'dom7' },
-        { bar:8,  root:'D', type:'min7' }, { bar:10, root:'E', type:'dom7' },
-        { bar:12, root:'A', type:'min7' }, { bar:14, root:'D', type:'min7' },
-      ],
-      trackList: [
-        { id: genId(), name:'Drums', type:'drum', instrument:null, color:'#c4a882', muted:false,solo:false,armed:false,volume:0.75,pan:0,reverb:0,delay:0,eq:{low:0,mid:0,high:0} },
-        { id: genId(), name:'Bass',  type:'midi', instrument:'bass', color:'#6bc49b', muted:false,solo:false,armed:false,volume:0.8,pan:0,reverb:0,delay:0,eq:{low:0,mid:0,high:0} },
-        { id: genId(), name:'Piano', type:'midi', instrument:'keys', color:'#c4b86b', muted:false,solo:false,armed:false,volume:0.75,pan:0,reverb:0,delay:0,eq:{low:0,mid:0,high:0} },
-        { id: genId(), name:'Lead',  type:'midi', instrument:'lead', color:'#c46b6b', muted:false,solo:false,armed:false,volume:0.7,pan:0,reverb:0,delay:0,eq:{low:0,mid:0,high:0} },
+        { id:genId(), name:'Drums',  type:'drum', instrument:null,   color:'#c4a882', muted:false,solo:false,armed:false,volume:0.8,pan:0,reverb:0,delay:0,eq:{low:0,mid:0,high:0} },
+        { id:genId(), name:'Bass',   type:'midi', instrument:'bass', color:'#6ba3c4', muted:false,solo:false,armed:false,volume:0.8,pan:0,reverb:0,delay:0,eq:{low:0,mid:0,high:0} },
+        { id:genId(), name:'Chords', type:'midi', instrument:'pad',  color:'#9b82c4', muted:false,solo:false,armed:false,volume:0.75,pan:0,reverb:0,delay:0,eq:{low:0,mid:0,high:0} },
       ],
     },
   };

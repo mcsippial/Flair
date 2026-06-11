@@ -180,6 +180,35 @@
   text-decoration-color: currentColor;
 }
 
+.start-key-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin: 6px 0 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.start-key-link {
+  color: var(--chrome-bright);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: default;
+}
+
+.start-mode-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+  background: rgba(192, 124, 16, 0.12);
+  border: 1px solid rgba(192, 124, 16, 0.3);
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin: -4px auto 10px;
+  display: inline-block;
+}
+
 .start-building {
   display: flex;
   flex-direction: column;
