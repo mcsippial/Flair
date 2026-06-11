@@ -123,7 +123,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
 
       const isStems = result.tracks.some(t => t.type === 'audio');
       const desc = isStems
-        ? `Generated ${result.tracks.length} stems at ${result.bpm} BPM in ${result.key} ${result.scale}. Each stem is a separate track — mix, mute, and solo them independently.`
+        ? `Generated ${result.tracks.length} audio layers at ${result.bpm} BPM in ${result.key} ${result.scale}. Each stem is a separate track — mix, mute, and solo them independently.`
         : `Composed a 16-bar ${intent.type} at ${result.bpm} BPM in ${result.key} ${result.scale}. Hit play and tell me what to change.`;
 
       dispatch({
@@ -213,7 +213,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
           <div className="start-input-section">
             <p className="start-prompt-label">What do you want to make?</p>
             {usingStems && (
-              <p className="start-mode-badge">MusicGen · 4 stems · real audio</p>
+              <p className="start-mode-badge">MusicGen · 2 layers · real audio</p>
             )}
             <div className="start-input-wrap">
               <input

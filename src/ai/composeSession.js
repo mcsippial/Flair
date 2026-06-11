@@ -8,55 +8,39 @@ function genId() { return Math.random().toString(36).substr(2, 9); }
 // Claude's job: turn a vague user request into per-stem MusicGen prompts.
 // Each stem is generated separately so the user can mix/mute/solo them.
 
-const STEM_SYSTEM = `You are a professional music producer decomposing a track into individual stems for AI audio generation.
-
-Given a user request, output JSON describing 4 stems. Each stem will be sent to MusicGen separately.
+const STEM_SYSTEM = `You are a professional music producer creating two complementary audio layers for a track. Each layer is generated separately by MusicGen and played together in a DAW.
 
 Output ONLY valid JSON — no markdown, no explanation:
 {
   "bpm": <number 60-180>,
   "key": <"C"|"C#"|"D"|"D#"|"E"|"F"|"F#"|"G"|"G#"|"A"|"A#"|"B">,
   "scale": <"major"|"minor">,
-  "trackName": "<evocative 2-4 word project name>",
   "stems": [
     {
-      "name": "Drums",
+      "name": "Rhythm",
       "color": "#c4a882",
-      "volume": 0.85,
-      "prompt": "<MusicGen prompt for drums/percussion ONLY — no other instruments>"
+      "volume": 0.82,
+      "prompt": "<MusicGen prompt: drums and bass together as a groove layer>"
     },
     {
-      "name": "Bass",
-      "color": "#6ba3c4",
-      "volume": 0.8,
-      "prompt": "<MusicGen prompt for bass ONLY — no drums, no chords>"
-    },
-    {
-      "name": "Chords",
+      "name": "Harmonic",
       "color": "#9b82c4",
-      "volume": 0.75,
-      "prompt": "<MusicGen prompt for harmonic elements — pads, chords, keys — no drums, no bass>"
-    },
-    {
-      "name": "Melody",
-      "color": "#82c49b",
-      "volume": 0.7,
-      "prompt": "<MusicGen prompt for lead melody/top line — no drums, no bass, no chords>"
+      "volume": 0.68,
+      "prompt": "<MusicGen prompt: chords, pads, and melodic elements — NO drums, NO bass>"
     }
   ]
 }
 
-STEM PROMPT RULES — each prompt must:
-- State "isolated [instrument] stem, no other instruments" explicitly
-- Name the BPM: "at 140 BPM"
-- Name the key and mode: "in A minor"
-- Use specific instrument names: "Fender Rhodes", "upright bass", "Roland TR-808 kick"
-- Include production descriptors: "dry and punchy", "warm analog", "heavy sub"
-- Reference genre/era: "UK drill 2020", "early J Dilla boom bap", "minimal Berlin techno"
-- For drums: describe the pattern feel — "four-on-the-floor with syncopated hi-hats", "trap 808 pattern"
-- For bass: describe the rhythmic relationship to the kick
-- Avoid vague words like "nice", "good", "cool"
-- Each prompt: 30-100 words`;
+PROMPT RULES — each prompt must:
+- Describe a single coherent musical texture, not isolated stems
+- Name the exact BPM: "at 140 BPM"
+- Name key and mode: "in A minor"
+- Use specific instrument names: "Roland TR-808", "Fender Rhodes", "Moog sub bass"
+- Include production feel: "punchy and dry", "warm analog", "deep sub"
+- Name the genre/era: "UK drill 2020", "J Dilla boom bap", "Berlin techno"
+- Rhythm prompt: emphasize the groove, kick pattern, hi-hat feel, bass line rhythm
+- Harmonic prompt: emphasize chord voicings, pad texture, melodic phrases — explicitly say "no drums, no bass"
+- Each prompt: 40-80 words`;
 
 // ─── MIDI fallback system prompt ──────────────────────────────────────────────
 
@@ -180,28 +164,16 @@ function buildDirectStemPlan(intent) {
     bpm, key, scale,
     stems: [
       {
-        name: 'Drums',
+        name: 'Rhythm',
         color: '#c4a882',
-        volume: 0.85,
-        prompt: `Isolated drum stem only, no other instruments. ${mood} ${type} drum pattern at ${bpm} BPM in ${keyMode}. Punchy kick, crisp snare, rhythmic hi-hats. Professional mix.`,
+        volume: 0.82,
+        prompt: `${mood} ${type} groove at ${bpm} BPM in ${keyMode}. Drums and bass together — punchy kick, tight snare, rhythmic bass line following chord roots. Professional mix, full and powerful.`,
       },
       {
-        name: 'Bass',
-        color: '#6ba3c4',
-        volume: 0.8,
-        prompt: `Isolated bass stem only, no drums, no chords, no melody. ${mood} bass line at ${bpm} BPM in ${keyMode}. Follows chord roots with rhythmic variation. Deep sub-bass tone.`,
-      },
-      {
-        name: 'Chords',
+        name: 'Harmonic',
         color: '#9b82c4',
-        volume: 0.75,
-        prompt: `Isolated chord/harmonic stem only, no drums, no bass, no melody. ${mood} pad and chords at ${bpm} BPM in ${keyMode}. Lush harmonic bed, atmospheric texture.`,
-      },
-      {
-        name: 'Melody',
-        color: '#82c49b',
-        volume: 0.7,
-        prompt: `Isolated melody/lead stem only, no drums, no bass, no chords. ${mood} melodic lead at ${bpm} BPM in ${keyMode}. Expressive phrases using scale tones.`,
+        volume: 0.68,
+        prompt: `${mood} harmonic layer at ${bpm} BPM in ${keyMode}. Chords, pads, and melodic phrases only — no drums, no bass. Atmospheric texture with expressive lead melody on top.`,
       },
     ],
   };

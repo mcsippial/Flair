@@ -731,6 +731,19 @@
   overflow: hidden;
 }
 
+.timeline-scroll {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 0;
+}
+
+.timeline-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
 .timeline-ruler {
   height: 28px;
   background: var(--surface-1);
