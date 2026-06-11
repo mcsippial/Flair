@@ -14,11 +14,11 @@ export function setReplicateKey(key) {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function createPrediction(prompt, durationSecs, attempt = 0) {
-  // Use the model endpoint (no version pinning needed for official models)
-  const res = await fetch(`${BASE}/models/meta/musicgen/predictions`, {
+  const res = await fetch(`${BASE}/predictions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      model: 'meta/musicgen',
       input: {
         prompt,
         model_version: 'stereo-large',
