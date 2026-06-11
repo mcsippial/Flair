@@ -106,7 +106,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
 
     setBuilding(true);
     const usingRepl = !!getReplicateKey();
-    if (!usingRepl) startLoadingLines(LOADING_MIDI);
+    startLoadingLines(usingRepl ? LOADING_STEMS : LOADING_MIDI);
 
     const handleStemProgress = (update) => {
       setStemProgress(prev => typeof update === 'function' ? update(prev || []) : update);
@@ -158,29 +158,10 @@ export default function StartScreen({ onDismiss, dispatch }) {
         </div>
 
         {building ? (
-          stemProgress ? (
-            <div className="start-building">
-              <p className="start-building-text">Generating stems…</p>
-              <div className="start-stem-progress">
-                {stemProgress.map(stem => (
-                  <div key={stem.name} className={`start-stem-row start-stem-${stem.status}`}>
-                    <span className="start-stem-icon">
-                      {stem.status === 'done' ? '✓' : stem.status === 'generating' ? '◉' : '○'}
-                    </span>
-                    <span className="start-stem-name">{stem.name}</span>
-                    <span className="start-stem-status">
-                      {stem.status === 'done' ? 'ready' : stem.status === 'generating' ? 'rendering…' : 'queued'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="start-building">
-              <p className="start-building-text">{loadingLine}</p>
-              <div className="start-building-dots"><span /><span /><span /></div>
-            </div>
-          )
+          <div className="start-building">
+            <p className="start-building-text">{loadingLine}</p>
+            <div className="start-building-dots"><span /><span /><span /></div>
+          </div>
 
         ) : screen === 'replicate' ? (
           <div className="start-input-section">
