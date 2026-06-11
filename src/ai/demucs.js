@@ -1,22 +1,16 @@
 import { pollPrediction, downloadAudio } from './musicGen';
 
-const BASE = 'https://flair-proxy.macsippial.workers.dev/v1';
+const BASE = 'https://flair-proxy.macsippial.workers.dev';
 
-// cjwbw/demucs — confirmed version from replicate.com/cjwbw/demucs/versions
-const DEMUCS_VERSION = 'abf8fe28e407afa6d8e41e86a759caccc0af8e49c3c68016006b62cb0968441e';
-
-const STEM_COLORS  = { drums: '#c4a882', bass: '#6ba3c4', other: '#9b82c4', vocals: '#82c49b' };
-const STEM_VOLUMES = { drums: 0.85,      bass: 0.82,      other: 0.72,      vocals: 0.68 };
+const STEM_COLORS  = { drums: '#c4a882', bass: '#6ba3c4', other: '#9b82c4', vocals: '#82c49b', guitar: '#82b8c4', piano: '#c482c4' };
+const STEM_VOLUMES = { drums: 0.85,      bass: 0.82,      other: 0.72,      vocals: 0.68,      guitar: 0.70,      piano: 0.70 };
 
 function parseStemOutput(output) {
   if (!output) return [];
-  // [{name, audio}]
   if (Array.isArray(output) && output[0]?.audio)
     return output.map(s => ({ name: s.name, url: s.audio }));
-  // {drums: url, bass: url, …}
   if (!Array.isArray(output) && typeof output === 'object')
     return Object.entries(output).map(([name, url]) => ({ name, url }));
-  // [url, url, …]
   if (Array.isArray(output) && typeof output[0] === 'string')
     return output.map((url, i) => ({ name: ['drums','bass','other','vocals'][i] ?? `stem${i}`, url }));
   return [];
@@ -25,14 +19,14 @@ function parseStemOutput(output) {
 export async function separateStems(audioUrl, onProgress) {
   onProgress?.('Separating stems…');
 
-  // 1. Create prediction
+  // Use the model endpoint — always runs the latest deployed version, no hash needed.
+  // The Worker proxies /models/... → https://api.replicate.com/models/...
   let createRes;
   try {
-    createRes = await fetch(`${BASE}/predictions`, {
+    createRes = await fetch(`${BASE}/v1/models/ryan5453/demucs/predictions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        version: DEMUCS_VERSION,
         input: { audio: audioUrl, model: 'htdemucs' },
       }),
     });
@@ -47,15 +41,13 @@ export async function separateStems(audioUrl, onProgress) {
   const createData = await createRes.json();
   if (!createData.id) throw new Error(`Demucs create — no ID: ${JSON.stringify(createData)}`);
 
-  // 2. Poll (resilient to transient blips, 6 min timeout)
-  const pred = await pollPrediction(createData.id, 360000);
+  // Poll with 8 min timeout (cold starts on shared GPUs can be slow)
+  const pred = await pollPrediction(createData.id, 480000);
 
-  // 3. Parse output
   const parsed = parseStemOutput(pred.output).filter(s => s.name.toLowerCase() !== 'vocals');
   if (!parsed.length)
     throw new Error(`Demucs no usable stems (raw output: ${JSON.stringify(pred.output)})`);
 
-  // 4. Download stems in parallel
   onProgress?.('Downloading stems…');
   return Promise.all(
     parsed.map(async ({ name, url }) => {
@@ -75,3 +67,4 @@ export async function separateStems(audioUrl, onProgress) {
     })
   );
 }
+
