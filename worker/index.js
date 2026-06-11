@@ -15,7 +15,18 @@ export default {
         const target = url.searchParams.get('url');
         if (!target) return json({ error: 'missing url param' }, 400);
 
-        const resp = await fetch(target);
+        // Replicate output URLs (replicate.delivery / api.replicate.com) need auth.
+        // Public CDN URLs (e.g. from other providers) do not.
+        const needsAuth = target.includes('replicate.delivery') || target.includes('replicate.com');
+        const headers = needsAuth ? { 'Authorization': `Token ${env.REPLICATE_API_KEY}` } : {};
+
+        let resp;
+        try {
+          resp = await fetch(target, { headers });
+        } catch (err) {
+          return json({ error: `Download fetch failed: ${err.message}` }, 502);
+        }
+
         if (!resp.ok) {
           return json({ error: `CDN download failed: ${resp.status}` }, resp.status);
         }
