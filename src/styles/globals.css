@@ -1,36 +1,47 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@400;500&family=Lora:ital,wght@0,400;1,400&display=swap');
 
 :root {
-  /* Surfaces */
-  --bg: #0d0906;
-  --surface-1: #141009;
-  --surface-2: #1c150e;
-  --surface-3: #251c13;
-  --surface-raised: #2e2218;
+  /* Base — near-neutral dark, barely perceptible warmth */
+  --bg: #0c0b0a;
+  --surface-1: #111010;
+  --surface-2: #181614;
+  --surface-3: #1e1c1a;
+  --surface-raised: #252220;
+
+  /* Wood trim — used only on header/ruler accent bands */
+  --wood-dark: #171008;
+  --wood-mid: #22160a;
 
   /* Text */
-  --text-primary: #ede4d5;
-  --text-secondary: #8a7a65;
-  --text-dim: #4a3f32;
+  --text-primary: #e0d6ca;
+  --text-secondary: #78706a;
+  --text-dim: #3d3530;
 
-  /* Accent — amber, used sparingly */
-  --amber: #e8920a;
-  --amber-bright: #f5a623;
-  --amber-glow: rgba(232, 146, 10, 0.15);
+  /* Chrome / silver — primary control accent (not amber) */
+  --chrome: #8a9099;
+  --chrome-bright: #b4bcc4;
+  --chrome-dim: #48505a;
+  --chrome-glow: rgba(180, 188, 196, 0.1);
+
+  /* Amber — ONLY for active play/record, caret, playhead */
+  --amber: #c07c10;
+  --amber-bright: #d89828;
+  --amber-glow: rgba(192, 124, 16, 0.12);
 
   /* Functional */
-  --green: #4a9b5e;
-  --red: #c0392b;
-  --blue: #5b9fd4;
+  --green: #3c7e4e;
+  --red: #983028;
+  --blue: #4878a0;
 
   /* AI */
-  --ai-accent: #6ba3c4;
-  --ai-surface: rgba(107, 163, 196, 0.08);
+  --ai-accent: #5888aa;
+  --ai-surface: rgba(88, 136, 170, 0.07);
 
   /* Borders */
-  --border: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.055);
   --border-mid: rgba(255, 255, 255, 0.1);
-  --border-amber: rgba(232, 146, 10, 0.25);
+  --border-chrome: rgba(180, 188, 196, 0.16);
+  --border-amber: rgba(192, 124, 16, 0.28);
 
   /* Fonts */
   --font-ui: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
