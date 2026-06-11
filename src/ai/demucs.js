@@ -44,17 +44,22 @@ function parseStemOutput(output) {
 export async function separateStems(audioUrl, onProgress) {
   onProgress?.('Separating stems…');
 
-  const res = await fetch(`${BASE}/predictions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      version: DEMUCS_VERSION,
-      input: {
-        audio: audioUrl,
-        model: 'htdemucs',
-      },
-    }),
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE}/predictions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        version: DEMUCS_VERSION,
+        input: {
+          audio: audioUrl,
+          model: 'htdemucs',
+        },
+      }),
+    });
+  } catch (err) {
+    throw new Error(`Demucs network error creating prediction: ${err.message}`);
+  }
 
   if (!res.ok) {
     const text = await res.text();

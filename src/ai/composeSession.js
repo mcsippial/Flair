@@ -129,10 +129,20 @@ async function composeWithStems(intent, claudeKey, onProgress) {
 
   // Step 2: generate the full mix with MusicGen
   onProgress?.('Composing music…');
-  const rawAudioUrl = await generateMusicUrl(prompt, durationSecs);
+  let rawAudioUrl;
+  try {
+    rawAudioUrl = await generateMusicUrl(prompt, durationSecs);
+  } catch (err) {
+    throw new Error(`MusicGen step failed: ${err.message}`);
+  }
 
   // Step 3: separate into stems with Demucs
-  const stems = await separateStems(rawAudioUrl, onProgress);
+  let stems;
+  try {
+    stems = await separateStems(rawAudioUrl, onProgress);
+  } catch (err) {
+    throw new Error(`Demucs step failed: ${err.message}`);
+  }
 
   const barsGenerated = Math.round((durationSecs / 60) * bpm / 4);
 
