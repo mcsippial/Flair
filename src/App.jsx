@@ -101,6 +101,7 @@ export default function App() {
         clearSchedule();
         scheduleSession(session.tracks);
         scheduledTrackIds.current = new Set(session.tracks.map(t => t.id));
+        await Tone.loaded();
         Tone.Transport.start();
         dispatch({ type: 'SET_PLAYING', isPlaying: true });
       }
@@ -127,6 +128,7 @@ export default function App() {
       clearSchedule();
       scheduleSession(session.tracks);
       scheduledTrackIds.current = new Set(session.tracks.map(t => t.id));
+      await Tone.loaded();
       Tone.Transport.start();
       dispatch({ type: 'SET_PLAYING', isPlaying: true });
     } else {
