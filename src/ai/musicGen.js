@@ -1,9 +1,5 @@
-// When VITE_PROXY_URL is set (Cloudflare Worker), all Replicate calls go through
-// it so the browser never hits api.replicate.com directly (CORS blocked).
-// Without a proxy URL, the key is sent from the browser — local dev only.
-const PROXY = import.meta.env.VITE_PROXY_URL;
-const DIRECT = 'https://api.replicate.com';
-const BASE = PROXY ? PROXY.replace(/\/$/, '') : `${DIRECT}/v1`;
+const PROXY = 'https://flair-proxy.macsippial.workers.dev';
+const BASE = `${PROXY}/v1`;
 
 const KEY_STORAGE = 'flair_replicate_key';
 
@@ -17,19 +13,11 @@ export function setReplicateKey(key) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function authHeaders() {
-  // Proxy handles auth server-side; direct calls need the key from the client
-  if (PROXY) return {};
-  const key = getReplicateKey();
-  return key ? { 'Authorization': `Token ${key}` } : {};
-}
-
 export async function generateMusicClip(prompt, durationSecs = 30) {
-  if (!PROXY && !getReplicateKey()) throw new Error('No Replicate API key');
 
   const createRes = await fetch(`${BASE}/models/meta/musicgen/predictions`, {
     method: 'POST',
-    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       input: {
         model_version: 'stereo-large',
@@ -52,7 +40,7 @@ export async function generateMusicClip(prompt, durationSecs = 30) {
   for (let i = 0; i < 45; i++) {
     await sleep(4000);
     const pollRes = await fetch(`${BASE}/predictions/${id}`, {
-      headers: authHeaders(),
+      headers: {},
     });
     const pred = await pollRes.json();
 
