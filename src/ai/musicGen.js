@@ -66,7 +66,10 @@ export async function pollPrediction(id, timeoutMs = 300000) {
 export async function downloadAudio(rawUrl) {
   const proxyUrl = `${PROXY}/download?url=${encodeURIComponent(rawUrl)}`;
   const res = await fetch(proxyUrl);
-  if (!res.ok) throw new Error(`Audio download failed: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`download ${res.status}: ${body.slice(0, 200)} [url: ${rawUrl.slice(0, 80)}]`);
+  }
   const blob = await res.blob();
   if (blob.size === 0) throw new Error('Audio download returned empty file');
   return URL.createObjectURL(blob);
