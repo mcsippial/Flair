@@ -55,7 +55,7 @@ export function disposeTrack(trackId) {
   const nodes = trackNodes[trackId];
   if (nodes) {
     // Dispose individual named nodes
-    ['sequence','synth','padFilter','player','kick','snareNoise','snareBody','hihat',
+    ['sequence','synth','padFilter','player',
      'drumBus','meter','eq','panner','send_reverb','send_delay'].forEach(k => {
       try { if (nodes[k]) nodes[k].dispose(); } catch(e) {}
     });

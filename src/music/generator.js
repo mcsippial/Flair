@@ -138,7 +138,7 @@ function drumBar(bar, style, arrangement) {
   }
 
   // isFill: fills at chorus/peak/drop sections or last bar
-  const isFill = bar === 15 || section === 'chorus' || section === 'peak' || section === 'drop';
+  const isFill = bar === 15 || ((section === 'chorus' || section === 'peak' || section === 'drop') && bar % 4 === 3);
   const sectionB = full || building;
 
   if (style === 'jazz') {
@@ -255,7 +255,7 @@ function drumBar(bar, style, arrangement) {
 
   // Fills at chorus/peak/drop sections or last bar
   if (isFill) {
-    [0, 1, 2, 3].forEach((s, i) => hits.push(h(3, s, 'snare', humanize(0.55 + i * 0.13))));
+    [0, 1, 2, 3].forEach((s, i) => hits.push(h(3, s, 'snare', 0.55 + i * 0.13)));
     if (bar === 15) { // ending fill: kick every beat
       for (let b = 0; b < 4; b++) hits.push(h(b, 0, 'kick', 0.72 + b * 0.06));
     }

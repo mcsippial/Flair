@@ -145,6 +145,7 @@ export function createDrumInstruments(destination) {
     },
     baseUrl: DRUM_BASE,
     onload: () => {
+      synthKit._nodes.forEach(n => { try { n.disconnect(); } catch(_) {} });
       sampler.connect(destination);
       sampleKit = {
         triggerKick:    (t, v) => sampler.triggerAttackRelease('C2',  '8n', t, v),
