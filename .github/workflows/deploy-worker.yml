@@ -1,0 +1,25 @@
+name: Deploy Cloudflare Worker (Replicate proxy)
+
+on:
+  push:
+    branches: [claude/gifted-darwin-QahQy]
+    paths:
+      - 'worker/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: worker
+      - name: Set REPLICATE_API_KEY secret on Worker
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          npm install -g wrangler
+          echo "${{ secrets.REPLICATE_API_KEY }}" | wrangler secret put REPLICATE_API_KEY
