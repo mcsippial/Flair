@@ -57,7 +57,9 @@ export async function generateMusicClip(prompt, durationSecs = 30) {
     const pred = await pollRes.json();
 
     if (pred.status === 'succeeded') {
-      const blob = await fetch(pred.output).then(r => r.blob());
+      const rawUrl = Array.isArray(pred.output) ? pred.output[0] : pred.output;
+      const proxyUrl = `${PROXY}/download?url=${encodeURIComponent(rawUrl)}`;
+      const blob = await fetch(proxyUrl).then(r => r.blob());
       return URL.createObjectURL(blob);
     }
     if (pred.status === 'failed') {
