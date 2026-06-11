@@ -32,13 +32,9 @@ function parseIntent(text, chipId) {
 }
 
 const LOADING_STEMS = [
-  'Decomposing into stems…',
-  'Generating drums…',
-  'Generating bass…',
-  'Generating chords…',
-  'Generating melody…',
-  'Mixing stems…',
-  'Almost done…',
+  'Composing music…',
+  'Still composing…',
+  'Almost there…',
 ];
 
 const LOADING_MIDI = [
@@ -62,7 +58,6 @@ export default function StartScreen({ onDismiss, dispatch }) {
   const [claudeKey, setClaudeKey]   = useState(getApiKey() || '');
   const [building, setBuilding]     = useState(false);
   const [loadingLine, setLoadingLine] = useState('');
-  const [stemProgress, setStemProgress] = useState(null); // null = not stem mode
   const inputRef     = useRef(null);
   const repKeyRef    = useRef(null);
   const claudeKeyRef = useRef(null);
@@ -108,14 +103,16 @@ export default function StartScreen({ onDismiss, dispatch }) {
     const usingRepl = !!getReplicateKey();
     startLoadingLines(usingRepl ? LOADING_STEMS : LOADING_MIDI);
 
-    const handleStemProgress = (update) => {
-      setStemProgress(prev => typeof update === 'function' ? update(prev || []) : update);
+    const handleProgress = (msg) => {
+      if (typeof msg === 'string') {
+        stopLoadingLines();
+        setLoadingLine(msg);
+      }
     };
 
     try {
-      const result = await composeStarterSession(intent, usingRepl ? handleStemProgress : null);
+      const result = await composeStarterSession(intent, usingRepl ? handleProgress : null);
       stopLoadingLines();
-      setStemProgress(null);
 
       dispatch({ type: 'UPDATE_BPM', bpm: result.bpm });
       dispatch({ type: 'UPDATE_KEY', key: result.key, scale: result.scale });
@@ -123,7 +120,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
 
       const isStems = result.tracks.some(t => t.type === 'audio');
       const desc = isStems
-        ? `Generated ${result.tracks.length} audio layers at ${result.bpm} BPM in ${result.key} ${result.scale}. Each stem is a separate track — mix, mute, and solo them independently.`
+        ? `Generated ${result.tracks.length} stems at ${result.bpm} BPM in ${result.key} ${result.scale}. Mix, mute, and solo each track independently.`
         : `Composed a 16-bar ${intent.type} at ${result.bpm} BPM in ${result.key} ${result.scale}. Hit play and tell me what to change.`;
 
       dispatch({
@@ -133,7 +130,6 @@ export default function StartScreen({ onDismiss, dispatch }) {
       onDismiss();
     } catch (err) {
       stopLoadingLines();
-      setStemProgress(null);
       dispatch({
         type: 'ADD_AI_MESSAGE',
         message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: `Generation failed: ${err.message}` },
@@ -213,7 +209,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
           <div className="start-input-section">
             <p className="start-prompt-label">What do you want to make?</p>
             {usingStems && (
-              <p className="start-mode-badge">MusicGen · 2 layers · real audio</p>
+              <p className="start-mode-badge">MusicGen + Demucs · real stems</p>
             )}
             <div className="start-input-wrap">
               <input

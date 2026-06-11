@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getApiKey } from './claudeClient';
-import { getReplicateKey, generateMusicClip } from './musicGen';
+import { getReplicateKey, generateMusicUrl, downloadAudio } from './musicGen';
+import { separateStems } from './demucs';
 
 function genId() { return Math.random().toString(36).substr(2, 9); }
 
@@ -92,57 +93,56 @@ export async function composeStarterSession(intent, onStemProgress) {
 }
 
 
-// ─── Stems path: Claude plans → parallel MusicGen calls ──────────────────────
+// ─── Stems path: Claude writes prompt → MusicGen → Demucs ────────────────────
 
-async function composeWithStems(intent, claudeKey, onStemProgress) {
+async function composeWithStems(intent, claudeKey, onProgress) {
   const durationSecs = Math.min(30, Math.round((16 * 4 * 60) / intent.bpm));
 
-  let stemPlan;
+  // Step 1: build the MusicGen prompt
+  let prompt, bpm, key, scale;
 
   if (claudeKey) {
+    onProgress?.('Crafting your track…');
     const client = new Anthropic({ apiKey: claudeKey, dangerouslyAllowBrowser: true });
     const userMsg = intent.description
-      ? `Decompose this into stems: "${intent.description}". Type: ${intent.type}, mood: ${intent.mood}, BPM hint: ${intent.bpm}, key hint: ${intent.key} ${intent.scale}.`
-      : `Decompose a ${intent.mood} ${intent.type} at ${intent.bpm} BPM in ${intent.key} ${intent.scale} into 4 stems.`;
+      ? `Write a single MusicGen prompt for: "${intent.description}". Type: ${intent.type}, mood: ${intent.mood}, BPM: ${intent.bpm}, key: ${intent.key} ${intent.scale}. Output ONLY valid JSON: {"bpm":<number>,"key":<string>,"scale":"major"|"minor","prompt":<string 40-120 words>}`
+      : `Write a single MusicGen prompt for a ${intent.mood} ${intent.type} at ${intent.bpm} BPM in ${intent.key} ${intent.scale}. Output ONLY valid JSON: {"bpm":<number>,"key":<string>,"scale":"major"|"minor","prompt":<string 40-120 words>}`;
 
     const resp = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1200,
-      system: STEM_SYSTEM,
+      max_tokens: 400,
       messages: [{ role: 'user', content: userMsg }],
     });
-
-    stemPlan = JSON.parse(
+    const plan = JSON.parse(
       resp.content[0].text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim()
     );
+    prompt = plan.prompt;
+    bpm    = plan.bpm    || intent.bpm;
+    key    = plan.key    || intent.key;
+    scale  = plan.scale  || intent.scale;
   } else {
-    stemPlan = buildDirectStemPlan(intent);
+    bpm   = intent.bpm;
+    key   = intent.key;
+    scale = intent.scale;
+    prompt = `${intent.mood} ${intent.type} at ${bpm} BPM in ${key} ${scale}. Full mix with drums, bass, chords, and melody. Professional production, detailed arrangement.`;
   }
 
-  const { bpm, key, scale, stems } = stemPlan;
+  // Step 2: generate the full mix with MusicGen
+  onProgress?.('Composing music…');
+  const rawAudioUrl = await generateMusicUrl(prompt, durationSecs);
 
-  // Notify UI of initial pending state
-  onStemProgress?.(stems.map(s => ({ name: s.name, status: 'pending' })));
-
-  // Generate all stems in parallel, reporting progress per stem
-  const audioUrls = await Promise.all(
-    stems.map(async (stem, i) => {
-      onStemProgress?.(prev => prev.map((s, j) => j === i ? { ...s, status: 'generating' } : s));
-      const url = await generateMusicClip(stem.prompt, durationSecs);
-      onStemProgress?.(prev => prev.map((s, j) => j === i ? { ...s, status: 'done' } : s));
-      return url;
-    })
-  );
+  // Step 3: separate into stems with Demucs
+  const stems = await separateStems(rawAudioUrl, onProgress);
 
   const barsGenerated = Math.round((durationSecs / 60) * bpm / 4);
 
-  const tracks = stems.map((stem, i) => ({
+  const tracks = stems.map(stem => ({
     id: genId(),
     name: stem.name,
     type: 'audio',
     color: stem.color,
     muted: false, solo: false, armed: false,
-    volume: stem.volume ?? 0.8, pan: 0, reverb: 0.05, delay: 0,
+    volume: stem.volume, pan: 0, reverb: 0, delay: 0,
     eq: { low: 0, mid: 0, high: 0 },
     clips: [{
       id: genId(),
@@ -150,33 +150,11 @@ async function composeWithStems(intent, claudeKey, onStemProgress) {
       type: 'audio',
       start: 0,
       length: barsGenerated,
-      audioUrl: audioUrls[i],
+      audioUrl: stem.audioUrl,
     }],
   }));
 
   return { bpm, key, scale, tracks };
-}
-
-function buildDirectStemPlan(intent) {
-  const { type, mood, bpm, key, scale } = intent;
-  const keyMode = `${key} ${scale}`;
-  return {
-    bpm, key, scale,
-    stems: [
-      {
-        name: 'Rhythm',
-        color: '#c4a882',
-        volume: 0.82,
-        prompt: `${mood} ${type} groove at ${bpm} BPM in ${keyMode}. Drums and bass together — punchy kick, tight snare, rhythmic bass line following chord roots. Professional mix, full and powerful.`,
-      },
-      {
-        name: 'Harmonic',
-        color: '#9b82c4',
-        volume: 0.68,
-        prompt: `${mood} harmonic layer at ${bpm} BPM in ${keyMode}. Chords, pads, and melodic phrases only — no drums, no bass. Atmospheric texture with expressive lead melody on top.`,
-      },
-    ],
-  };
 }
 
 
