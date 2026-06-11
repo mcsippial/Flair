@@ -1,7 +1,6 @@
-import { sleep, downloadAudio } from './musicGen';
+import { pollPrediction, downloadAudio } from './musicGen';
 
-const PROXY = 'https://flair-proxy.macsippial.workers.dev';
-const BASE  = `${PROXY}/v1`;
+const BASE = 'https://flair-proxy.macsippial.workers.dev/v1';
 
 // cjwbw/demucs — confirmed version from replicate.com/cjwbw/demucs/versions
 const DEMUCS_VERSION = 'abf8fe28e407afa6d8e41e86a759caccc0af8e49c3c68016006b62cb0968441e';
@@ -23,60 +22,42 @@ function parseStemOutput(output) {
   return [];
 }
 
-async function safeFetch(label, url, options) {
-  let res;
-  try {
-    res = await fetch(url, options);
-  } catch (err) {
-    throw new Error(`${label} — network error: ${err.message}`);
-  }
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`${label} — HTTP ${res.status}: ${body.slice(0, 300)}`);
-  }
-  return res;
-}
-
 export async function separateStems(audioUrl, onProgress) {
   onProgress?.('Separating stems…');
 
   // 1. Create prediction
-  const createRes = await safeFetch('Demucs create', `${BASE}/predictions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      version: DEMUCS_VERSION,
-      input: { audio: audioUrl, model: 'htdemucs' },
-    }),
-  });
-
-  const createData = await createRes.json().catch(e => { throw new Error(`Demucs create parse: ${e.message}`); });
-  if (!createData.id) throw new Error(`Demucs create — no ID in response: ${JSON.stringify(createData)}`);
-
-  // 2. Poll until done (6 min timeout)
-  const deadline = Date.now() + 360_000;
-  let pred;
-  while (Date.now() < deadline) {
-    await sleep(5000);
-    const pollRes = await safeFetch('Demucs poll', `${BASE}/predictions/${createData.id}`);
-    pred = await pollRes.json().catch(e => { throw new Error(`Demucs poll parse: ${e.message}`); });
-
-    if (pred.status === 'succeeded') break;
-    if (pred.status === 'failed')
-      throw new Error(`Demucs prediction failed: ${pred.error || JSON.stringify(pred)}`);
+  let createRes;
+  try {
+    createRes = await fetch(`${BASE}/predictions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        version: DEMUCS_VERSION,
+        input: { audio: audioUrl, model: 'htdemucs' },
+      }),
+    });
+  } catch (err) {
+    throw new Error(`Demucs create — network error: ${err.message}`);
+  }
+  if (!createRes.ok) {
+    const body = await createRes.text().catch(() => '');
+    throw new Error(`Demucs create — HTTP ${createRes.status}: ${body.slice(0, 300)}`);
   }
 
-  if (!pred || pred.status !== 'succeeded')
-    throw new Error('Demucs timed out after 6 minutes');
+  const createData = await createRes.json();
+  if (!createData.id) throw new Error(`Demucs create — no ID: ${JSON.stringify(createData)}`);
+
+  // 2. Poll (resilient to transient blips, 6 min timeout)
+  const pred = await pollPrediction(createData.id, 360000);
 
   // 3. Parse output
   const parsed = parseStemOutput(pred.output).filter(s => s.name.toLowerCase() !== 'vocals');
   if (!parsed.length)
     throw new Error(`Demucs no usable stems (raw output: ${JSON.stringify(pred.output)})`);
 
-  // 4. Download stems
+  // 4. Download stems in parallel
   onProgress?.('Downloading stems…');
-  const downloaded = await Promise.all(
+  return Promise.all(
     parsed.map(async ({ name, url }) => {
       let blobUrl;
       try {
@@ -93,6 +74,4 @@ export async function separateStems(audioUrl, onProgress) {
       };
     })
   );
-
-  return downloaded;
 }

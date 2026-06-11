@@ -39,10 +39,24 @@ async function createPrediction(body, attempt = 0) {
 
 export async function pollPrediction(id, timeoutMs = 300000) {
   const deadline = Date.now() + timeoutMs;
+  let transientErrors = 0;
   while (Date.now() < deadline) {
     await sleep(4000);
-    const res = await fetch(`${BASE}/predictions/${id}`);
-    const pred = await res.json();
+    let pred;
+    try {
+      const res = await fetch(`${BASE}/predictions/${id}`);
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(`poll HTTP ${res.status}: ${body.slice(0, 200)}`);
+      }
+      pred = await res.json();
+    } catch (err) {
+      // A single network blip during a multi-minute job shouldn't kill it.
+      // Tolerate several consecutive transient failures before giving up.
+      if (++transientErrors >= 5) throw new Error(`Polling failed repeatedly: ${err.message}`);
+      continue;
+    }
+    transientErrors = 0;
     if (pred.status === 'succeeded') return pred;
     if (pred.status === 'failed') throw new Error(`Prediction failed: ${pred.error || JSON.stringify(pred)}`);
   }
