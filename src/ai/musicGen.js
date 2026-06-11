@@ -13,9 +13,8 @@ export function setReplicateKey(key) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-export async function generateMusicClip(prompt, durationSecs = 30) {
-
-  const createRes = await fetch(`${BASE}/models/meta/musicgen/predictions`, {
+async function createPrediction(prompt, durationSecs, attempt = 0) {
+  const res = await fetch(`${BASE}/models/meta/musicgen/predictions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -29,19 +28,29 @@ export async function generateMusicClip(prompt, durationSecs = 30) {
     }),
   });
 
-  if (!createRes.ok) {
-    const body = await createRes.text();
-    throw new Error(`Replicate ${createRes.status}: ${body}`);
+  if (res.status === 429) {
+    if (attempt >= 5) throw new Error('Rate limited after 5 retries — try again in a minute');
+    const body = await res.json().catch(() => ({}));
+    const wait = ((body.retry_after || 15) + 2) * 1000;
+    await sleep(wait);
+    return createPrediction(prompt, durationSecs, attempt + 1);
   }
 
-  const { id } = await createRes.json();
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Replicate ${res.status}: ${body}`);
+  }
+
+  return res.json();
+}
+
+export async function generateMusicClip(prompt, durationSecs = 30) {
+  const { id } = await createPrediction(prompt, durationSecs);
 
   // Poll every 4s, up to 3 minutes
   for (let i = 0; i < 45; i++) {
     await sleep(4000);
-    const pollRes = await fetch(`${BASE}/predictions/${id}`, {
-      headers: {},
-    });
+    const pollRes = await fetch(`${BASE}/predictions/${id}`);
     const pred = await pollRes.json();
 
     if (pred.status === 'succeeded') {
