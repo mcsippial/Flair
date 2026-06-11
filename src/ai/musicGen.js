@@ -18,7 +18,7 @@ async function createPrediction(prompt, durationSecs, attempt = 0) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'meta/musicgen',
+      version: '671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb',
       input: {
         prompt,
         model_version: 'stereo-large',
