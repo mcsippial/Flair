@@ -31,14 +31,17 @@ function parseIntent(text, chipId) {
   return { type, key, scale, bpm: Math.max(60, Math.min(200, bpm)), mood, description: text };
 }
 
-const LOADING_LINES_AUDIO = [
-  'Sending to MusicGen…',
-  'AI is composing your track…',
-  'Rendering audio…',
-  'Mixing and mastering…',
+const LOADING_STEMS = [
+  'Decomposing into stems…',
+  'Generating drums…',
+  'Generating bass…',
+  'Generating chords…',
+  'Generating melody…',
+  'Mixing stems…',
   'Almost done…',
 ];
-const LOADING_LINES_MIDI = [
+
+const LOADING_MIDI = [
   'Setting the key and tempo…',
   'Writing chord progression…',
   'Laying down the groove…',
@@ -47,7 +50,6 @@ const LOADING_LINES_MIDI = [
   'Almost there…',
 ];
 
-// screen: 'replicate' | 'claude' | 'prompt'
 function initialScreen() {
   if (!getReplicateKey() && !getApiKey()) return 'replicate';
   return 'prompt';
@@ -60,12 +62,12 @@ export default function StartScreen({ onDismiss, dispatch }) {
   const [claudeKey, setClaudeKey]   = useState(getApiKey() || '');
   const [building, setBuilding]     = useState(false);
   const [loadingLine, setLoadingLine] = useState('');
-  const inputRef    = useRef(null);
-  const repKeyRef   = useRef(null);
+  const inputRef     = useRef(null);
+  const repKeyRef    = useRef(null);
   const claudeKeyRef = useRef(null);
   const loadingInterval = useRef(null);
 
-  const usingAudio = !!getReplicateKey();
+  const usingStems = !!getReplicateKey();
 
   useEffect(() => {
     if (screen === 'replicate') repKeyRef.current?.focus();
@@ -89,7 +91,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
     loadingInterval.current = setInterval(() => {
       i = (i + 1) % lines.length;
       setLoadingLine(lines[i]);
-    }, 2200);
+    }, 2800);
   };
 
   const stopLoadingLines = () => {
@@ -102,8 +104,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
       : parseIntent(text, chipId);
 
     setBuilding(true);
-    const lines = getReplicateKey() ? LOADING_LINES_AUDIO : LOADING_LINES_MIDI;
-    startLoadingLines(lines);
+    startLoadingLines(getReplicateKey() ? LOADING_STEMS : LOADING_MIDI);
 
     try {
       const result = await composeStarterSession(intent);
@@ -113,9 +114,9 @@ export default function StartScreen({ onDismiss, dispatch }) {
       dispatch({ type: 'UPDATE_KEY', key: result.key, scale: result.scale });
       result.tracks.forEach(track => dispatch({ type: 'ADD_TRACK', track }));
 
-      const isAudio = result.tracks.some(t => t.type === 'audio');
-      const desc = isAudio
-        ? `Generated ${result.tracks[0]?.name || 'track'} at ${result.bpm} BPM in ${result.key} ${result.scale} using MusicGen. Hit play to hear it.`
+      const isStems = result.tracks.some(t => t.type === 'audio');
+      const desc = isStems
+        ? `Generated ${result.tracks.length} stems at ${result.bpm} BPM in ${result.key} ${result.scale}. Each stem is a separate track — mix, mute, and solo them independently.`
         : `Composed a 16-bar ${intent.type} at ${result.bpm} BPM in ${result.key} ${result.scale}. Hit play and tell me what to change.`;
 
       dispatch({
@@ -156,10 +157,10 @@ export default function StartScreen({ onDismiss, dispatch }) {
 
         ) : screen === 'replicate' ? (
           <div className="start-input-section">
-            <p className="start-prompt-label">Replicate API key — for AI audio generation</p>
+            <p className="start-prompt-label">Replicate API key — for AI stem generation</p>
             <p className="start-key-desc">
-              MusicGen generates real recorded-quality music from your prompts.<br />
-              Get a free key at <span className="start-key-link">replicate.com</span>
+              Generates real audio stems (drums, bass, chords, melody) separately<br />
+              so you can mix and mute each track independently. Free key at <span className="start-key-link">replicate.com</span>
             </p>
             <div className="start-input-wrap">
               <input
@@ -196,21 +197,15 @@ export default function StartScreen({ onDismiss, dispatch }) {
               />
               <button className="start-input-submit" onClick={saveClaudeKey} disabled={!claudeKey.trim()}>→</button>
             </div>
-            <button className="start-blank" onClick={() => setScreen('replicate')}>
-              ← back
-            </button>
-            <button className="start-blank" style={{ marginTop: 6, fontSize: 11, opacity: 0.5 }} onClick={() => setScreen('prompt')}>
-              skip
-            </button>
+            <button className="start-blank" onClick={() => setScreen('replicate')}>← back</button>
+            <button className="start-blank" style={{ marginTop: 6, fontSize: 11, opacity: 0.5 }} onClick={() => setScreen('prompt')}>skip</button>
           </div>
 
         ) : (
           <div className="start-input-section">
-            <p className="start-prompt-label">
-              {usingAudio ? 'What do you want to make?' : 'What do you want to make?'}
-            </p>
-            {usingAudio && (
-              <p className="start-mode-badge">MusicGen · real audio</p>
+            <p className="start-prompt-label">What do you want to make?</p>
+            {usingStems && (
+              <p className="start-mode-badge">MusicGen · 4 stems · real audio</p>
             )}
             <div className="start-input-wrap">
               <input
