@@ -83,12 +83,19 @@ export default function Timeline({ session, dispatch }) {
     setPlayheadX(x);
   };
 
-  const zoomIn  = (e) => { e.stopPropagation(); setZoom(z => Math.min(4, +(z * 1.5).toFixed(2))); };
-  const zoomOut = (e) => { e.stopPropagation(); setZoom(z => Math.max(0.25, +(z / 1.5).toFixed(2))); };
+  const zoomIn  = (e) => { e?.stopPropagation(); setZoom(z => Math.min(4, +(z * 1.5).toFixed(2))); };
+  const zoomOut = (e) => { e?.stopPropagation(); setZoom(z => Math.max(0.25, +(z / 1.5).toFixed(2))); };
+
+  const handleWheel = (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      if (e.deltaY < 0) zoomIn(); else zoomOut();
+    }
+  };
 
   return (
     <div className="timeline">
-      <div className="timeline-scroll" ref={scrollRef}>
+      <div className="timeline-scroll" ref={scrollRef} onWheel={handleWheel}>
         <div className="timeline-inner" style={{ width: totalWidth }}>
 
           <div className="timeline-ruler" onClick={handleRulerClick}>
