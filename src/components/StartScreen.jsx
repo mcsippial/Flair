@@ -114,12 +114,26 @@ const LOADING_LINES = [
 
 export default function StartScreen({ onDismiss, dispatch }) {
   const [input, setInput] = useState('');
+  const [apiKey, setApiKeyLocal] = useState(getApiKey() || '');
+  const [showApiKey, setShowApiKey] = useState(!getApiKey());
   const [building, setBuilding] = useState(false);
   const [loadingLine, setLoadingLine] = useState(LOADING_LINES[0]);
   const inputRef = useRef(null);
+  const apiKeyRef = useRef(null);
   const loadingInterval = useRef(null);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    if (showApiKey) {
+      apiKeyRef.current?.focus();
+    } else {
+      inputRef.current?.focus();
+    }
+  }, [showApiKey]);
+
+  const saveApiKey = () => {
+    setApiKey(apiKey.trim());
+    setShowApiKey(false);
+  };
 
   const startLoadingLines = () => {
     let i = 0;
@@ -208,6 +222,31 @@ export default function StartScreen({ onDismiss, dispatch }) {
               <span /><span /><span />
             </div>
           </div>
+        ) : showApiKey ? (
+          <div className="start-input-section">
+            <p className="start-prompt-label">Enter your Claude API key to enable AI composition</p>
+            <div className="start-input-wrap">
+              <input
+                ref={apiKeyRef}
+                className="start-input"
+                type="password"
+                value={apiKey}
+                onChange={e => setApiKeyLocal(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && apiKey.trim() && saveApiKey()}
+                placeholder="sk-ant-api03-..."
+              />
+              <button
+                className="start-input-submit"
+                onClick={saveApiKey}
+                disabled={!apiKey.trim()}
+              >
+                →
+              </button>
+            </div>
+            <button className="start-blank" onClick={() => setShowApiKey(false)}>
+              skip — start blank without AI
+            </button>
+          </div>
         ) : (
           <div className="start-input-section">
             <p className="start-prompt-label">What do you want to make?</p>
@@ -243,6 +282,9 @@ export default function StartScreen({ onDismiss, dispatch }) {
 
             <button className="start-blank" onClick={handleBlank}>
               or start blank
+            </button>
+            <button className="start-blank" style={{ marginTop: '6px', opacity: 0.5, fontSize: '11px' }} onClick={() => setShowApiKey(true)}>
+              change API key
             </button>
           </div>
         )}
