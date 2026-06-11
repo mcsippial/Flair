@@ -76,14 +76,15 @@ function scheduleMidiTrack(track) {
   const fx = buildFxChain(track);
   const meter = new Tone.Meter();
 
-  synth.disconnect();
-  // Pad has its own internal lowpass filter; connect that into the FX chain
+  // Pad: route via _padFilter (chorus output) to preserve the internal chain.
+  // Calling synth.disconnect() would sever PolySynth→filter inside the pad.
   if (synth._padFilter) {
     synth._padFilter.connect(fx.input);
     synth._padFilter.connect(meter);
-    // Pads always get reverb — dry pads sound terrible. Use track value or default 0.35.
     if (fx.send_reverb) fx.send_reverb.gain.value = Math.max(track.reverb || 0, 0.35);
   } else {
+    // Non-pad instruments connect directly to dest() on creation; reroute into FX chain.
+    synth.disconnect();
     synth.connect(fx.input);
     synth.connect(meter);
   }

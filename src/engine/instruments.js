@@ -31,8 +31,7 @@ export function makePad() {
   });
   synth.connect(filter);
   filter.connect(chorus);
-  chorus.connect(dest());
-  // scheduler reads _padFilter to route into the FX chain
+  // scheduler connects chorus (_padFilter) into the FX chain — don't pre-connect to dest()
   synth._padFilter = chorus;
   synth._padChorus = chorus;
   return synth;
@@ -74,6 +73,7 @@ function makeKeys() {
   });
 
   return {
+    get volume()  { return active.volume; },
     triggerAttackRelease: (...args) => active.triggerAttackRelease(...args),
     triggerRelease: (...args) => { try { active.triggerRelease?.(...args); } catch(_) {} },
     connect:    (d) => active.connect(d),

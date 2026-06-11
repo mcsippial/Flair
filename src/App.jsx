@@ -54,9 +54,9 @@ export default function App() {
 
       const shouldPlay = !track.muted && (!anySolo || track.solo);
       const dbVal = shouldPlay ? Tone.gainToDb(Math.max(0.0001, track.volume)) : -Infinity;
-      if (liveNodes.synth) liveNodes.synth.volume.value = dbVal;
-      if (liveNodes.kick)  liveNodes.kick.volume.value  = dbVal;
-      if (liveNodes.snare) liveNodes.snare.volume.value = dbVal;
+      if (liveNodes.synth?.volume)  liveNodes.synth.volume.value  = dbVal;
+      if (liveNodes.kick?.volume)   liveNodes.kick.volume.value   = dbVal;
+      if (liveNodes.snare?.volume)  liveNodes.snare.volume.value  = dbVal;
       if (liveNodes.hihat) liveNodes.hihat.volume.value = dbVal;
     });
   }, [session.tracks, session.isPlaying]);
