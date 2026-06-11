@@ -1,1 +1,2 @@
 # Flair Replicate Proxy
+trigger
