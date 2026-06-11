@@ -13,13 +13,16 @@ export function setReplicateKey(key) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// MusicGen stereo-large — pinned version ID from Replicate
+const MUSICGEN_VERSION = '671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb';
+
 async function createPrediction(prompt, durationSecs, attempt = 0) {
-  const res = await fetch(`${BASE}/models/meta/musicgen/predictions`, {
+  const res = await fetch(`${BASE}/predictions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      version: MUSICGEN_VERSION,
       input: {
-        model_version: 'stereo-large',
         prompt,
         duration: Math.min(Math.round(durationSecs), 30),
         output_format: 'mp3',
