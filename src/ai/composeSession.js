@@ -137,10 +137,12 @@ async function composeWithStems(intent, claudeKey) {
 
   const { bpm, key, scale, stems } = stemPlan;
 
-  // Generate all stems in parallel
-  const audioUrls = await Promise.all(
-    stems.map(stem => generateMusicClip(stem.prompt, durationSecs))
-  );
+  // Generate stems sequentially to respect Replicate's burst rate limit.
+  // On a paid Replicate account you can switch this to Promise.all for parallel generation.
+  const audioUrls = [];
+  for (const stem of stems) {
+    audioUrls.push(await generateMusicClip(stem.prompt, durationSecs));
+  }
 
   const barsGenerated = Math.round((durationSecs / 60) * bpm / 4);
 
