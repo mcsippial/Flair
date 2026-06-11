@@ -35,6 +35,19 @@ function MidiPreview({ notes, length }) {
   );
 }
 
+function AudioPreview({ length }) {
+  const bars = Math.max(1, Math.round(length));
+  const points = Array.from({ length: bars * 4 }, (_, i) => {
+    const h = 0.3 + 0.5 * Math.abs(Math.sin(i * 1.9) * Math.cos(i * 0.7));
+    return `${(i / (bars * 4)) * bars},${0.5 - h / 2} ${(i / (bars * 4)) * bars},${0.5 + h / 2}`;
+  }).join(' ');
+  return (
+    <svg className="clip-svg-preview" viewBox={`0 0 ${bars} 1`} preserveAspectRatio="none">
+      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="0.04" opacity="0.55" />
+    </svg>
+  );
+}
+
 function DrumPreview({ notes, length }) {
   if (!notes?.length) return null;
   const DRUM_Y = { kick: 0.82, snare: 0.48, hihat: 0.16, openhat: 0.22, clap: 0.44 };
@@ -125,8 +138,8 @@ export default function Timeline({ session, dispatch }) {
                     style={{
                       left: clip.start * BAR_WIDTH,
                       width: clip.length * BAR_WIDTH - 2,
-                      background: track.color + '1e',
-                      borderColor: track.color + '88',
+                      background: track.color + (clip.type === 'audio' ? '38' : '1e'),
+                      borderColor: track.color + '99',
                       color: track.color,
                     }}
                     onClick={() => dispatch({ type: 'SELECT_TRACK', trackId: track.id })}
@@ -141,6 +154,7 @@ export default function Timeline({ session, dispatch }) {
                     <div className="clip-preview">
                       {clip.type === 'midi' && <MidiPreview notes={clip.notes} length={clip.length} />}
                       {clip.type === 'drum' && <DrumPreview notes={clip.notes} length={clip.length} />}
+                      {clip.type === 'audio' && <AudioPreview length={clip.length} />}
                     </div>
                   </div>
                 ))}
