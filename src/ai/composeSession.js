@@ -94,12 +94,12 @@ Create 3-4 tracks. Section B (bars 8-15) must differ from Section A (bars 0-7) i
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
-export async function composeStarterSession(intent) {
+export async function composeStarterSession(intent, onStemProgress) {
   const replicateKey = getReplicateKey();
   const claudeKey    = getApiKey();
 
   if (replicateKey) {
-    return composeWithStems(intent, claudeKey);
+    return composeWithStems(intent, claudeKey, onStemProgress);
   }
   if (claudeKey) {
     return composeWithMidi(intent, claudeKey);
@@ -110,7 +110,7 @@ export async function composeStarterSession(intent) {
 
 // ─── Stems path: Claude plans → parallel MusicGen calls ──────────────────────
 
-async function composeWithStems(intent, claudeKey) {
+async function composeWithStems(intent, claudeKey, onStemProgress) {
   const durationSecs = Math.min(30, Math.round((16 * 4 * 60) / intent.bpm));
 
   let stemPlan;
@@ -137,9 +137,17 @@ async function composeWithStems(intent, claudeKey) {
 
   const { bpm, key, scale, stems } = stemPlan;
 
-  // Generate all stems in parallel
+  // Notify UI of initial pending state
+  onStemProgress?.(stems.map(s => ({ name: s.name, status: 'pending' })));
+
+  // Generate all stems in parallel, reporting progress per stem
   const audioUrls = await Promise.all(
-    stems.map(stem => generateMusicClip(stem.prompt, durationSecs))
+    stems.map(async (stem, i) => {
+      onStemProgress?.(prev => prev.map((s, j) => j === i ? { ...s, status: 'generating' } : s));
+      const url = await generateMusicClip(stem.prompt, durationSecs);
+      onStemProgress?.(prev => prev.map((s, j) => j === i ? { ...s, status: 'done' } : s));
+      return url;
+    })
   );
 
   const barsGenerated = Math.round((durationSecs / 60) * bpm / 4);

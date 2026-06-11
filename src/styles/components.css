@@ -217,6 +217,52 @@
 .start-building-dots span:nth-child(2) { animation-delay: 0.2s; }
 .start-building-dots span:nth-child(3) { animation-delay: 0.4s; }
 
+.start-stem-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 240px;
+  margin-top: 6px;
+}
+
+.start-stem-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  transition: opacity 0.3s;
+}
+
+.start-stem-icon {
+  font-size: 15px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.start-stem-name {
+  flex: 1;
+  color: var(--text-secondary);
+}
+
+.start-stem-status {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
+.start-stem-pending { opacity: 0.4; }
+
+.start-stem-generating .start-stem-icon { color: var(--amber); animation: pulse-dot 1.2s ease-in-out infinite; }
+.start-stem-generating .start-stem-name { color: var(--text-primary); }
+.start-stem-generating .start-stem-status { color: var(--amber); }
+.start-stem-generating { opacity: 1; }
+
+.start-stem-done .start-stem-icon { color: #6dc87a; }
+.start-stem-done .start-stem-name { color: var(--text-secondary); }
+.start-stem-done .start-stem-status { color: #6dc87a; }
+.start-stem-done { opacity: 0.75; }
+
 
 /* ============================================================
    TOP BAR

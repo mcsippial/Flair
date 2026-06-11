@@ -62,6 +62,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
   const [claudeKey, setClaudeKey]   = useState(getApiKey() || '');
   const [building, setBuilding]     = useState(false);
   const [loadingLine, setLoadingLine] = useState('');
+  const [stemProgress, setStemProgress] = useState(null); // null = not stem mode
   const inputRef     = useRef(null);
   const repKeyRef    = useRef(null);
   const claudeKeyRef = useRef(null);
@@ -104,11 +105,17 @@ export default function StartScreen({ onDismiss, dispatch }) {
       : parseIntent(text, chipId);
 
     setBuilding(true);
-    startLoadingLines(getReplicateKey() ? LOADING_STEMS : LOADING_MIDI);
+    const usingRepl = !!getReplicateKey();
+    if (!usingRepl) startLoadingLines(LOADING_MIDI);
+
+    const handleStemProgress = (update) => {
+      setStemProgress(prev => typeof update === 'function' ? update(prev || []) : update);
+    };
 
     try {
-      const result = await composeStarterSession(intent);
+      const result = await composeStarterSession(intent, usingRepl ? handleStemProgress : null);
       stopLoadingLines();
+      setStemProgress(null);
 
       dispatch({ type: 'UPDATE_BPM', bpm: result.bpm });
       dispatch({ type: 'UPDATE_KEY', key: result.key, scale: result.scale });
@@ -126,6 +133,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
       onDismiss();
     } catch (err) {
       stopLoadingLines();
+      setStemProgress(null);
       dispatch({
         type: 'ADD_AI_MESSAGE',
         message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: `Generation failed: ${err.message}` },
@@ -150,10 +158,29 @@ export default function StartScreen({ onDismiss, dispatch }) {
         </div>
 
         {building ? (
-          <div className="start-building">
-            <p className="start-building-text">{loadingLine}</p>
-            <div className="start-building-dots"><span /><span /><span /></div>
-          </div>
+          stemProgress ? (
+            <div className="start-building">
+              <p className="start-building-text">Generating stems…</p>
+              <div className="start-stem-progress">
+                {stemProgress.map(stem => (
+                  <div key={stem.name} className={`start-stem-row start-stem-${stem.status}`}>
+                    <span className="start-stem-icon">
+                      {stem.status === 'done' ? '✓' : stem.status === 'generating' ? '◉' : '○'}
+                    </span>
+                    <span className="start-stem-name">{stem.name}</span>
+                    <span className="start-stem-status">
+                      {stem.status === 'done' ? 'ready' : stem.status === 'generating' ? 'rendering…' : 'queued'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="start-building">
+              <p className="start-building-text">{loadingLine}</p>
+              <div className="start-building-dots"><span /><span /><span /></div>
+            </div>
+          )
 
         ) : screen === 'replicate' ? (
           <div className="start-input-section">
