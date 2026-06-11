@@ -13,17 +13,15 @@ export function setReplicateKey(key) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// MusicGen stereo-large — pinned version ID from Replicate
-const MUSICGEN_VERSION = '671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb';
-
 async function createPrediction(prompt, durationSecs, attempt = 0) {
-  const res = await fetch(`${BASE}/predictions`, {
+  // Use the model endpoint (no version pinning needed for official models)
+  const res = await fetch(`${BASE}/models/meta/musicgen/predictions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      version: MUSICGEN_VERSION,
       input: {
         prompt,
+        model_version: 'stereo-large',
         duration: Math.min(Math.round(durationSecs), 30),
         output_format: 'mp3',
         normalization_strategy: 'loudness',
@@ -44,7 +42,9 @@ async function createPrediction(prompt, durationSecs, attempt = 0) {
     throw new Error(`Replicate ${res.status}: ${body}`);
   }
 
-  return res.json();
+  const data = await res.json();
+  if (!data.id) throw new Error(`Replicate returned no prediction ID: ${JSON.stringify(data)}`);
+  return data;
 }
 
 export async function generateMusicClip(prompt, durationSecs = 30) {
@@ -58,12 +58,19 @@ export async function generateMusicClip(prompt, durationSecs = 30) {
 
     if (pred.status === 'succeeded') {
       const rawUrl = Array.isArray(pred.output) ? pred.output[0] : pred.output;
+      if (!rawUrl) throw new Error(`MusicGen succeeded but returned no audio URL (output: ${JSON.stringify(pred.output)})`);
+
       const proxyUrl = `${PROXY}/download?url=${encodeURIComponent(rawUrl)}`;
-      const blob = await fetch(proxyUrl).then(r => r.blob());
+      const blobRes = await fetch(proxyUrl);
+      if (!blobRes.ok) throw new Error(`Audio download failed: ${blobRes.status}`);
+
+      const blob = await blobRes.blob();
+      if (blob.size === 0) throw new Error('Audio download returned empty file');
+
       return URL.createObjectURL(blob);
     }
     if (pred.status === 'failed') {
-      throw new Error(pred.error || 'MusicGen generation failed');
+      throw new Error(`MusicGen failed: ${pred.error || JSON.stringify(pred)}`);
     }
   }
   throw new Error('MusicGen timed out after 3 minutes');
