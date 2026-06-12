@@ -44,7 +44,7 @@ export async function separateStems(audioUrl, onProgress) {
   if (!createData.id) throw new Error(`Demucs create — no ID: ${JSON.stringify(createData)}`);
 
   // Poll with 8 min timeout (cold starts on shared GPUs can be slow)
-  const pred = await pollPrediction(createData.id, 480000);
+  const pred = await pollPrediction(createData.id, 600000);
 
   const parsed = parseStemOutput(pred.output);
   if (!parsed.length)
