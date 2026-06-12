@@ -104,13 +104,29 @@ async function composeWithStems(intent, claudeKey, onProgress) {
   if (claudeKey) {
     onProgress?.('Crafting your track…');
     const client = new Anthropic({ apiKey: claudeKey, dangerouslyAllowBrowser: true });
-    const userMsg = intent.description
-      ? `Write a single MusicGen prompt for: "${intent.description}". Type: ${intent.type}, mood: ${intent.mood}, BPM: ${intent.bpm}, key: ${intent.key} ${intent.scale}. Output ONLY valid JSON: {"bpm":<number>,"key":<string>,"scale":"major"|"minor","prompt":<string 40-120 words>}`
-      : `Write a single MusicGen prompt for a ${intent.mood} ${intent.type} at ${intent.bpm} BPM in ${intent.key} ${intent.scale}. Output ONLY valid JSON: {"bpm":<number>,"key":<string>,"scale":"major"|"minor","prompt":<string 40-120 words>}`;
+    const userMsg = `You are writing a prompt for MusicGen, an AI music generation model. Your prompt must be hyper-specific — vague prompts produce generic output.
+
+Request: ${intent.description ? `"${intent.description}"` : `${intent.mood} ${intent.type}`}
+BPM hint: ${intent.bpm} | Key hint: ${intent.key} ${intent.scale} | Mood: ${intent.mood}
+
+Write a MusicGen prompt that includes ALL of the following:
+- Exact genre and sub-genre (e.g. "UK drill", "lo-fi boom bap", "Berlin minimal techno", "trap soul")
+- Era or scene reference (e.g. "2019 SoundCloud era", "early 2000s Neptunes", "classic Motown")
+- Named instruments with specific models (e.g. "Roland TR-808 kick", "Fender Rhodes electric piano", "Moog Minimoog bassline", "Akai MPC chopped samples")
+- Drum pattern description (e.g. "four-on-the-floor kick, syncopated snare on 3, rolling hi-hats")
+- Bass character (e.g. "deep sub bass, slides between root notes", "punchy fingerstyle bass")
+- Harmonic texture (e.g. "lush minor 7th chord pads", "stacked vocal harmonics", "distorted power chords")
+- Melody description (e.g. "sparse pentatonic lead melody", "soulful vocal hook line")
+- Production feel (e.g. "lo-fi vinyl crackle", "heavy compression and sidechain", "wide stereo reverb")
+- Energy and tempo feel (e.g. "laid-back behind the beat", "urgent and driving")
+- Exact BPM
+
+Output ONLY valid JSON, no markdown:
+{"bpm":<number>,"key":<string>,"scale":"major"|"minor","prompt":<string, 80-150 words>}`;
 
     const resp = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 400,
+      max_tokens: 600,
       messages: [{ role: 'user', content: userMsg }],
     });
     const plan = JSON.parse(
@@ -124,7 +140,7 @@ async function composeWithStems(intent, claudeKey, onProgress) {
     bpm   = intent.bpm;
     key   = intent.key;
     scale = intent.scale;
-    prompt = `${intent.mood} ${intent.type} at ${bpm} BPM in ${key} ${scale}. Full mix with drums, bass, chords, and melody. Professional production, detailed arrangement.`;
+    prompt = `${intent.mood} ${intent.type} at ${bpm} BPM in ${key} ${scale}. Roland TR-808 kick drum, tight snare, rolling hi-hats. Deep sub bass following chord roots. Lush ${key} ${scale} chord pads with slow attack. Sparse melodic lead on top. Professional mix, wide stereo, heavy low end.`;
   }
 
   // Step 2: generate the full mix with MusicGen
