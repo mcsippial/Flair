@@ -25,10 +25,11 @@ export async function separateStems(audioUrl, onProgress) {
   // The Worker proxies /models/... → https://api.replicate.com/models/...
   let createRes;
   try {
-    createRes = await fetch(`${BASE}/v1/models/cjwbw/demucs/predictions`, {
+    createRes = await fetch(`${BASE}/v1/predictions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        version: '25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953',
         input: { audio: audioUrl, model: 'htdemucs' },
       }),
     });
