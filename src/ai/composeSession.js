@@ -104,29 +104,29 @@ async function composeWithStems(intent, claudeKey, onProgress) {
   if (claudeKey) {
     onProgress?.('Crafting your track…');
     const client = new Anthropic({ apiKey: claudeKey, dangerouslyAllowBrowser: true });
-    const userMsg = `You are writing a prompt for MusicGen, an AI music generation model. Your prompt must be hyper-specific — vague prompts produce generic output.
+    const userMsg = `You are a world-class music producer writing a prompt for MusicGen, an AI audio generation model. The quality of the output depends entirely on the specificity of your prompt. Vague prompts produce generic noise. Hyper-specific prompts produce real music.
 
-Request: ${intent.description ? `"${intent.description}"` : `${intent.mood} ${intent.type}`}
-BPM hint: ${intent.bpm} | Key hint: ${intent.key} ${intent.scale} | Mood: ${intent.mood}
+User request: ${intent.description ? `"${intent.description}"` : `${intent.mood} ${intent.type}`}
+BPM hint: ${intent.bpm} | Key: ${intent.key} ${intent.scale} | Mood: ${intent.mood}
 
-Write a MusicGen prompt that includes ALL of the following:
-- Exact genre and sub-genre (e.g. "UK drill", "lo-fi boom bap", "Berlin minimal techno", "trap soul")
-- Era or scene reference (e.g. "2019 SoundCloud era", "early 2000s Neptunes", "classic Motown")
-- Named instruments with specific models (e.g. "Roland TR-808 kick", "Fender Rhodes electric piano", "Moog Minimoog bassline", "Akai MPC chopped samples")
-- Drum pattern description (e.g. "four-on-the-floor kick, syncopated snare on 3, rolling hi-hats")
-- Bass character (e.g. "deep sub bass, slides between root notes", "punchy fingerstyle bass")
-- Harmonic texture (e.g. "lush minor 7th chord pads", "stacked vocal harmonics", "distorted power chords")
-- Melody description (e.g. "sparse pentatonic lead melody", "soulful vocal hook line")
-- Production feel (e.g. "lo-fi vinyl crackle", "heavy compression and sidechain", "wide stereo reverb")
-- Energy and tempo feel (e.g. "laid-back behind the beat", "urgent and driving")
-- Exact BPM
+Write a single MusicGen prompt covering ALL 9 dimensions:
 
-Output ONLY valid JSON, no markdown:
-{"bpm":<number>,"key":<string>,"scale":"major"|"minor","prompt":<string, 80-150 words>}`;
+1. GENRE + SCENE: Exact sub-genre and cultural moment (e.g. "Atlanta trap 2017 Southside era", "UK drill 2020 Zone 2", "J Dilla Detroit boom bap 2001", "Berlin minimal techno 2003 Ostgut")
+2. DRUMS: Named drum machine + exact pattern (e.g. "Roland TR-808 kick on 1 and and-of-3, Oberheim DMX snare on 2 and 4 with ghost notes, MPC3000 triplet hi-hats")
+3. BASS: Named synth + behavior (e.g. "Moog Minimoog sub bass with portamento slides between root and flat-7, locks to kick transient, heavy low end below 80Hz")
+4. HARMONY: Chord quality + named instrument (e.g. "stacked minor 9th pads on a Prophet-5, Fender Rhodes with tremolo, dark diminished turnaround in bar 4")
+5. MELODY: Character + named instrument (e.g. "sparse 3-note pentatonic motif on detuned Wurlitzer, plays behind the beat, leaves space")
+6. TEXTURE: Production details (e.g. "vinyl crackle, room reverb on snare, heavy sidechain pump on pads, dry kick, tape saturation")
+7. ENERGY: Emotional and physical feel (e.g. "cold and menacing, empty space between notes, tension with no release, late night")
+8. MIX: Frequency and space description (e.g. "heavy sub below 80Hz, scooped mids, crisp hi-hats, mono bass, wide stereo pads")
+9. TEMPO FEEL: Rhythmic attitude (e.g. "laid-back, dragging behind the click, drunk swing on the hi-hats")
+
+Output ONLY valid JSON, no markdown, no explanation:
+{"bpm":<number>,"key":<string>,"scale":"major"|"minor","prompt":<string 120-200 words covering all 9 dimensions>}`;
 
     const resp = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 600,
+      max_tokens: 900,
       messages: [{ role: 'user', content: userMsg }],
     });
     const plan = JSON.parse(
