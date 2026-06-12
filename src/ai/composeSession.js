@@ -1,47 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getApiKey } from './claudeClient';
-import { getReplicateKey, generateMusicUrl, downloadAudio } from './musicGen';
+import { getReplicateKey, generateMusicUrl } from './musicGen';
 import { separateStems } from './demucs';
 
 function genId() { return Math.random().toString(36).substr(2, 9); }
-
-// ─── Stem decomposition prompt ────────────────────────────────────────────────
-// Claude's job: turn a vague user request into per-stem MusicGen prompts.
-// Each stem is generated separately so the user can mix/mute/solo them.
-
-const STEM_SYSTEM = `You are a professional music producer creating two complementary audio layers for a track. Each layer is generated separately by MusicGen and played together in a DAW.
-
-Output ONLY valid JSON — no markdown, no explanation:
-{
-  "bpm": <number 60-180>,
-  "key": <"C"|"C#"|"D"|"D#"|"E"|"F"|"F#"|"G"|"G#"|"A"|"A#"|"B">,
-  "scale": <"major"|"minor">,
-  "stems": [
-    {
-      "name": "Rhythm",
-      "color": "#c4a882",
-      "volume": 0.82,
-      "prompt": "<MusicGen prompt: drums and bass together as a groove layer>"
-    },
-    {
-      "name": "Harmonic",
-      "color": "#9b82c4",
-      "volume": 0.68,
-      "prompt": "<MusicGen prompt: chords, pads, and melodic elements — NO drums, NO bass>"
-    }
-  ]
-}
-
-PROMPT RULES — each prompt must:
-- Describe a single coherent musical texture, not isolated stems
-- Name the exact BPM: "at 140 BPM"
-- Name key and mode: "in A minor"
-- Use specific instrument names: "Roland TR-808", "Fender Rhodes", "Moog sub bass"
-- Include production feel: "punchy and dry", "warm analog", "deep sub"
-- Name the genre/era: "UK drill 2020", "J Dilla boom bap", "Berlin techno"
-- Rhythm prompt: emphasize the groove, kick pattern, hi-hat feel, bass line rhythm
-- Harmonic prompt: emphasize chord voicings, pad texture, melodic phrases — explicitly say "no drums, no bass"
-- Each prompt: 40-80 words`;
 
 // ─── MIDI fallback system prompt ──────────────────────────────────────────────
 
