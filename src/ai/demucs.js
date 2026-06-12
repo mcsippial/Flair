@@ -7,13 +7,15 @@ const STEM_VOLUMES = { drums: 0.85,      bass: 0.82,      other: 0.72,      voca
 
 function parseStemOutput(output) {
   if (!output) return [];
+  let stems = [];
   if (Array.isArray(output) && output[0]?.audio)
-    return output.map(s => ({ name: s.name, url: s.audio }));
-  if (!Array.isArray(output) && typeof output === 'object')
-    return Object.entries(output).map(([name, url]) => ({ name, url }));
-  if (Array.isArray(output) && typeof output[0] === 'string')
-    return output.map((url, i) => ({ name: ['drums','bass','other','vocals'][i] ?? `stem${i}`, url }));
-  return [];
+    stems = output.map(s => ({ name: s.name, url: s.audio }));
+  else if (!Array.isArray(output) && typeof output === 'object')
+    stems = Object.entries(output).map(([name, url]) => ({ name, url }));
+  else if (Array.isArray(output) && typeof output[0] === 'string')
+    stems = output.map((url, i) => ({ name: ['drums','bass','other','vocals'][i] ?? `stem${i}`, url }));
+  // Drop vocals and any stem with a null/empty URL
+  return stems.filter(s => s.url && s.name.toLowerCase() !== 'vocals');
 }
 
 export async function separateStems(audioUrl, onProgress) {
@@ -44,7 +46,7 @@ export async function separateStems(audioUrl, onProgress) {
   // Poll with 8 min timeout (cold starts on shared GPUs can be slow)
   const pred = await pollPrediction(createData.id, 480000);
 
-  const parsed = parseStemOutput(pred.output).filter(s => s.name.toLowerCase() !== 'vocals');
+  const parsed = parseStemOutput(pred.output);
   if (!parsed.length)
     throw new Error(`Demucs no usable stems (raw output: ${JSON.stringify(pred.output)})`);
 
