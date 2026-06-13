@@ -16,12 +16,10 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           workingDirectory: worker
-      - name: Set Worker secrets
+      - name: Set Worker secret
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           npm install -g wrangler
-          echo "${{ secrets.VITE_REPLICATE_API_KEY }}" | wrangler secret put REPLICATE_API_KEY
-          echo "${{ secrets.SUNOR_API_KEY }}" | wrangler secret put SUNOR_API_KEY
           echo "${{ secrets.KIEAI_KEY }}" | wrangler secret put KIEAI_KEY

@@ -1,11 +1,9 @@
-// Replicate/Sunor retained for legacy routes; kie.ai is the active provider.
-const REPLICATE = 'https://api.replicate.com';
-const SUNOR = 'https://sunor.cc/api/v1';
+// Flair proxy — fronts kie.ai (Suno generation + native stems) for the browser,
+// attaching the Bearer key and adding CORS. Also proxies audio downloads.
 const KIEAI = 'https://api.kie.ai/api/v1';
 
 export default {
   async fetch(req, env) {
-    // Preflight
     if (req.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders() });
     }
@@ -13,26 +11,14 @@ export default {
     try {
       const url = new URL(req.url);
 
-      // /download?url=... — proxy audio blob downloads to avoid browser CORS on CDN
+      // /download?url=... — proxy audio downloads to dodge cross-origin CDN issues.
       if (url.pathname === '/download') {
         const target = url.searchParams.get('url');
         if (!target) return json({ error: 'missing url param' }, 400);
-
-        // Replicate output URLs (replicate.delivery / api.replicate.com) need auth.
-        // Public CDN URLs (e.g. from other providers) do not.
-        const needsAuth = target.includes('replicate.delivery') || target.includes('replicate.com');
-        const headers = needsAuth ? { 'Authorization': `Token ${env.REPLICATE_API_KEY}` } : {};
-
         let resp;
-        try {
-          resp = await fetch(target, { headers });
-        } catch (err) {
-          return json({ error: `Download fetch failed: ${err.message}` }, 502);
-        }
-
-        if (!resp.ok) {
-          return json({ error: `CDN download failed: ${resp.status}` }, resp.status);
-        }
+        try { resp = await fetch(target); }
+        catch (err) { return json({ error: `Download fetch failed: ${err.message}` }, 502); }
+        if (!resp.ok) return json({ error: `CDN download failed: ${resp.status}` }, resp.status);
         return new Response(resp.body, {
           status: resp.status,
           headers: {
@@ -43,17 +29,16 @@ export default {
         });
       }
 
-      // /callback — sunoapi.org requires a callBackUrl, but we poll instead.
+      // /callback — kie.ai requires a callBackUrl, but we poll instead.
       // This endpoint just absorbs those callbacks harmlessly.
       if (url.pathname === '/callback') {
         return json({ ok: true });
       }
 
-      // /kieai/* — proxy to kie.ai with Bearer auth from Worker secret
+      // /kieai/* — proxy to kie.ai with Bearer auth from Worker secret.
       if (url.pathname.startsWith('/kieai/')) {
         if (!env.KIEAI_KEY) return json({ error: 'Worker misconfigured: KIEAI_KEY secret not set' }, 500);
-        const apiPath = url.pathname.replace('/kieai', '');
-        const target = `${KIEAI}${apiPath}${url.search}`;
+        const target = `${KIEAI}${url.pathname.replace('/kieai', '')}${url.search}`;
         const init = {
           method: req.method,
           headers: { 'Authorization': `Bearer ${env.KIEAI_KEY}`, 'Content-Type': 'application/json' },
@@ -69,51 +54,7 @@ export default {
         });
       }
 
-      // /sunor/* — proxy to Sunor API using embedded Worker secret
-      if (url.pathname.startsWith('/sunor/')) {
-        if (!env.SUNOR_API_KEY) return json({ error: 'Worker misconfigured: SUNOR_API_KEY secret not set' }, 500);
-        const sunorPath = url.pathname.replace('/sunor', '');
-        const target = `${SUNOR}${sunorPath}${url.search}`;
-        const init = {
-          method: req.method,
-          headers: { 'x-api-key': env.SUNOR_API_KEY, 'Content-Type': 'application/json' },
-        };
-        if (req.method === 'POST') init.body = await req.text();
-        let resp;
-        try { resp = await fetch(target, init); }
-        catch (err) { return json({ error: `Sunor fetch failed: ${err.message}` }, 502); }
-        const body = await resp.text();
-        return new Response(body, {
-          status: resp.status,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders() },
-        });
-      }
-
-      // All other paths — proxy to Replicate API
-      if (!env.REPLICATE_API_KEY) {
-        return json({ error: 'Worker misconfigured: REPLICATE_API_KEY secret not set' }, 500);
-      }
-
-      const target = REPLICATE + url.pathname + url.search;
-      const init = {
-        method: req.method,
-        headers: {
-          'Authorization': `Token ${env.REPLICATE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      };
-      if (req.method === 'POST') {
-        init.body = await req.text();
-      }
-
-      const resp = await fetch(target, init);
-      const body = await resp.text();
-
-      // Forward Replicate's status and body verbatim, always with CORS.
-      return new Response(body, {
-        status: resp.status,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() },
-      });
+      return json({ error: `Unknown path: ${url.pathname}` }, 404);
 
     } catch (err) {
       // Any thrown error MUST still carry CORS headers, otherwise the browser

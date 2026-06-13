@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getApiKey } from './claudeClient';
-import { getAudioDuration, downloadAudio } from './musicGen';
-import { generateMusicTakes, separateNativeStems } from './sunoApi';
+import { getAudioDuration, downloadAudio } from './audioUtils';
+import { generateMusicTakes, separateNativeStems } from './kieClient';
 
 function genId() { return Math.random().toString(36).substr(2, 9); }
 
