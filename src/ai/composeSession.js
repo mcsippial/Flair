@@ -11,38 +11,43 @@ function genId() { return Math.random().toString(36).substr(2, 9); }
 
 export async function generateTakes(intent, onProgress) {
   const claudeKey = getApiKey();
-  let prompt, bpm, key, scale;
+  let style, title, bpm, key, scale;
 
   if (claudeKey) {
     onProgress?.('Crafting your track…');
     const client = new Anthropic({ apiKey: claudeKey, dangerouslyAllowBrowser: true });
-    const userMsg = `You are a music producer writing style tags for Suno V5 (AI music generator) in customMode. Style tags are comma-separated genre/mood/instrument descriptors, max 120 characters total. Be specific and evocative — unusual combinations produce unique tracks that won't match existing catalog recordings.
+    const userMsg = `You are an innovative music producer writing a style descriptor for Suno V5 (AI music generator, customMode, instrumental only).
+
+Fuse TWO complementary genres into one fresh hybrid. Unusual genre combinations produce unique tracks that will NOT match existing catalog recordings — this is the goal. Examples of fusions: "dub techno meets spaghetti western", "neo-soul meets IDM", "bossa nova meets drill", "ambient meets delta blues". Keep it musical and coherent, honoring the user's request as the primary genre and choosing a complementary second genre.
 
 User request: ${intent.description ? `"${intent.description}"` : `${intent.mood} ${intent.type}`}
 BPM hint: ${intent.bpm} | Key: ${intent.key} ${intent.scale} | Mood: ${intent.mood}
 
-Write Suno style tags: comma-separated list of genre, sub-genre, key instruments, mood adjectives. No vocals, no lyrics, purely instrumental. Be specific (e.g. "neo-soul, fender rhodes, muted guitar, brushed drums, warm bassline, late-night" not just "soul"). Max 120 characters.
+Return a style descriptor: comma-separated list leading with the genre fusion, then key instruments, then mood adjectives. Purely instrumental, no vocals. Be specific (e.g. "neo-soul meets IDM, fender rhodes, glitched drums, warm sub bass, late-night, intricate"). Max 110 characters. Also give a short evocative track title (2-4 words).
 
 Output ONLY valid JSON, no markdown:
-{"bpm":<number>,"key":<string>,"scale":"major"|"minor","tags":<comma-separated style string max 120 chars>}`;
+{"bpm":<number>,"key":<string>,"scale":"major"|"minor","style":<descriptor max 110 chars>,"title":<2-4 word title>}`;
 
     const resp = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 200,
+      max_tokens: 250,
+      temperature: 1, // max variety per call (Anthropic's ceiling)
       messages: [{ role: 'user', content: userMsg }],
     });
     const plan = JSON.parse(
       resp.content[0].text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim()
     );
-    prompt = plan.tags || plan.prompt;
-    bpm    = plan.bpm    || intent.bpm;
-    key    = plan.key    || intent.key;
-    scale  = plan.scale  || intent.scale;
+    style = plan.style || plan.tags || plan.prompt;
+    title = plan.title || 'Flair Session';
+    bpm   = plan.bpm   || intent.bpm;
+    key   = plan.key   || intent.key;
+    scale = plan.scale || intent.scale;
   } else {
     bpm   = intent.bpm;
     key   = intent.key;
     scale = intent.scale;
-    prompt = `${intent.mood}, ${intent.type}, instrumental, ${key} ${scale}, no vocals`;
+    style = `${intent.mood}, ${intent.type}, instrumental, ${key} ${scale}, no vocals`;
+    title = `${intent.mood} ${intent.type}`;
   }
 
   // Append a randomized production texture so each generation drifts toward a
@@ -52,11 +57,11 @@ Output ONLY valid JSON, no markdown:
     'organic imperfections', 'dynamic shifts', 'hand-played feel', 'unconventional harmony',
   ];
   const flavor = FLAVORS[Math.floor(Math.random() * FLAVORS.length)];
-  if (prompt && (`${prompt}, ${flavor}`).length <= 120) prompt = `${prompt}, ${flavor}`;
+  if (style && (`${style}, ${flavor}`).length <= 120) style = `${style}, ${flavor}`;
 
   let result;
   try {
-    result = await generateMusicTakes(prompt, onProgress); // { taskId, takes:[{url,duration,title,audioId,taskId}] }
+    result = await generateMusicTakes({ style, title }, onProgress); // { taskId, takes:[…] }
   } catch (err) {
     throw new Error(`Suno step failed: ${err.message}`);
   }

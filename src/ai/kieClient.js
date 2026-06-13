@@ -36,21 +36,29 @@ function stemMeta(name) {
 
 // ─── Generation ──────────────────────────────────────────────────────────────
 
-export async function generateMusicTakes(prompt, onProgress) {
+export async function generateMusicTakes(spec, onProgress) {
   onProgress?.('Generating with Suno V5…');
+
+  // Accept a plain style string (back-compat) or { style, title }.
+  const style = typeof spec === 'string' ? spec : spec.style;
+  const title = (typeof spec === 'object' && spec.title) || 'Flair Session';
 
   const res = await fetch(`${BASE}/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      // customMode: true passes the prompt as a style tag rather than a
-      // natural-language description, which produces more compositionally
-      // unique output and avoids kie.ai's catalog-match rejection on stems.
+      // customMode + instrumental requires `style` and `title`. Custom mode
+      // gives Suno more compositional freedom than a prose prompt, which yields
+      // more unique output and avoids kie.ai's catalog-match rejection.
       customMode: true,
       instrumental: true,
       model: MODEL,
-      tags: prompt,  // customMode uses `tags` for the style descriptor
-      prompt: '',
+      style,
+      title,
+      // Exclude over-represented/derivative output to steer into sparser space.
+      negativeTags: 'derivative, generic, stock music',
+      styleWeight: 0.6,         // follow the style, but leave room to vary
+      weirdnessConstraint: 0.7, // higher = more experimental → fewer catalog matches
       callBackUrl: CALLBACK,
     }),
   });
