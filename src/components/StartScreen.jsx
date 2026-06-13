@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { composeStarterSession } from '../ai/composeSession';
 import { getApiKey, setApiKey } from '../ai/claudeClient';
 import { getReplicateKey, setReplicateKey } from '../ai/musicGen';
+import { getSunorKey, setSunorKey } from '../ai/sunorMusic';
 
 const CHIPS = [
   { id: 'beat', label: 'Beat' },
@@ -47,29 +48,38 @@ const LOADING_MIDI = [
 ];
 
 function initialScreen() {
-  if (!getReplicateKey() && !getApiKey()) return 'replicate';
+  if (!getSunorKey() && !getReplicateKey() && !getApiKey()) return 'sunor';
   return 'prompt';
 }
 
 export default function StartScreen({ onDismiss, dispatch }) {
   const [input, setInput]           = useState('');
   const [screen, setScreen]         = useState(initialScreen);
+  const [sunorKey, setSunorKeyState] = useState(getSunorKey() || '');
   const [replicateKey, setRepKey]   = useState(getReplicateKey() || '');
   const [claudeKey, setClaudeKey]   = useState(getApiKey() || '');
   const [building, setBuilding]     = useState(false);
   const [loadingLine, setLoadingLine] = useState('');
   const inputRef     = useRef(null);
+  const sunorKeyRef  = useRef(null);
   const repKeyRef    = useRef(null);
   const claudeKeyRef = useRef(null);
   const loadingInterval = useRef(null);
 
+  const usingSuno  = !!getSunorKey();
   const usingStems = !!getReplicateKey();
 
   useEffect(() => {
-    if (screen === 'replicate') repKeyRef.current?.focus();
+    if (screen === 'sunor') sunorKeyRef.current?.focus();
+    else if (screen === 'replicate') repKeyRef.current?.focus();
     else if (screen === 'claude') claudeKeyRef.current?.focus();
     else inputRef.current?.focus();
   }, [screen]);
+
+  const saveSunorKey = () => {
+    setSunorKey(sunorKey.trim());
+    setScreen('prompt');
+  };
 
   const saveReplicateKey = () => {
     setReplicateKey(replicateKey.trim());
@@ -100,8 +110,8 @@ export default function StartScreen({ onDismiss, dispatch }) {
       : parseIntent(text, chipId);
 
     setBuilding(true);
-    const usingRepl = !!getReplicateKey();
-    startLoadingLines(usingRepl ? LOADING_STEMS : LOADING_MIDI);
+    const usingAudio = !!getSunorKey() || !!getReplicateKey();
+    startLoadingLines(usingAudio ? LOADING_STEMS : LOADING_MIDI);
 
     const handleProgress = (msg) => {
       if (typeof msg === 'string') {
@@ -111,7 +121,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
     };
 
     try {
-      const result = await composeStarterSession(intent, usingRepl ? handleProgress : null);
+      const result = await composeStarterSession(intent, usingAudio ? handleProgress : null);
       stopLoadingLines();
 
       dispatch({ type: 'UPDATE_BPM', bpm: result.bpm });
@@ -157,6 +167,33 @@ export default function StartScreen({ onDismiss, dispatch }) {
           <div className="start-building">
             <p className="start-building-text">{loadingLine}</p>
             <div className="start-building-dots"><span /><span /><span /></div>
+          </div>
+
+        ) : screen === 'sunor' ? (
+          <div className="start-input-section">
+            <p className="start-prompt-label">Sunor API key — for Suno V5 music generation</p>
+            <p className="start-key-desc">
+              Generates high-quality AI music with Suno V5, then separates into real stems with Demucs.<br />
+              Get a free key with 25 credits at <span className="start-key-link">sunor.cc</span>
+            </p>
+            <div className="start-input-wrap">
+              <input
+                ref={sunorKeyRef}
+                className="start-input"
+                type="password"
+                value={sunorKey}
+                onChange={e => setSunorKeyState(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sunorKey.trim() && saveSunorKey()}
+                placeholder="sk_live_..."
+              />
+              <button className="start-input-submit" onClick={saveSunorKey} disabled={!sunorKey.trim()}>→</button>
+            </div>
+            <button className="start-blank" onClick={() => setScreen('replicate')}>
+              use Replicate key instead (MusicGen)
+            </button>
+            <button className="start-blank" style={{ marginTop: 6, fontSize: 11, opacity: 0.5 }} onClick={() => setScreen('prompt')}>
+              skip — start without AI
+            </button>
           </div>
 
         ) : screen === 'replicate' ? (
@@ -208,7 +245,10 @@ export default function StartScreen({ onDismiss, dispatch }) {
         ) : (
           <div className="start-input-section">
             <p className="start-prompt-label">What do you want to make?</p>
-            {usingStems && (
+            {usingSuno && (
+              <p className="start-mode-badge">Suno V5 + Demucs · real stems</p>
+            )}
+            {!usingSuno && usingStems && (
               <p className="start-mode-badge">MusicGen + Demucs · real stems</p>
             )}
             <div className="start-input-wrap">
@@ -233,6 +273,8 @@ export default function StartScreen({ onDismiss, dispatch }) {
 
             <button className="start-blank" onClick={handleBlank}>or start blank</button>
             <div style={{ display: 'flex', gap: 14, marginTop: 8 }}>
+              <button className="start-blank" style={{ fontSize: 11, opacity: 0.45, marginTop: 0 }}
+                onClick={() => setScreen('sunor')}>change Sunor key</button>
               <button className="start-blank" style={{ fontSize: 11, opacity: 0.45, marginTop: 0 }}
                 onClick={() => setScreen('replicate')}>change Replicate key</button>
               <button className="start-blank" style={{ fontSize: 11, opacity: 0.45, marginTop: 0 }}

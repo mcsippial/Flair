@@ -40,6 +40,27 @@ export default {
         });
       }
 
+      // /sunor/* — proxy to Sunor API with user-supplied key
+      if (url.pathname.startsWith('/sunor/')) {
+        const sunorPath = url.pathname.replace('/sunor', '');
+        const target = `https://sunor.cc/api/v1${sunorPath}${url.search}`;
+        const sunorKey = req.headers.get('x-sunor-key');
+        if (!sunorKey) return json({ error: 'Missing x-sunor-key header' }, 400);
+        const init = {
+          method: req.method,
+          headers: { 'x-api-key': sunorKey, 'Content-Type': 'application/json' },
+        };
+        if (req.method === 'POST') init.body = await req.text();
+        let resp;
+        try { resp = await fetch(target, init); }
+        catch (err) { return json({ error: `Sunor fetch failed: ${err.message}` }, 502); }
+        const body = await resp.text();
+        return new Response(body, {
+          status: resp.status,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders() },
+        });
+      }
+
       // All other paths — proxy to Replicate API
       if (!env.REPLICATE_API_KEY) {
         return json({ error: 'Worker misconfigured: REPLICATE_API_KEY secret not set' }, 500);
@@ -85,6 +106,6 @@ function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, x-sunor-key',
   };
 }
