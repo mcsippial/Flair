@@ -36,22 +36,26 @@ function MidiPreview({ notes, length }) {
   );
 }
 
-// Placeholder shown only while the real waveform is still decoding.
+// Placeholder shown while the real waveform is still decoding (or if it fails).
+// Drawn bold so a clip never looks empty — it always reads as an audio region.
 function AudioPlaceholder({ length }) {
-  const bars = Math.max(1, Math.round(length));
-  const points = Array.from({ length: bars * 4 }, (_, i) => {
-    const h = 0.3 + 0.5 * Math.abs(Math.sin(i * 1.9) * Math.cos(i * 0.7));
-    return `${(i / (bars * 4)) * bars},${0.5 - h / 2} ${(i / (bars * 4)) * bars},${0.5 + h / 2}`;
-  }).join(' ');
+  const n = Math.max(8, Math.round((length || 1) * 24));
+  const top = [], bottom = [];
+  for (let i = 0; i <= n; i++) {
+    const h = 0.18 + 0.14 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.6));
+    top.push(`${i},${0.5 - h}`);
+    bottom.unshift(`${i},${0.5 + h}`);
+  }
   return (
-    <svg className="clip-svg-preview" viewBox={`0 0 ${bars} 1`} preserveAspectRatio="none">
-      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="0.04" opacity="0.25" />
+    <svg className="clip-svg-preview" viewBox={`0 0 ${n} 1`} preserveAspectRatio="none">
+      <polygon points={[...top, ...bottom].join(' ')} fill="currentColor" opacity="0.28" />
     </svg>
   );
 }
 
-// Real waveform: decodes the stem's audio and draws actual amplitude peaks,
-// windowed to the clip's trimmed region (offset → offset+length).
+// Real waveform: decodes the stem's audio and draws actual amplitude peaks as a
+// bold filled shape (mirrored around the center line, like a DAW), windowed to
+// the clip's trimmed region (offset → offset+length).
 function AudioPreview({ clip, bpm }) {
   const data = useWaveform(clip.audioUrl);
   if (!data) return <AudioPlaceholder length={clip.length} />;
@@ -68,16 +72,18 @@ function AudioPreview({ clip, bpm }) {
   const slice = peaks.slice(from, Math.max(from + 1, to));
   const n = slice.length;
 
+  // Build a filled mirror waveform: top edge left→right, bottom edge right→left.
+  const top = [], bottom = [];
+  for (let i = 0; i < n; i++) {
+    const h = Math.max(0.04, slice[i] * 0.46);
+    top.push(`${i},${0.5 - h}`);
+    bottom.unshift(`${i},${0.5 + h}`);
+  }
+
   return (
     <svg className="clip-svg-preview" viewBox={`0 0 ${n} 1`} preserveAspectRatio="none">
-      {slice.map((v, i) => {
-        const h = Math.max(0.02, v * 0.92);
-        return (
-          <line key={i} x1={i + 0.5} x2={i + 0.5}
-            y1={0.5 - h / 2} y2={0.5 + h / 2}
-            stroke="currentColor" strokeWidth={0.85} opacity={0.7} />
-        );
-      })}
+      <polygon points={[...top, ...bottom].join(' ')} fill="currentColor" opacity="0.85" />
+      <line x1="0" x2={n} y1="0.5" y2="0.5" stroke="currentColor" strokeWidth="0.01" opacity="0.4" />
     </svg>
   );
 }

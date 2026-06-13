@@ -19,7 +19,9 @@ async function computePeaks(url, buckets) {
   const job = (async () => {
     const res = await fetch(url);
     const arr = await res.arrayBuffer();
-    const audio = await audioCtx().decodeAudioData(arr);
+    const ctx = audioCtx();
+    if (ctx.state === 'suspended') { try { await ctx.resume(); } catch {} }
+    const audio = await ctx.decodeAudioData(arr);
     const ch = audio.getChannelData(0);
     const block = Math.max(1, Math.floor(ch.length / buckets));
     const peaks = new Float32Array(buckets);
@@ -41,7 +43,11 @@ async function computePeaks(url, buckets) {
     cache.set(url, result);
     pending.delete(url);
     return result;
-  })().catch(err => { pending.delete(url); throw err; });
+  })().catch(err => {
+    pending.delete(url);
+    console.error('[useWaveform] decode failed for', url, err);
+    throw err;
+  });
 
   pending.set(url, job);
   return job;
