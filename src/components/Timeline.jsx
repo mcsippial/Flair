@@ -323,15 +323,13 @@ export default function Timeline({ session, dispatch }) {
                         <div
                           className="clip-fade clip-fade-in"
                           data-handle="fade-in"
-                          title="Drag to fade in"
-                          style={{ left: Math.min(0.95, (clip.fadeIn || 0) / Math.max(0.001, clip.length * (60 / (session.bpm || 120) * 4))) * (clip.length * BAR_WIDTH - 2) }}
+                          title="Drag right to fade in"
                           onPointerDown={e => startFade(e, track, clip, 'in')}
                         />
                         <div
                           className="clip-fade clip-fade-out"
                           data-handle="fade-out"
-                          title="Drag to fade out"
-                          style={{ right: Math.min(0.95, (clip.fadeOut || 0) / Math.max(0.001, clip.length * (60 / (session.bpm || 120) * 4))) * (clip.length * BAR_WIDTH - 2) }}
+                          title="Drag left to fade out"
                           onPointerDown={e => startFade(e, track, clip, 'out')}
                         />
                       </>

@@ -1005,21 +1005,26 @@
   z-index: 2;
 }
 
-/* Fade handles: small grips in the top corners of an audio clip. */
+/* Fade handles: draggable grips in the top corners of an audio clip.
+   Kept inside the clip bounds (no negative transform) so overflow:hidden
+   doesn't clip them away. */
 .clip-fade {
   position: absolute;
-  top: 0;
-  width: 9px;
-  height: 9px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--amber);
+  border: 1.5px solid rgba(255,255,255,0.5);
   opacity: 0;
   cursor: ew-resize;
-  z-index: 4;
-  transform: translate(-50%, -2px);
+  z-index: 5;
+  transition: opacity 0.1s, transform 0.1s;
 }
-.clip-fade-out { transform: translate(50%, -2px); }
-.clip:hover .clip-fade { opacity: 0.9; }
+.clip-fade-in  { left: 2px; }
+.clip-fade-out { right: 2px; }
+.clip:hover .clip-fade { opacity: 1; }
+.clip-fade:hover { transform: scale(1.3); }
 
 .clip-fade-overlay {
   position: absolute;

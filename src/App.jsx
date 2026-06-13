@@ -8,7 +8,7 @@ import AIPanel from './components/AIPanel';
 import Mixer from './components/Mixer';
 import PianoRoll from './components/PianoRoll';
 import { setupMasterBus, ensureToneStarted, getTrackNodes, disposeTrack,
-         startRecording, stopRecording } from './engine/audioEngine';
+         disposeAllTracks, startRecording, stopRecording } from './engine/audioEngine';
 import * as Tone from 'tone';
 import { scheduleSession, scheduleTrack, clearSchedule } from './engine/scheduler';
 
@@ -106,7 +106,7 @@ export default function App() {
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [session.isPlaying, session.selectedTrackId, session.selectedClipId]);
+  }, [session.isPlaying, session.selectedTrackId, session.selectedClipId, handlePlayStop]);
 
   const handleRecord = useCallback(async () => {
     if (!session.armedTrackId) return;
@@ -134,6 +134,11 @@ export default function App() {
       // Stop transport
       Tone.Transport.stop();
       clearSchedule();
+      session.tracks.forEach(track => {
+        const nodes = getTrackNodes(track.id);
+        if (nodes?.players) nodes.players.forEach(p => { try { p.stop(0); } catch {} });
+      });
+      disposeAllTracks();
       scheduledTrackIds.current = new Set();
       dispatch({ type: 'SET_PLAYING', isPlaying: false });
       dispatch({ type: 'SET_PLAYHEAD', position: 0 });
@@ -153,6 +158,13 @@ export default function App() {
     } else {
       Tone.Transport.stop();
       clearSchedule();
+      // Players keep running after Transport.stop() because they're independent
+      // AudioBufferSourceNodes. Stop them explicitly then tear down the graph.
+      session.tracks.forEach(track => {
+        const nodes = getTrackNodes(track.id);
+        if (nodes?.players) nodes.players.forEach(p => { try { p.stop(0); } catch {} });
+      });
+      disposeAllTracks();
       scheduledTrackIds.current = new Set();
       dispatch({ type: 'SET_PLAYING', isPlaying: false });
       dispatch({ type: 'SET_PLAYHEAD', position: 0 });
