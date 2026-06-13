@@ -28,12 +28,37 @@ function sessionReducerCore(session, action) {
       };
     }
     case 'UPDATE_CLIP':
+    case 'UPDATE_CLIP_LIVE':
       return {
         ...session,
         tracks: session.tracks.map(t => t.id === action.trackId
           ? { ...t, clips: t.clips.map(c => c.id === action.clipId ? { ...c, ...action.changes } : c) }
           : t)
       };
+    case 'SPLIT_CLIP': {
+      const secPerBar = (60 / (session.bpm || 120)) * 4;
+      return {
+        ...session,
+        tracks: session.tracks.map(t => {
+          if (t.id !== action.trackId) return t;
+          const clips = [];
+          t.clips.forEach(c => {
+            if (c.id !== action.clipId) { clips.push(c); return; }
+            const rel = action.atBar - c.start;
+            if (rel <= 0 || rel >= c.length) { clips.push(c); return; }
+            clips.push({ ...c, length: rel });
+            clips.push({
+              ...c,
+              id: genId(),
+              start: action.atBar,
+              length: c.length - rel,
+              offset: (c.offset || 0) + rel * secPerBar,
+            });
+          });
+          return { ...t, clips };
+        }),
+      };
+    }
     case 'REMOVE_CLIP':
       return {
         ...session,
@@ -107,8 +132,14 @@ export function sessionReducer(state, action) {
     return { past: [...state.past, state.present].slice(-MAX_HISTORY), present: next, future: state.future.slice(1) };
   }
 
+  // PUSH_HISTORY snapshots the present so a multi-step live edit (e.g. a clip
+  // drag made of many UPDATE_CLIP_LIVE dispatches) collapses to one Undo.
+  if (action.type === 'PUSH_HISTORY') {
+    return { ...state, past: [...state.past, state.present].slice(-MAX_HISTORY), future: [] };
+  }
+
   // Non-undoable actions
-  const nonUndoable = ['SET_PLAYING', 'SET_RECORDING', 'ARM_TRACK', 'SET_PLAYHEAD', 'SELECT_TRACK', 'SELECT_CLIP', 'ADD_AI_MESSAGE', 'ADD_AI_SUGGESTION', 'REMOVE_AI_SUGGESTION', 'NEW_CHAT', 'SELECT_CHAT'];
+  const nonUndoable = ['SET_PLAYING', 'SET_RECORDING', 'ARM_TRACK', 'SET_PLAYHEAD', 'SELECT_TRACK', 'SELECT_CLIP', 'ADD_AI_MESSAGE', 'ADD_AI_SUGGESTION', 'REMOVE_AI_SUGGESTION', 'NEW_CHAT', 'SELECT_CHAT', 'UPDATE_CLIP_LIVE'];
   if (nonUndoable.includes(action.type)) {
     return { ...state, present: sessionReducerCore(state.present, action) };
   }

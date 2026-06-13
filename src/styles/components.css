@@ -916,6 +916,31 @@
   gap: 1px;
 }
 
+/* Audio stems show a real waveform filling the clip so each instrument reads
+   as a distinct shape. */
+.clip-audio .clip-preview {
+  top: 16px;
+  bottom: 3px;
+  height: auto;
+  align-items: center;
+}
+
+/* Trim handles on each clip edge — DAW-style resize affordance. */
+.clip-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  z-index: 3;
+  cursor: ew-resize;
+  background: transparent;
+}
+.clip-handle-left  { left: 0; }
+.clip-handle-right { right: 0; }
+.clip:hover .clip-handle {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .note-dot {
   width: 2px;
   flex-shrink: 0;

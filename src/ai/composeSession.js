@@ -80,10 +80,13 @@ export async function separateTake(take, meta, onProgress) {
 
   // Measure the real song length so clips and the timeline fit the full track.
   let lengthBars = 16; // fallback if duration can't be measured
+  let realSecs = null;
   try {
-    const realSecs = await getAudioDuration(downloaded[0].audioUrl);
+    realSecs = await getAudioDuration(downloaded[0].audioUrl);
     if (realSecs && isFinite(realSecs)) {
       lengthBars = Math.max(1, Math.ceil((realSecs / 60) * bpm / 4));
+    } else {
+      realSecs = null;
     }
   } catch { /* fall back to the estimate */ }
 
@@ -101,6 +104,8 @@ export async function separateTake(take, meta, onProgress) {
       type: 'audio',
       start: 0,
       length: lengthBars,
+      offset: 0,                  // seconds into the source; trimming adjusts this
+      audioDuration: realSecs,    // full source length, for trim clamping & waveform
       audioUrl: stem.audioUrl,
     }],
   }));

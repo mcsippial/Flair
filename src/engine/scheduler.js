@@ -131,10 +131,15 @@ function scheduleAudioTrack(track) {
     // handles looping at the session level — we must NOT use a looping Part
     // here or player.start() fires every iteration and players stack.
     Tone.loaded().then(() => {
+      // Trimming sets clip.offset (seconds into the source) and clip.length
+      // (bars). Play only that window so edits are audible, not just visual.
+      const offset = clip.offset || 0;
+      const dur = Tone.Time(`${clip.length}m`).toSeconds();
       const eventId = Tone.Transport.schedule(time => {
         // Stop any prior playback of this player before re-triggering
         try { player.stop(time); } catch (_) {}
-        player.start(time);
+        try { player.start(time, offset, dur); }
+        catch (_) { try { player.start(time); } catch (_) {} }
       }, `${clip.start}m`);
       scheduledParts.push({ stop: () => Tone.Transport.clear(eventId), dispose: () => {} });
     });

@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import * as Tone from 'tone';
+import { useWaveform } from './useWaveform';
 
 const BASE_BAR_WIDTH = 80;
 const MIN_BARS = 16;
@@ -35,7 +36,8 @@ function MidiPreview({ notes, length }) {
   );
 }
 
-function AudioPreview({ length }) {
+// Placeholder shown only while the real waveform is still decoding.
+function AudioPlaceholder({ length }) {
   const bars = Math.max(1, Math.round(length));
   const points = Array.from({ length: bars * 4 }, (_, i) => {
     const h = 0.3 + 0.5 * Math.abs(Math.sin(i * 1.9) * Math.cos(i * 0.7));
@@ -43,7 +45,39 @@ function AudioPreview({ length }) {
   }).join(' ');
   return (
     <svg className="clip-svg-preview" viewBox={`0 0 ${bars} 1`} preserveAspectRatio="none">
-      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="0.04" opacity="0.55" />
+      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="0.04" opacity="0.25" />
+    </svg>
+  );
+}
+
+// Real waveform: decodes the stem's audio and draws actual amplitude peaks,
+// windowed to the clip's trimmed region (offset → offset+length).
+function AudioPreview({ clip, bpm }) {
+  const data = useWaveform(clip.audioUrl);
+  if (!data) return <AudioPlaceholder length={clip.length} />;
+
+  const { peaks, duration } = data;
+  let from = 0, to = peaks.length;
+  if (duration > 0) {
+    const secPerBar = (60 / (bpm || 120)) * 4;
+    const offset = clip.offset || 0;
+    const lenSec = (clip.length || 0) * secPerBar;
+    from = Math.max(0, Math.floor((offset / duration) * peaks.length));
+    to = Math.min(peaks.length, Math.ceil(((offset + lenSec) / duration) * peaks.length));
+  }
+  const slice = peaks.slice(from, Math.max(from + 1, to));
+  const n = slice.length;
+
+  return (
+    <svg className="clip-svg-preview" viewBox={`0 0 ${n} 1`} preserveAspectRatio="none">
+      {slice.map((v, i) => {
+        const h = Math.max(0.02, v * 0.92);
+        return (
+          <line key={i} x1={i + 0.5} x2={i + 0.5}
+            y1={0.5 - h / 2} y2={0.5 + h / 2}
+            stroke="currentColor" strokeWidth={0.85} opacity={0.7} />
+        );
+      })}
     </svg>
   );
 }
@@ -103,6 +137,56 @@ export default function Timeline({ session, dispatch }) {
     setPlayheadX(x);
   };
 
+  // ─── Clip editing: drag to move, trim from either edge ──────────────────────
+  // Live updates are non-undoable; a single history snapshot is pushed on grab,
+  // so one Undo reverts the whole drag.
+  const startDrag = (e, track, clip, mode) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = e.clientX;
+    const orig = { start: clip.start, length: clip.length, offset: clip.offset || 0 };
+    const secPerBar = (60 / (session.bpm || 120)) * 4;
+    const fileDur = clip.audioDuration || Infinity;
+    dispatch({ type: 'PUSH_HISTORY' });
+
+    const move = (ev) => {
+      let dBars = (ev.clientX - startX) / BAR_WIDTH;
+      if (!ev.shiftKey) dBars = Math.round(dBars * 4) / 4; // snap to 1/4 bar
+      let changes;
+      if (mode === 'move') {
+        changes = { start: Math.max(0, +(orig.start + dBars).toFixed(4)) };
+      } else if (mode === 'trim-left') {
+        const ns = Math.max(0, orig.start + dBars);
+        const delta = ns - orig.start;
+        const nl = orig.length - delta;
+        const noff = orig.offset + delta * secPerBar;
+        if (nl < 0.25 || noff < 0) return;
+        changes = { start: +ns.toFixed(4), length: +nl.toFixed(4), offset: +noff.toFixed(4) };
+      } else { // trim-right
+        let nl = Math.max(0.25, orig.length + dBars);
+        if (orig.offset + nl * secPerBar > fileDur) nl = (fileDur - orig.offset) / secPerBar;
+        changes = { length: +nl.toFixed(4) };
+      }
+      dispatch({ type: 'UPDATE_CLIP_LIVE', trackId: track.id, clipId: clip.id, changes });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  // Split an audio clip at the point you double-click.
+  const splitClip = (e, track, clip) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relBars = (e.clientX - rect.left) / BAR_WIDTH;
+    const atBar = clip.start + relBars;
+    if (relBars > 0.1 && relBars < clip.length - 0.1) {
+      dispatch({ type: 'SPLIT_CLIP', trackId: track.id, clipId: clip.id, atBar });
+    }
+  };
+
   const zoomIn  = (e) => { e?.stopPropagation(); setZoom(z => Math.min(4, +(z * 1.5).toFixed(2))); };
   const zoomOut = (e) => { e?.stopPropagation(); setZoom(z => Math.max(0.25, +(z / 1.5).toFixed(2))); };
 
@@ -148,21 +232,44 @@ export default function Timeline({ session, dispatch }) {
                       background: track.color + (clip.type === 'audio' ? '38' : '1e'),
                       borderColor: track.color + '99',
                       color: track.color,
+                      cursor: 'grab',
                     }}
-                    onClick={() => dispatch({ type: 'SELECT_TRACK', trackId: track.id })}
-                    onDoubleClick={() => {
+                    onPointerDown={e => {
+                      // Ignore clicks that land on the trim handles.
+                      if (e.target.dataset?.handle) return;
+                      dispatch({ type: 'SELECT_TRACK', trackId: track.id });
+                      startDrag(e, track, clip, 'move');
+                    }}
+                    onContextMenu={e => {
+                      e.preventDefault();
+                      dispatch({ type: 'REMOVE_CLIP', trackId: track.id, clipId: clip.id });
+                    }}
+                    onDoubleClick={e => {
                       if (clip.type === 'midi') {
                         dispatch({ type: 'SET_OPEN_PANEL', panel: 'pianoroll' });
                         dispatch({ type: 'SELECT_CLIP', clipId: clip.id });
+                      } else if (clip.type === 'audio') {
+                        splitClip(e, track, clip);
                       }
                     }}
+                    title="Drag to move · edges to trim · double-click to split · right-click to delete"
                   >
+                    <div
+                      className="clip-handle clip-handle-left"
+                      data-handle="left"
+                      onPointerDown={e => startDrag(e, track, clip, 'trim-left')}
+                    />
                     <span className="clip-name">{clip.name}</span>
                     <div className="clip-preview">
                       {clip.type === 'midi' && <MidiPreview notes={clip.notes} length={clip.length} />}
                       {clip.type === 'drum' && <DrumPreview notes={clip.notes} length={clip.length} />}
-                      {clip.type === 'audio' && <AudioPreview length={clip.length} />}
+                      {clip.type === 'audio' && <AudioPreview clip={clip} bpm={session.bpm} />}
                     </div>
+                    <div
+                      className="clip-handle clip-handle-right"
+                      data-handle="right"
+                      onPointerDown={e => startDrag(e, track, clip, 'trim-right')}
+                    />
                   </div>
                 ))}
               </div>
