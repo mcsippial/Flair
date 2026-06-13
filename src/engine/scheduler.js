@@ -122,6 +122,8 @@ function scheduleAudioTrack(track) {
   track.clips.forEach(clip => {
     if (!clip.audioUrl) return;
     const player = new Tone.Player({ url: clip.audioUrl, loop: false });
+    player.fadeIn  = clip.fadeIn  || 0;  // seconds
+    player.fadeOut = clip.fadeOut || 0;  // seconds
     player.disconnect();
     player.connect(fx.input);
     player.connect(meter);

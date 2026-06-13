@@ -81,6 +81,20 @@ export default function App() {
       } else if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
         e.preventDefault();
         dispatch({ type: 'UNDO' });
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 'd' || e.key === 'D')) {
+        if (session.selectedClipId && session.selectedTrackId) {
+          e.preventDefault();
+          dispatch({ type: 'DUPLICATE_CLIP', trackId: session.selectedTrackId, clipId: session.selectedClipId });
+        }
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 'c' || e.key === 'C')) {
+        if (session.selectedClipId) dispatch({ type: 'COPY_CLIP', clipId: session.selectedClipId });
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 'v' || e.key === 'V')) {
+        dispatch({ type: 'PASTE_CLIP' });
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (session.selectedClipId && session.selectedTrackId) {
+          e.preventDefault();
+          dispatch({ type: 'REMOVE_CLIP', trackId: session.selectedTrackId, clipId: session.selectedClipId });
+        }
       } else if (e.key === 'Escape') {
         dispatch({ type: 'SET_OPEN_PANEL', panel: 'mixer' });
         dispatch({ type: 'SELECT_TRACK', trackId: null });
@@ -92,7 +106,7 @@ export default function App() {
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [session.isPlaying, session.selectedTrackId]);
+  }, [session.isPlaying, session.selectedTrackId, session.selectedClipId]);
 
   const handleRecord = useCallback(async () => {
     if (!session.armedTrackId) return;

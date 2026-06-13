@@ -101,6 +101,26 @@ function DrumPreview({ notes, length }) {
   );
 }
 
+// Visual fade ramps over a clip, from fadeIn/fadeOut seconds vs clip duration.
+function FadeOverlay({ clip, bpm }) {
+  const secPerBar = (60 / (bpm || 120)) * 4;
+  const durSec = (clip.length || 0) * secPerBar;
+  if (!durSec) return null;
+  const fin = Math.min(1, (clip.fadeIn || 0) / durSec);
+  const fout = Math.min(1, (clip.fadeOut || 0) / durSec);
+  if (!fin && !fout) return null;
+  return (
+    <svg className="clip-fade-overlay" viewBox="0 0 1 1" preserveAspectRatio="none">
+      {fin > 0 && (
+        <polygon points={`0,0 ${fin},0 0,1`} fill="rgba(10,12,16,0.55)" />
+      )}
+      {fout > 0 && (
+        <polygon points={`${1 - fout},0 1,0 1,1`} fill="rgba(10,12,16,0.55)" />
+      )}
+    </svg>
+  );
+}
+
 export default function Timeline({ session, dispatch }) {
   const scrollRef = useRef(null);
   const [playheadX, setPlayheadX] = useState(0);
@@ -177,6 +197,31 @@ export default function Timeline({ session, dispatch }) {
     window.addEventListener('pointerup', up);
   };
 
+  // Drag a fade handle to set fade-in / fade-out length (stored in seconds).
+  const startFade = (e, track, clip, side) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = e.clientX;
+    const secPerBar = (60 / (session.bpm || 120)) * 4;
+    const lenSec = (clip.length || 0) * secPerBar;
+    const orig = side === 'in' ? (clip.fadeIn || 0) : (clip.fadeOut || 0);
+    dispatch({ type: 'PUSH_HISTORY' });
+
+    const move = (ev) => {
+      const dSec = ((ev.clientX - startX) / BAR_WIDTH) * secPerBar;
+      let val = side === 'in' ? orig + dSec : orig - dSec; // out handle grows leftward
+      val = Math.max(0, Math.min(lenSec, val));
+      const changes = side === 'in' ? { fadeIn: +val.toFixed(3) } : { fadeOut: +val.toFixed(3) };
+      dispatch({ type: 'UPDATE_CLIP_LIVE', trackId: track.id, clipId: clip.id, changes });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
   // Split an audio clip at the point you double-click.
   const splitClip = (e, track, clip) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -225,7 +270,7 @@ export default function Timeline({ session, dispatch }) {
                 {track.clips.map(clip => (
                   <div
                     key={clip.id}
-                    className={`clip clip-${clip.type}`}
+                    className={`clip clip-${clip.type}${session.selectedClipId === clip.id ? ' selected' : ''}`}
                     style={{
                       left: clip.start * BAR_WIDTH,
                       width: clip.length * BAR_WIDTH - 2,
@@ -235,9 +280,10 @@ export default function Timeline({ session, dispatch }) {
                       cursor: 'grab',
                     }}
                     onPointerDown={e => {
-                      // Ignore clicks that land on the trim handles.
+                      // Ignore clicks that land on the trim / fade handles.
                       if (e.target.dataset?.handle) return;
                       dispatch({ type: 'SELECT_TRACK', trackId: track.id });
+                      dispatch({ type: 'SELECT_CLIP', clipId: clip.id });
                       startDrag(e, track, clip, 'move');
                     }}
                     onContextMenu={e => {
@@ -252,19 +298,38 @@ export default function Timeline({ session, dispatch }) {
                         splitClip(e, track, clip);
                       }
                     }}
-                    title="Drag to move · edges to trim · double-click to split · right-click to delete"
+                    title="Drag move · edges trim · top corners fade · dbl-click split · right-click delete · Cmd+D duplicate"
                   >
                     <div
                       className="clip-handle clip-handle-left"
                       data-handle="left"
                       onPointerDown={e => startDrag(e, track, clip, 'trim-left')}
                     />
+                    {clip.type === 'audio' && <FadeOverlay clip={clip} bpm={session.bpm} />}
                     <span className="clip-name">{clip.name}</span>
                     <div className="clip-preview">
                       {clip.type === 'midi' && <MidiPreview notes={clip.notes} length={clip.length} />}
                       {clip.type === 'drum' && <DrumPreview notes={clip.notes} length={clip.length} />}
                       {clip.type === 'audio' && <AudioPreview clip={clip} bpm={session.bpm} />}
                     </div>
+                    {clip.type === 'audio' && (
+                      <>
+                        <div
+                          className="clip-fade clip-fade-in"
+                          data-handle="fade-in"
+                          title="Drag to fade in"
+                          style={{ left: Math.min(0.95, (clip.fadeIn || 0) / Math.max(0.001, clip.length * (60 / (session.bpm || 120) * 4))) * (clip.length * BAR_WIDTH - 2) }}
+                          onPointerDown={e => startFade(e, track, clip, 'in')}
+                        />
+                        <div
+                          className="clip-fade clip-fade-out"
+                          data-handle="fade-out"
+                          title="Drag to fade out"
+                          style={{ right: Math.min(0.95, (clip.fadeOut || 0) / Math.max(0.001, clip.length * (60 / (session.bpm || 120) * 4))) * (clip.length * BAR_WIDTH - 2) }}
+                          onPointerDown={e => startFade(e, track, clip, 'out')}
+                        />
+                      </>
+                    )}
                     <div
                       className="clip-handle clip-handle-right"
                       data-handle="right"

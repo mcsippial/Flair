@@ -35,6 +35,37 @@ function sessionReducerCore(session, action) {
           ? { ...t, clips: t.clips.map(c => c.id === action.clipId ? { ...c, ...action.changes } : c) }
           : t)
       };
+    case 'DUPLICATE_CLIP': {
+      let dup = null;
+      const tracks = session.tracks.map(t => {
+        if (t.id !== action.trackId) return t;
+        const src = t.clips.find(c => c.id === action.clipId);
+        if (!src) return t;
+        dup = { ...src, id: genId(), start: (src.start || 0) + (src.length || 0) };
+        return { ...t, clips: [...t.clips, dup] };
+      });
+      return { ...session, tracks, selectedClipId: dup ? dup.id : session.selectedClipId };
+    }
+    case 'COPY_CLIP': {
+      for (const t of session.tracks) {
+        const c = t.clips.find(c => c.id === action.clipId);
+        if (c) return { ...session, clipboard: { ...c } };
+      }
+      return session;
+    }
+    case 'PASTE_CLIP': {
+      if (!session.clipboard) return session;
+      const targetId = action.trackId || session.selectedTrackId;
+      if (!targetId) return session;
+      const at = action.atBar != null ? action.atBar : (session.playheadPosition || 0);
+      let pasted = null;
+      const tracks = session.tracks.map(t => {
+        if (t.id !== targetId) return t;
+        pasted = { ...session.clipboard, id: genId(), start: at, trackId: t.id };
+        return { ...t, clips: [...t.clips, pasted] };
+      });
+      return { ...session, tracks, selectedClipId: pasted ? pasted.id : session.selectedClipId };
+    }
     case 'SPLIT_CLIP': {
       const secPerBar = (60 / (session.bpm || 120)) * 4;
       return {
@@ -139,7 +170,7 @@ export function sessionReducer(state, action) {
   }
 
   // Non-undoable actions
-  const nonUndoable = ['SET_PLAYING', 'SET_RECORDING', 'ARM_TRACK', 'SET_PLAYHEAD', 'SELECT_TRACK', 'SELECT_CLIP', 'ADD_AI_MESSAGE', 'ADD_AI_SUGGESTION', 'REMOVE_AI_SUGGESTION', 'NEW_CHAT', 'SELECT_CHAT', 'UPDATE_CLIP_LIVE'];
+  const nonUndoable = ['SET_PLAYING', 'SET_RECORDING', 'ARM_TRACK', 'SET_PLAYHEAD', 'SELECT_TRACK', 'SELECT_CLIP', 'ADD_AI_MESSAGE', 'ADD_AI_SUGGESTION', 'REMOVE_AI_SUGGESTION', 'NEW_CHAT', 'SELECT_CHAT', 'UPDATE_CLIP_LIVE', 'COPY_CLIP'];
   if (nonUndoable.includes(action.type)) {
     return { ...state, present: sessionReducerCore(state.present, action) };
   }

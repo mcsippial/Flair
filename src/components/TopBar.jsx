@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import Knob from './Knob';
 import * as Tone from 'tone';
 import { setMasterVolume } from '../engine/audioEngine';
+import { exportMix, exportStems } from '../engine/exportAudio';
 
 const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
@@ -9,7 +10,24 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
   const [tapTimes, setTapTimes] = useState([]);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [timeDisplay, setTimeDisplay] = useState('0:0:0');
+  const [showExport, setShowExport] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const tapTimeout = useRef(null);
+
+  const hasAudio = session.tracks.some(t => t.type === 'audio' && t.clips.length);
+
+  const runExport = async (which) => {
+    setShowExport(false);
+    setExporting(true);
+    try {
+      if (which === 'mix') await exportMix(session);
+      else await exportStems(session);
+    } catch (err) {
+      dispatch({ type: 'ADD_AI_MESSAGE', message: { id: Math.random().toString(36).slice(2), role: 'assistant', timestamp: Date.now(), text: `Export failed: ${err.message}` } });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!session.isPlaying) { setTimeDisplay('0:0:0'); return; }
@@ -127,12 +145,30 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
               <div><span>Redo</span><span>Cmd+Shift+Z</span></div>
               <div><span>Mute track</span><span>M</span></div>
               <div><span>Solo track</span><span>S</span></div>
+              <div><span>Duplicate clip</span><span>Cmd+D</span></div>
+              <div><span>Copy / Paste clip</span><span>Cmd+C / V</span></div>
+              <div><span>Delete clip</span><span>Del</span></div>
               <div><span>Deselect</span><span>Esc</span></div>
             </div>
           )}
         </div>
         <button className="icon-btn" onClick={onOpenSettings} title="API Key Settings">Settings</button>
-        <button className="export-btn" disabled title="Coming soon">Export</button>
+        <div className="export-wrap">
+          <button
+            className="export-btn"
+            disabled={!hasAudio || exporting}
+            onClick={() => setShowExport(s => !s)}
+            title={hasAudio ? 'Export to WAV' : 'No audio to export'}
+          >
+            {exporting ? 'Exporting…' : 'Export'}
+          </button>
+          {showExport && !exporting && (
+            <div className="export-menu" onMouseLeave={() => setShowExport(false)}>
+              <button onClick={() => runExport('mix')}>Export Mix (WAV)</button>
+              <button onClick={() => runExport('stems')}>Export Stems (WAV)</button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
