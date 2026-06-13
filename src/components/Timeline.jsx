@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import * as Tone from 'tone';
 
 const BASE_BAR_WIDTH = 80;
-const BARS = 16;
+const MIN_BARS = 16;
 
 function timeToBar(timeStr) {
   if (!timeStr) return 0;
@@ -72,6 +72,13 @@ export default function Timeline({ session, dispatch }) {
   const [playheadX, setPlayheadX] = useState(0);
   const [zoom, setZoom] = useState(1);
   const BAR_WIDTH = Math.round(BASE_BAR_WIDTH * zoom);
+
+  // Grow the timeline to fit the longest clip (+2 bars of headroom).
+  const contentBars = session.tracks.reduce((max, t) => {
+    const end = (t.clips || []).reduce((m, c) => Math.max(m, (c.start || 0) + (c.length || 0)), 0);
+    return Math.max(max, end);
+  }, 0);
+  const BARS = Math.max(MIN_BARS, Math.ceil(contentBars) + 2);
   const totalWidth = BARS * BAR_WIDTH;
 
   useEffect(() => {

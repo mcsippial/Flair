@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getApiKey } from './claudeClient';
-import { getReplicateKey, generateMusicUrl } from './musicGen';
+import { getReplicateKey, generateMusicUrl, getAudioDuration } from './musicGen';
 import { generateSunoSong } from './sunorMusic';
 import { separateStems } from './demucs';
 
@@ -102,7 +102,16 @@ Output ONLY valid JSON, no markdown:
     throw new Error(`Demucs step failed: ${err.message}`);
   }
 
-  const barsGenerated = Math.round((durationSecs / 60) * bpm / 4);
+  // Measure the real song length so clips and the timeline fit the full track.
+  // All stems share the source duration, so measuring one is enough.
+  let lengthBars = Math.round((durationSecs / 60) * bpm / 4);
+  try {
+    const realSecs = await getAudioDuration(stems[0].audioUrl);
+    if (realSecs && isFinite(realSecs)) {
+      lengthBars = Math.max(1, Math.ceil((realSecs / 60) * bpm / 4));
+    }
+  } catch { /* fall back to the estimate */ }
+
   const tracks = stems.map(stem => ({
     id: genId(),
     name: stem.name,
@@ -116,7 +125,7 @@ Output ONLY valid JSON, no markdown:
       name: stem.name,
       type: 'audio',
       start: 0,
-      length: barsGenerated,
+      length: lengthBars,
       audioUrl: stem.audioUrl,
     }],
   }));

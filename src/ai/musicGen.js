@@ -13,6 +13,17 @@ export function setReplicateKey(key) {
 
 export function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// Read the real duration (seconds) of an audio blob/URL via a detached element.
+export function getAudioDuration(url) {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio();
+    audio.preload = 'metadata';
+    audio.onloadedmetadata = () => resolve(audio.duration);
+    audio.onerror = () => reject(new Error('Could not read audio duration'));
+    audio.src = url;
+  });
+}
+
 async function createPrediction(body, attempt = 0) {
   const res = await fetch(`${BASE}/predictions`, {
     method: 'POST',
