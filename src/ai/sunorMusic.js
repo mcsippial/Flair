@@ -21,9 +21,10 @@ export async function generateSunoSong(prompt, onProgress) {
   }
 
   const data = await res.json();
-  const taskId = Array.isArray(data)
-    ? (data[0]?.id ?? data[0])
-    : (data.id ?? data.task_id);
+  const inner = data.data ?? data;
+  const taskId = Array.isArray(inner)
+    ? (inner[0]?.task_id ?? inner[0]?.id ?? inner[0])
+    : (inner.task_id ?? inner.id);
   if (!taskId) throw new Error(`Suno returned no task ID: ${JSON.stringify(data)}`);
 
   const deadline = Date.now() + 300000;
@@ -36,18 +37,19 @@ export async function generateSunoSong(prompt, onProgress) {
       pred = await pollRes.json();
     } catch { continue; }
 
-    const status = (pred.status || '').toLowerCase();
+    const p = pred.data ?? pred;
+    const status = (p.status || '').toLowerCase();
     if (status === 'completed' || status === 'succeeded' || status === 'success') {
+      const output = p.output ?? p;
       const audioUrl =
-        pred.output?.audio_url ??
-        pred.output?.audio ??
-        (Array.isArray(pred.output) ? (pred.output[0]?.audio_url ?? pred.output[0]) : null) ??
-        pred.audio_url;
+        output.audio_url ??
+        output.audio ??
+        (Array.isArray(output) ? (output[0]?.audio_url ?? output[0]) : null);
       if (!audioUrl) throw new Error(`Suno completed but no audio URL: ${JSON.stringify(pred)}`);
       return audioUrl;
     }
     if (status === 'failed' || status === 'error') {
-      throw new Error(`Suno failed: ${pred.error || JSON.stringify(pred)}`);
+      throw new Error(`Suno failed: ${p.error || JSON.stringify(pred)}`);
     }
   }
   throw new Error('Suno generation timed out');
