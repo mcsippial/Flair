@@ -740,12 +740,22 @@
 
 .export-btn {
   font-size: 12px;
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-  padding: 4px 12px;
-  border-radius: 5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-mid);
+  padding: 5px 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+}
+.export-btn:hover:not(:disabled) {
+  border-color: var(--border-amber);
+  color: var(--text-primary);
+}
+.export-btn:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
-  opacity: 0.35;
 }
 
 
@@ -762,9 +772,10 @@
 
 .track-list-header {
   height: 28px;
-  padding: 0 14px;
+  padding: 0 12px 0 14px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -776,48 +787,72 @@
   text-transform: uppercase;
 }
 
+.track-list-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim) !important;
+  background: var(--surface-3);
+  border-radius: 8px;
+  padding: 1px 6px;
+  letter-spacing: 0;
+}
+
 .track-list-body { flex: 1; overflow-y: auto; }
 
 .track-row {
-  height: 52px;
+  height: 64px;
   display: flex;
-  align-items: center;
-  gap: 7px;
+  align-items: stretch;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.12s;
   position: relative;
-  padding-right: 10px;
 }
 
-.track-row:hover { background: rgba(255,255,255,0.02); }
+.track-row:hover { background: rgba(255,255,255,0.018); }
 .track-row.selected { background: rgba(232,146,10,0.05); }
+.track-row.muted { opacity: 0.45; }
 
 .track-color-bar {
   width: 3px;
+  flex-shrink: 0;
   align-self: stretch;
-  flex-shrink: 0;
 }
 
-.track-num {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--text-dim);
-  width: 14px;
-  text-align: right;
-  flex-shrink: 0;
+.track-row-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 8px 0 10px;
+  gap: 5px;
+  min-width: 0;
 }
 
-.track-icon { font-size: 13px; flex-shrink: 0; }
+.track-row-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.track-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0.9;
+}
 
 .track-name {
   font-size: 12px;
+  font-weight: 500;
   color: var(--text-primary);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  letter-spacing: 0.01em;
 }
 
 .track-name-input {
@@ -832,20 +867,19 @@
   min-width: 0;
 }
 
-.track-controls {
+.track-row-actions {
   display: flex;
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
-  position: relative;
 }
 
 .track-btn {
   width: 18px;
   height: 18px;
   border-radius: 3px;
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 8.5px;
+  font-weight: 700;
   color: var(--text-dim);
   background: var(--surface-3);
   border: 1px solid var(--border);
@@ -858,28 +892,90 @@
 
 .track-btn:hover { color: var(--text-secondary); border-color: var(--border-mid); }
 
-.track-btn.active {
-  background: rgba(232,146,10,0.18);
+.arm-btn.armed {
+  background: rgba(152,48,40,0.3);
+  border-color: rgba(152,48,40,0.6);
+  color: #e05048;
+}
+
+.delete-btn {
+  opacity: 0;
+  transition: opacity 0.15s, background 0.1s;
+}
+.track-row:hover .delete-btn { opacity: 0.6; }
+.delete-btn:hover { opacity: 1 !important; background: rgba(152,48,40,0.2) !important; }
+
+.track-row-bottom {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.track-ms-btn {
+  width: 20px;
+  height: 16px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.track-ms-btn:hover { border-color: var(--border-mid); color: var(--text-secondary); }
+.track-ms-btn.ms-active.muted {
+  background: rgba(192,124,16,0.2);
   border-color: var(--border-amber);
   color: var(--amber-bright);
 }
+.track-ms-btn.ms-active.solo {
+  background: rgba(72,120,160,0.25);
+  border-color: rgba(72,120,160,0.5);
+  color: #7aabcc;
+}
+
+.track-fader {
+  flex: 1;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--amber) var(--fill, 80%), rgba(255,255,255,0.12) var(--fill, 80%));
+  cursor: pointer;
+  outline: none;
+}
+.track-fader::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  border: 1px solid var(--bg);
+  cursor: pointer;
+  transition: background 0.1s, transform 0.1s;
+}
+.track-fader::-webkit-slider-thumb:hover { background: var(--text-primary); transform: scale(1.2); }
 
 .color-swatch {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
   flex-shrink: 0;
   transition: transform 0.1s;
 }
-
-.color-swatch:hover { transform: scale(1.3); }
+.color-swatch:hover { transform: scale(1.35); }
 
 .color-picker {
   position: absolute;
-  right: 0;
-  top: 24px;
+  right: 8px;
+  bottom: 10px;
   background: var(--surface-2);
   border: 1px solid var(--border-mid);
   border-radius: 8px;
@@ -888,7 +984,7 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   z-index: 50;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
 }
 
 .color-option {
@@ -899,16 +995,7 @@
   border: 1px solid rgba(255,255,255,0.1);
   transition: transform 0.1s;
 }
-
 .color-option:hover { transform: scale(1.25); }
-
-.track-volume {
-  width: 40px;
-  height: 2px;
-  accent-color: var(--amber);
-  flex-shrink: 0;
-  cursor: pointer;
-}
 
 .track-list-footer {
   padding: 10px;
@@ -919,16 +1006,20 @@
 
 .add-track-btn {
   width: 100%;
-  padding: 7px;
-  font-size: 11px;
+  padding: 8px;
+  font-size: 11.5px;
+  font-weight: 500;
   color: var(--text-secondary);
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   transition: all 0.15s;
 }
-
-.add-track-btn:hover { border-color: var(--border-amber); color: var(--text-primary); }
+.add-track-btn:hover { border-color: var(--border-amber); color: var(--text-primary); background: var(--surface-3); }
 
 .add-track-menu {
   position: absolute;
@@ -947,12 +1038,14 @@
   width: 100%;
   padding: 10px 14px;
   text-align: left;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--text-primary);
   border-bottom: 1px solid var(--border);
   transition: background 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-
 .add-track-menu button:last-child { border-bottom: none; }
 .add-track-menu button:hover { background: var(--surface-3); }
 
@@ -982,40 +1075,66 @@
 }
 
 .timeline-ruler {
-  height: 28px;
+  height: 32px;
   background: var(--surface-1);
   border-bottom: 1px solid var(--border);
   position: relative;
   flex-shrink: 0;
   cursor: pointer;
   overflow: hidden;
+  user-select: none;
 }
 
 .ruler-bar {
   position: absolute;
   top: 0;
   bottom: 0;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid rgba(255,255,255,0.06);
 }
+
+.ruler-bar:nth-child(4n+1) { border-left-color: rgba(255,255,255,0.12); }
 
 .ruler-label {
   font-family: var(--font-mono);
   font-size: 9px;
   color: var(--text-dim);
   position: absolute;
-  top: 5px;
+  top: 6px;
   left: 5px;
+  letter-spacing: 0.04em;
+}
+
+/* Beat subdivisions */
+.ruler-beat {
+  position: absolute;
+  top: 20px;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255,255,255,0.04);
 }
 
 .playhead {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 1px;
+  width: 2px;
   background: var(--amber-bright);
-  box-shadow: 0 0 6px rgba(245,166,35,0.5);
+  box-shadow: 0 0 8px rgba(245,166,35,0.7), 0 0 20px rgba(245,166,35,0.25);
   z-index: 10;
   pointer-events: none;
+  border-radius: 1px;
+}
+
+.playhead::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: var(--amber-bright);
+  border-radius: 50%;
 }
 
 .timeline-tracks {
@@ -1026,21 +1145,12 @@
 }
 
 .timeline-lane {
-  height: 52px;
+  height: 64px;
   position: relative;
   border-bottom: 1px solid var(--border);
 }
 
-.timeline-lane::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg, transparent, transparent 3px,
-    rgba(255,255,255,0.006) 3px, rgba(255,255,255,0.006) 4px
-  );
-  pointer-events: none;
-}
+.timeline-lane:nth-child(even) { background: rgba(255,255,255,0.008); }
 
 .timeline-empty {
   position: absolute;
@@ -1058,43 +1168,47 @@
   position: absolute;
   top: 6px;
   bottom: 6px;
-  border-radius: 4px;
-  cursor: pointer;
+  border-radius: 6px;
+  cursor: grab;
   overflow: hidden;
-  transition: opacity 0.12s;
+  transition: opacity 0.12s, box-shadow 0.12s;
   border-left-width: 2px;
   border-left-style: solid;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 
-.clip:hover { opacity: 0.85; }
+.clip:active { cursor: grabbing; }
+.clip:hover { opacity: 0.9; box-shadow: 0 2px 12px rgba(0,0,0,0.5); }
 
 .clip-name {
   display: block;
-  font-size: 9px;
-  color: rgba(255,255,255,0.65);
-  padding: 4px 6px 2px;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.8);
+  padding: 5px 7px 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
+  position: relative;
+  z-index: 1;
 }
 
 .clip-preview {
   position: absolute;
-  bottom: 2px;
+  bottom: 3px;
   left: 4px;
   right: 4px;
-  height: 14px;
+  height: 16px;
   display: flex;
   align-items: flex-end;
   gap: 1px;
 }
 
-/* Audio stems show a real waveform filling the clip so each instrument reads
-   as a distinct shape. */
+/* Audio clips: waveform fills the clip below the name label */
 .clip-audio .clip-preview {
-  top: 16px;
-  bottom: 3px;
+  top: 20px;
+  bottom: 4px;
   height: auto;
   align-items: center;
 }

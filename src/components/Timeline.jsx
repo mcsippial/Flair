@@ -356,7 +356,7 @@ export default function Timeline({ session, dispatch }) {
               className="ai-chip"
               style={{
                 left: (chip.bar || 0) * BAR_WIDTH,
-                top: 28 + (session.tracks.findIndex(t => t.id === chip.trackId) || 0) * 52,
+                top: 32 + (session.tracks.findIndex(t => t.id === chip.trackId) || 0) * 64,
               }}
             >
               <span>{chip.message}</span>
