@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 const TRACK_COLORS = ['#c4a882','#6ba3c4','#9b82c4','#6bc49b','#c46b6b','#c4b86b','#6bc4bc','#c46bb8'];
 
 // Minimal SVG icons that read at 14px
-const TypeIcon = ({ type }) => {
+function TypeIcon({ type }) {
   if (type === 'drum') return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
       <ellipse cx="7" cy="4.5" rx="5" ry="2" />
