@@ -39,9 +39,12 @@ function stemMeta(name) {
 export async function generateMusicTakes(spec, onProgress) {
   onProgress?.('Generating with Suno V5…');
 
-  // Accept a plain style string (back-compat) or { style, title }.
+  // Accept a plain style string (back-compat) or { style, title, weirdness }.
   const style = typeof spec === 'string' ? spec : spec.style;
   const title = (typeof spec === 'object' && spec.title) || 'Flair Session';
+  const w = Math.max(0, Math.min(1, typeof spec === 'object' && typeof spec.weirdness === 'number' ? spec.weirdness : 0.45));
+  // Lower weirdness → tighter adherence to the requested style (more faithful).
+  const styleWeight = +(0.5 + (1 - w) * 0.3).toFixed(2);
 
   const res = await fetch(`${BASE}/generate`, {
     method: 'POST',
@@ -57,8 +60,8 @@ export async function generateMusicTakes(spec, onProgress) {
       title,
       // Exclude over-represented/derivative output to steer into sparser space.
       negativeTags: 'derivative, generic, stock music',
-      styleWeight: 0.6,         // follow the style, but leave room to vary
-      weirdnessConstraint: 0.7, // higher = more experimental → fewer catalog matches
+      styleWeight,                  // higher when weirdness is low → faithful
+      weirdnessConstraint: w,       // producer-controlled experimentation level
       callBackUrl: CALLBACK,
     }),
   });

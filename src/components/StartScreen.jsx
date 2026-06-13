@@ -51,6 +51,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
   const [takeMeta, setTakeMeta] = useState(null);
   const [playingIdx, setPlayingIdx] = useState(null);
   const [downloadingIdx, setDownloadingIdx] = useState(null);
+  const [weirdness, setWeirdness] = useState(0.45); // 0 = faithful, 1 = experimental
   const inputRef        = useRef(null);
   const loadingInterval = useRef(null);
   const auditionAudio   = useRef(null);
@@ -127,6 +128,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
     const intent = chipId === 'surprise'
       ? { type: 'song', key: KEYS[Math.floor(Math.random()*12)], scale: SCALES[Math.floor(Math.random()*2)], bpm: Math.floor(Math.random()*60)+80, mood: MOODS[Math.floor(Math.random()*6)], description: text }
       : parseIntent(text, chipId);
+    intent.weirdness = weirdness;
     intentRef.current = intent;
 
     setBuilding(true);
@@ -312,6 +314,25 @@ export default function StartScreen({ onDismiss, dispatch }) {
                   {chip.label}
                 </button>
               ))}
+            </div>
+
+            <div className="start-weirdness">
+              <div className="start-weirdness-head">
+                <span>Adventurousness</span>
+                <span className="start-weirdness-val">
+                  {weirdness <= 0.3 ? 'Faithful' : weirdness >= 0.7 ? 'Experimental' : 'Balanced'} · {Math.round(weirdness * 100)}%
+                </span>
+              </div>
+              <input
+                className="start-weirdness-slider"
+                type="range" min="0" max="1" step="0.05"
+                value={weirdness}
+                onChange={e => setWeirdness(parseFloat(e.target.value))}
+              />
+              <div className="start-weirdness-scale">
+                <span>Stay true to the genre</span>
+                <span>Push the boundaries</span>
+              </div>
             </div>
 
             <button className="start-blank" onClick={handleBlank}>or start blank</button>

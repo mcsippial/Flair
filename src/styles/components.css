@@ -238,6 +238,36 @@
   color: var(--text-secondary);
 }
 
+.start-weirdness {
+  margin-top: 18px;
+  width: 100%;
+}
+.start-weirdness-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.start-weirdness-val {
+  font-weight: 500;
+  color: var(--amber);
+}
+.start-weirdness-slider {
+  width: 100%;
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+.start-weirdness-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
 .audition-download {
   flex: 0 0 auto;
   width: 32px;

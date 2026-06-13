@@ -11,6 +11,8 @@ function genId() { return Math.random().toString(36).substr(2, 9); }
 
 export async function generateTakes(intent, onProgress) {
   const claudeKey = getApiKey();
+  const weirdness = typeof intent.weirdness === 'number' ? intent.weirdness : 0.45;
+  const advPct = Math.round(weirdness * 100);
   let style, title, bpm, key, scale;
 
   if (claudeKey) {
@@ -18,12 +20,16 @@ export async function generateTakes(intent, onProgress) {
     const client = new Anthropic({ apiKey: claudeKey, dangerouslyAllowBrowser: true });
     const userMsg = `You are an innovative music producer writing a style descriptor for Suno V5 (AI music generator, customMode, instrumental only).
 
-Fuse TWO complementary genres into one fresh hybrid. Unusual genre combinations produce unique tracks that will NOT match existing catalog recordings — this is the goal. Examples of fusions: "dub techno meets spaghetti western", "neo-soul meets IDM", "bossa nova meets drill", "ambient meets delta blues". Keep it musical and coherent, honoring the user's request as the primary genre and choosing a complementary second genre.
-
 User request: ${intent.description ? `"${intent.description}"` : `${intent.mood} ${intent.type}`}
 BPM hint: ${intent.bpm} | Key: ${intent.key} ${intent.scale} | Mood: ${intent.mood}
+Adventurousness: ${advPct}/100.
 
-Return a style descriptor: comma-separated list leading with the genre fusion, then key instruments, then mood adjectives. Purely instrumental, no vocals. Be specific (e.g. "neo-soul meets IDM, fender rhodes, glitched drums, warm sub bass, late-night, intricate"). Max 110 characters. Also give a short evocative track title (2-4 words).
+How to use adventurousness:
+- If the request already names a clear genre/style, honor it as the CORE. At low adventurousness keep it conventional and faithful; at higher adventurousness add a complementary secondary influence (subtle at mid, bold genre fusion at high). Examples of bold fusions: "dub techno meets spaghetti western", "neo-soul meets IDM".
+- If the request is vague, you have freedom — scale how unusual the blend is to the adventurousness level.
+- The goal is a track that's distinctive enough to avoid matching existing catalog recordings, without betraying what the user asked for.
+
+Return a style descriptor: comma-separated list leading with genre(s), then key instruments, then mood adjectives. Purely instrumental, no vocals. Be specific (e.g. "neo-soul, fender rhodes, brushed drums, warm sub bass, late-night"). Max 110 characters. Also give a short evocative track title (2-4 words).
 
 Output ONLY valid JSON, no markdown:
 {"bpm":<number>,"key":<string>,"scale":"major"|"minor","style":<descriptor max 110 chars>,"title":<2-4 word title>}`;
@@ -61,7 +67,7 @@ Output ONLY valid JSON, no markdown:
 
   let result;
   try {
-    result = await generateMusicTakes({ style, title }, onProgress); // { taskId, takes:[…] }
+    result = await generateMusicTakes({ style, title, weirdness }, onProgress); // { taskId, takes:[…] }
   } catch (err) {
     throw new Error(`Suno step failed: ${err.message}`);
   }
