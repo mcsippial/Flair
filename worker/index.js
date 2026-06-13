@@ -1,3 +1,4 @@
+// Replicate/Sunor retained for legacy routes; kie.ai is the active provider.
 const REPLICATE = 'https://api.replicate.com';
 const SUNOR = 'https://sunor.cc/api/v1';
 const KIEAI = 'https://api.kie.ai/api/v1';
