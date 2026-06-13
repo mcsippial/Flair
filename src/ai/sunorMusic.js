@@ -40,11 +40,14 @@ export async function generateSunoSong(prompt, onProgress) {
     const p = pred.data ?? pred;
     const status = (p.status || '').toLowerCase();
     if (status === 'completed' || status === 'succeeded' || status === 'success') {
-      const output = p.output ?? p;
+      // Suno returns two variations under output.result[]; take the first with audio.
+      const result = p.output?.result ?? p.result ?? p.output;
+      const first = Array.isArray(result) ? result.find(r => r?.audio_url) : result;
       const audioUrl =
-        output.audio_url ??
-        output.audio ??
-        (Array.isArray(output) ? (output[0]?.audio_url ?? output[0]) : null);
+        first?.audio_url ??
+        first?.audio ??
+        p.output?.audio_url ??
+        p.audio_url;
       if (!audioUrl) throw new Error(`Suno completed but no audio URL: ${JSON.stringify(pred)}`);
       return audioUrl;
     }
