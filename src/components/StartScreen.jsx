@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { generateTakes, separateTake } from '../ai/composeSession';
+import { downloadAudio } from '../ai/audioUtils';
 
 const CHIPS = [
   { id: 'beat', label: 'Beat' },
@@ -49,10 +50,12 @@ export default function StartScreen({ onDismiss, dispatch }) {
   const [takes, setTakes]       = useState([]);
   const [takeMeta, setTakeMeta] = useState(null);
   const [playingIdx, setPlayingIdx] = useState(null);
+  const [downloadingIdx, setDownloadingIdx] = useState(null);
   const inputRef        = useRef(null);
   const loadingInterval = useRef(null);
   const auditionAudio   = useRef(null);
   const playingIdxRef   = useRef(null);
+  const intentRef       = useRef(null); // kept so we can regenerate on a catalog block
 
   useEffect(() => {
     if (screen === 'prompt') inputRef.current?.focus();
@@ -124,6 +127,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
     const intent = chipId === 'surprise'
       ? { type: 'song', key: KEYS[Math.floor(Math.random()*12)], scale: SCALES[Math.floor(Math.random()*2)], bpm: Math.floor(Math.random()*60)+80, mood: MOODS[Math.floor(Math.random()*6)], description: text }
       : parseIntent(text, chipId);
+    intentRef.current = intent;
 
     setBuilding(true);
     startLoadingLines();
@@ -150,6 +154,9 @@ export default function StartScreen({ onDismiss, dispatch }) {
   };
 
   // Phase 2: split the chosen take into native stems and load the session.
+  // If kie.ai blocks the split because the take matched an existing recording,
+  // transparently regenerate a fresh, unique take and retry — the producer
+  // never sees a dead-end, they just wait a little longer.
   const runSeparation = async (take, meta) => {
     auditionAudio.current?.pause();
     setPlayingIdx(null);
@@ -157,14 +164,55 @@ export default function StartScreen({ onDismiss, dispatch }) {
     setBuilding(true);
     stopLoadingLines();
     setLoadingLine('Separating stems…');
+
+    const MAX_ATTEMPTS = 3;
+    let curTake = take, curMeta = meta;
     try {
-      const result = await separateTake(take, meta, handleProgress);
-      stopLoadingLines();
-      dispatchResult(result);
-      onDismiss();
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        try {
+          const result = await separateTake(curTake, curMeta, handleProgress);
+          stopLoadingLines();
+          dispatchResult(result);
+          onDismiss();
+          return;
+        } catch (err) {
+          const isCatalogBlock = /known recording|catalog|too similar|copyright/i.test(err.message);
+          if (!isCatalogBlock || attempt === MAX_ATTEMPTS - 1 || !intentRef.current) throw err;
+          stopLoadingLines();
+          setLoadingLine('That take matched an existing recording — generating a fresh, unique take…');
+          const regen = await generateTakes(intentRef.current, handleProgress);
+          if (!regen.takes?.length) throw err;
+          curTake = regen.takes[0];
+          curMeta = { bpm: regen.bpm, key: regen.key, scale: regen.scale };
+        }
+      }
     } catch (err) {
       stopLoadingLines();
       failWith(err);
+    }
+  };
+
+  // Download a take's full mix (for reference / external use) via the proxy.
+  const downloadTake = async (take, i) => {
+    if (downloadingIdx !== null) return;
+    setDownloadingIdx(i);
+    try {
+      const blobUrl = await downloadAudio(take.url);
+      const a = document.createElement('a');
+      const label = (take.title || `Take ${String.fromCharCode(65 + i)}`).replace(/[^\w]+/g, '_');
+      a.href = blobUrl;
+      a.download = `${label}.mp3`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+    } catch (err) {
+      dispatch({
+        type: 'ADD_AI_MESSAGE',
+        message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: `Download failed: ${err.message}` },
+      });
+    } finally {
+      setDownloadingIdx(null);
     }
   };
 
@@ -225,6 +273,14 @@ export default function StartScreen({ onDismiss, dispatch }) {
                     Take {String.fromCharCode(65 + i)}
                     {take.duration ? <span className="audition-dur"> · {fmtDur(take.duration)}</span> : null}
                   </span>
+                  <button
+                    className="audition-download"
+                    onClick={() => downloadTake(take, i)}
+                    disabled={downloadingIdx !== null}
+                    title="Download this take"
+                  >
+                    {downloadingIdx === i ? '…' : '⬇'}
+                  </button>
                   <button className="audition-use" onClick={() => runSeparation(take, takeMeta)}>
                     Use this take →
                   </button>
@@ -237,7 +293,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
         ) : (
           <div className="start-input-section">
             <p className="start-prompt-label">What do you want to make?</p>
-            <p className="start-mode-badge">Suno V5 + Demucs · real stems</p>
+            <p className="start-mode-badge">Suno V5 · native stems</p>
             <div className="start-input-wrap">
               <input
                 ref={inputRef}

@@ -45,6 +45,15 @@ Output ONLY valid JSON, no markdown:
     prompt = `${intent.mood}, ${intent.type}, instrumental, ${key} ${scale}, no vocals`;
   }
 
+  // Append a randomized production texture so each generation drifts toward a
+  // novel render — diversifies output and reduces catalog-match collisions.
+  const FLAVORS = [
+    'analog tape warmth', 'subtle swing', 'live-room ambience', 'vintage character',
+    'organic imperfections', 'dynamic shifts', 'hand-played feel', 'unconventional harmony',
+  ];
+  const flavor = FLAVORS[Math.floor(Math.random() * FLAVORS.length)];
+  if (prompt && (`${prompt}, ${flavor}`).length <= 120) prompt = `${prompt}, ${flavor}`;
+
   let result;
   try {
     result = await generateMusicTakes(prompt, onProgress); // { taskId, takes:[{url,duration,title,audioId,taskId}] }

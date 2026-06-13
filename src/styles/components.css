@@ -238,6 +238,27 @@
   color: var(--text-secondary);
 }
 
+.audition-download {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.audition-download:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+.audition-download:disabled { opacity: 0.5; cursor: default; }
+
 .audition-use {
   flex: 0 0 auto;
   font-size: 13px;
