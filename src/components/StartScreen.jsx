@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { composeStarterSession } from '../ai/composeSession';
-import { getApiKey, setApiKey } from '../ai/claudeClient';
+import { getApiKey } from '../ai/claudeClient';
 
 const CHIPS = [
   { id: 'beat', label: 'Beat' },
@@ -39,22 +39,14 @@ const LOADING_LINES = [
 export default function StartScreen({ onDismiss, dispatch }) {
   const [input, setInput]       = useState('');
   const [screen, setScreen]     = useState('prompt');
-  const [claudeKey, setClaudeKeyState] = useState(getApiKey() || '');
   const [building, setBuilding] = useState(false);
   const [loadingLine, setLoadingLine] = useState('');
   const inputRef     = useRef(null);
-  const claudeKeyRef = useRef(null);
   const loadingInterval = useRef(null);
 
   useEffect(() => {
-    if (screen === 'claude') claudeKeyRef.current?.focus();
-    else inputRef.current?.focus();
+    inputRef.current?.focus();
   }, [screen]);
-
-  const saveClaudeKey = () => {
-    setApiKey(claudeKey.trim());
-    setScreen('prompt');
-  };
 
   const startLoadingLines = () => {
     let i = 0;
@@ -131,28 +123,6 @@ export default function StartScreen({ onDismiss, dispatch }) {
             <div className="start-building-dots"><span /><span /><span /></div>
           </div>
 
-        ) : screen === 'claude' ? (
-          <div className="start-input-section">
-            <p className="start-prompt-label">Claude API key — for smarter prompt generation</p>
-            <p className="start-key-desc">
-              Optional. Lets Claude write hyper-specific music prompts for better results.<br />
-              Without it, Flair uses a simple template prompt.
-            </p>
-            <div className="start-input-wrap">
-              <input
-                ref={claudeKeyRef}
-                className="start-input"
-                type="password"
-                value={claudeKey}
-                onChange={e => setClaudeKeyState(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && saveClaudeKey()}
-                placeholder="sk-ant-api03-..."
-              />
-              <button className="start-input-submit" onClick={saveClaudeKey}>→</button>
-            </div>
-            <button className="start-blank" onClick={() => setScreen('prompt')}>← back</button>
-          </div>
-
         ) : (
           <div className="start-input-section">
             <p className="start-prompt-label">What do you want to make?</p>
@@ -178,10 +148,6 @@ export default function StartScreen({ onDismiss, dispatch }) {
             </div>
 
             <button className="start-blank" onClick={handleBlank}>or start blank</button>
-            <button className="start-blank" style={{ fontSize: 11, opacity: 0.45, marginTop: 8 }}
-              onClick={() => setScreen('claude')}>
-              {getApiKey() ? 'change Claude key' : 'add Claude key (optional)'}
-            </button>
           </div>
         )}
       </div>
