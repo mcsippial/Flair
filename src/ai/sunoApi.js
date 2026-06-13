@@ -136,12 +136,21 @@ export async function separateNativeStems(taskId, audioId, onProgress) {
 
     const stems = parseStemResponse(d.response ?? d);
     if (stems.length) return stems;
+
+    // Job done but nothing parsed → surface the raw shape instead of timing out,
+    // so any field-name mismatch is visible immediately.
+    if (status === 'SUCCESS' || status.includes('COMPLETE') || status === '1') {
+      throw new Error(`Stems done but none parsed. Raw: ${JSON.stringify(d).slice(0, 600)}`);
+    }
   }
   throw new Error('Stem split timed out');
 }
 
+// Non-stem URL fields the response carries that must never be treated as stems.
+const NON_STEM = /callback|image|video|cover|thumb|stream|source|origin|info/i;
+
 // The split_stem response shape varies; handle an array of stems OR a flat set
-// of "<name>Url" fields. Drop vocals (we generate instrumentals) and empties.
+// of "<name>Url" fields. Drop vocals/instrumental and any non-audio URL field.
 function parseStemResponse(resp) {
   if (!resp) return [];
   let raw = [];
@@ -160,7 +169,11 @@ function parseStemResponse(resp) {
   }
 
   return raw
-    .filter(s => s.url && s.name && !/vocal/i.test(s.name) && !/instrumental/i.test(s.name))
+    .filter(s =>
+      s.url && s.url !== CALLBACK && s.name &&
+      !NON_STEM.test(s.name) &&
+      !/vocal/i.test(s.name) && !/instrumental/i.test(s.name)
+    )
     .map(s => {
       const m = stemMeta(s.name);
       const label = m.key.charAt(0).toUpperCase() + m.key.slice(1);
