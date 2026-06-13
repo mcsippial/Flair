@@ -2,42 +2,42 @@ import React, { useState, useRef, useEffect } from 'react';
 import { generateTakes, separateTake } from '../ai/composeSession';
 import { downloadAudio } from '../ai/audioUtils';
 
-// Small inline icons so the format pills read as studio tools, not plain text.
-const Icon = {
-  beat: (
+// Icons rendered at call-time (not module-level) to avoid JSX TDZ issues.
+function ChipIcon({ id }) {
+  if (id === 'beat') return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
       <line x1="2" y1="9" x2="2" y2="11" /><line x1="5" y1="5" x2="5" y2="11" />
       <line x1="8" y1="3" x2="8" y2="11" /><line x1="11" y1="7" x2="11" y2="11" />
     </svg>
-  ),
-  song: (
+  );
+  if (id === 'song') return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 11V3l6-1.2V9.8" /><circle cx="3.5" cy="11" r="1.5" /><circle cx="9.5" cy="9.8" r="1.5" />
     </svg>
-  ),
-  loop: (
+  );
+  if (id === 'loop') return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 5a4 4 0 0 1 7-1.5M11 9a4 4 0 0 1-7 1.5" /><path d="M10 2v2.5H7.5M4 12V9.5H6.5" />
     </svg>
-  ),
-  freestyle: (
+  );
+  if (id === 'freestyle') return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
       <path d="M1.5 7c1.5-4 2.5-4 3.5 0s2 4 3.5 0 2.5-4 4 0" />
     </svg>
-  ),
-  surprise: (
+  );
+  return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
       <path d="M7 1.5l1.3 3L11.5 6 8.3 7.4 7 10.5 5.7 7.4 2.5 6l3.2-1.5z" /><path d="M11.5 10.5l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z" />
     </svg>
-  ),
-};
+  );
+}
 
 const CHIPS = [
-  { id: 'beat', label: 'Beat', icon: Icon.beat },
-  { id: 'song', label: 'Song', icon: Icon.song },
-  { id: 'loop', label: 'Loop', icon: Icon.loop },
-  { id: 'freestyle', label: 'Freestyle', icon: Icon.freestyle },
-  { id: 'surprise', label: 'Surprise me', icon: Icon.surprise },
+  { id: 'beat', label: 'Beat' },
+  { id: 'song', label: 'Song' },
+  { id: 'loop', label: 'Loop' },
+  { id: 'freestyle', label: 'Freestyle' },
+  { id: 'surprise', label: 'Surprise me' },
 ];
 
 // Rotating prompt examples — show producers the range without cluttering the UI.
@@ -382,7 +382,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
             <div className="start-chips">
               {CHIPS.map(chip => (
                 <button key={chip.id} className="start-chip" onClick={() => handleChip(chip)}>
-                  <span className="start-chip-icon">{chip.icon}</span>
+                  <span className="start-chip-icon"><ChipIcon id={chip.id} /></span>
                   {chip.label}
                 </button>
               ))}
