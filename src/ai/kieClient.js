@@ -29,9 +29,9 @@ const STEM_META = {
 function stemMeta(name) {
   const key = String(name).toLowerCase();
   for (const k of Object.keys(STEM_META)) {
-    if (key.includes(k)) return { key: k, ...STEM_META[k] };
+    if (key.includes(k)) return { key: k, matched: true, ...STEM_META[k] };
   }
-  return { key, color: '#7eb8d4', volume: 0.7 };
+  return { key, matched: false, color: '#7eb8d4', volume: 0.7 };
 }
 
 // ─── Generation ──────────────────────────────────────────────────────────────
@@ -175,52 +175,53 @@ export async function separateNativeStems(taskId, audioId, onProgress) {
   throw new Error('Stem split timed out');
 }
 
-// Non-stem URL fields the response carries that must never be treated as stems.
-// `origin`/`source` cover the original full-mix track; vocals/instrumental are
-// the 2-stem split, not the per-instrument stems we want.
+// Names that are never per-instrument stems: the original full mix, the basic
+// 2-stem split (vocals/instrumental), and non-audio asset fields.
 const NON_STEM = /callback|image|video|cover|thumb|stream|source|origin|info|vocal|instrumental/i;
 
-// kie.ai's split_stem response carries the per-instrument stems as flat
-// "<instrument>Url" keys (drumsUrl, bassUrl, guitarUrl, pianoUrl, synthUrl, …).
-// It ALSO carries an `originData` array describing the ORIGINAL full mix — which
-// is NOT a stem. We must read the flat instrument keys first and only fall back
-// to an array shape if no flat keys exist, otherwise every "stem" ends up being
-// the same original track.
+// kie.ai's split_stem response is inconsistent about WHERE the per-instrument
+// stems live: sometimes in an `originData` array (entries carry
+// stem_type_group_name + audio_url), sometimes as flat "<instrument>Url" keys.
+// The flat vocalUrl/instrumentalUrl/originUrl belong to the basic 2-stem split,
+// not split_stem. Rather than guess the container, we gather candidates from
+// BOTH, keep only names that map to a known instrument (whitelist), and dedupe
+// by URL — which also collapses any duplicate full-mix entries.
 function parseStemResponse(resp) {
   if (!resp) return [];
+  const candidates = [];
 
-  // 1) Preferred: flat per-instrument "<name>Url" keys.
-  let raw = Object.entries(resp)
-    .filter(([k, v]) => /url$/i.test(k) && typeof v === 'string' && v)
-    .map(([k, v]) => ({ name: k.replace(/url$/i, ''), url: v }));
-  console.log('[kieClient] parseStemResponse flat url-keys:', raw.map(s => s.name));
-
-  // 2) Fallback: an explicit array of stem objects (never originData — that's
-  //    the source mix). Only used if no flat instrument keys were present.
-  if (!raw.length) {
-    const arr = resp.stems ?? resp.data ?? (Array.isArray(resp) ? resp : null);
-    if (Array.isArray(arr)) {
-      console.log('[kieClient] parseStemResponse array path, keys[0]:', arr[0] ? Object.keys(arr[0]) : 'empty');
-      raw = arr.map(s => ({
+  // Any array of stem objects: originData, stems, data, or resp itself.
+  for (const arr of [resp.originData, resp.stems, resp.data, Array.isArray(resp) ? resp : null]) {
+    if (!Array.isArray(arr)) continue;
+    for (const s of arr) {
+      candidates.push({
         name: s.stem_type_group_name ?? s.stemTypeGroupName ?? s.stemType ?? s.type ?? s.name ?? s.label,
-        url: s.audio_url ?? s.audioUrl ?? s.url ?? s.wavUrl ?? s.fileUrl,
-      }));
+        url:  s.audio_url ?? s.audioUrl ?? s.url ?? s.wavUrl ?? s.fileUrl,
+      });
     }
   }
 
-  // Dedupe by URL so a stem that appears under two aliases isn't doubled.
+  // Flat "<instrument>Url" keys (drumsUrl, bassUrl, guitarUrl, synthUrl, …).
+  for (const [k, v] of Object.entries(resp)) {
+    if (/url$/i.test(k) && typeof v === 'string' && v) {
+      candidates.push({ name: k.replace(/url$/i, ''), url: v });
+    }
+  }
+  console.log('[kieClient] stem candidates:', candidates.map(c => c.name));
+
   const seen = new Set();
-  return raw
-    .filter(s => {
-      if (!s.url || !s.name || s.url === CALLBACK) return false;
-      if (NON_STEM.test(s.name)) return false;
-      if (seen.has(s.url)) return false;
-      seen.add(s.url);
+  return candidates
+    .map(c => ({ ...c, meta: c.name ? stemMeta(c.name) : null }))
+    .filter(c => {
+      if (!c.url || !c.name || c.url === CALLBACK) return false;
+      if (NON_STEM.test(c.name)) return false;        // drop vocals/instrumental/origin/assets
+      if (!c.meta?.matched) return false;             // whitelist: known instruments only
+      if (seen.has(c.url)) return false;              // dedupe identical sources
+      seen.add(c.url);
       return true;
     })
-    .map(s => {
-      const m = stemMeta(s.name);
-      const label = m.key.charAt(0).toUpperCase() + m.key.slice(1);
-      return { name: label, url: s.url, color: m.color, volume: m.volume };
+    .map(c => {
+      const label = c.meta.key.charAt(0).toUpperCase() + c.meta.key.slice(1);
+      return { name: label, url: c.url, color: c.meta.color, volume: c.meta.volume };
     });
 }
