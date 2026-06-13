@@ -7,7 +7,7 @@ import Timeline from './components/Timeline';
 import AIPanel from './components/AIPanel';
 import Mixer from './components/Mixer';
 import PianoRoll from './components/PianoRoll';
-import { setupMasterBus, ensureToneStarted, getTrackNodes, disposeTrack,
+import { ensureToneStarted, getTrackNodes, disposeTrack,
          disposeAllTracks, startRecording, stopRecording } from './engine/audioEngine';
 import * as Tone from 'tone';
 import { scheduleSession, scheduleTrack, clearSchedule } from './engine/scheduler';
@@ -18,15 +18,7 @@ export default function App() {
   const { present: session } = state;
   const [showStartScreen, setShowStartScreen] = useState(true);
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
-  const toneSetup = useRef(false);
   const scheduledTrackIds = useRef(new Set());
-
-  useEffect(() => {
-    if (!toneSetup.current) {
-      setupMasterBus();
-      toneSetup.current = true;
-    }
-  }, []);
 
   // Sync mute/solo/volume to audio engine; hot-add new tracks if playing
   useEffect(() => {

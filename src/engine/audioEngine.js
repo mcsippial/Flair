@@ -12,6 +12,7 @@ let isRecording = false;
 export async function ensureToneStarted() {
   if (!toneStarted) {
     await Tone.start();
+    setupMasterBus();
     toneStarted = true;
   }
 }
