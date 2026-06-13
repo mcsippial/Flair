@@ -135,7 +135,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
 
       // Only one take came back — skip the audition step and separate directly.
       if (takes.length === 1) {
-        await runSeparation(takes[0].url, { bpm, key, scale });
+        await runSeparation(takes[0], { bpm, key, scale });
         return;
       }
 
@@ -149,8 +149,8 @@ export default function StartScreen({ onDismiss, dispatch }) {
     }
   };
 
-  // Phase 2: run Demucs on the chosen take and load the session.
-  const runSeparation = async (url, meta) => {
+  // Phase 2: split the chosen take into native stems and load the session.
+  const runSeparation = async (take, meta) => {
     auditionAudio.current?.pause();
     setPlayingIdx(null);
     setScreen('prompt'); // building spinner renders over this
@@ -158,7 +158,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
     stopLoadingLines();
     setLoadingLine('Separating stems…');
     try {
-      const result = await separateTake(url, meta, handleProgress);
+      const result = await separateTake(take, meta, handleProgress);
       stopLoadingLines();
       dispatchResult(result);
       onDismiss();
@@ -225,7 +225,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
                     Take {String.fromCharCode(65 + i)}
                     {take.duration ? <span className="audition-dur"> · {fmtDur(take.duration)}</span> : null}
                   </span>
-                  <button className="audition-use" onClick={() => runSeparation(take.url, takeMeta)}>
+                  <button className="audition-use" onClick={() => runSeparation(take, takeMeta)}>
                     Use this take →
                   </button>
                 </div>

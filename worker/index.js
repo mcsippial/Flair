@@ -1,5 +1,6 @@
 const REPLICATE = 'https://api.replicate.com';
 const SUNOR = 'https://sunor.cc/api/v1';
+const SUNOAPI = 'https://api.sunoapi.org/api/v1';
 
 export default {
   async fetch(req, env) {
@@ -38,6 +39,32 @@ export default {
             'Cache-Control': 'public, max-age=3600',
             ...corsHeaders(),
           },
+        });
+      }
+
+      // /callback — sunoapi.org requires a callBackUrl, but we poll instead.
+      // This endpoint just absorbs those callbacks harmlessly.
+      if (url.pathname === '/callback') {
+        return json({ ok: true });
+      }
+
+      // /sunoapi/* — proxy to sunoapi.org with Bearer auth from Worker secret
+      if (url.pathname.startsWith('/sunoapi/')) {
+        if (!env.SUNOAPI_KEY) return json({ error: 'Worker misconfigured: SUNOAPI_KEY secret not set' }, 500);
+        const apiPath = url.pathname.replace('/sunoapi', '');
+        const target = `${SUNOAPI}${apiPath}${url.search}`;
+        const init = {
+          method: req.method,
+          headers: { 'Authorization': `Bearer ${env.SUNOAPI_KEY}`, 'Content-Type': 'application/json' },
+        };
+        if (req.method === 'POST') init.body = await req.text();
+        let resp;
+        try { resp = await fetch(target, init); }
+        catch (err) { return json({ error: `sunoapi fetch failed: ${err.message}` }, 502); }
+        const body = await resp.text();
+        return new Response(body, {
+          status: resp.status,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders() },
         });
       }
 

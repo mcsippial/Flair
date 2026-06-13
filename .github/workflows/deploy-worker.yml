@@ -24,3 +24,4 @@ jobs:
           npm install -g wrangler
           echo "${{ secrets.VITE_REPLICATE_API_KEY }}" | wrangler secret put REPLICATE_API_KEY
           echo "${{ secrets.SUNOR_API_KEY }}" | wrangler secret put SUNOR_API_KEY
+          echo "${{ secrets.SUNOAPI_KEY }}" | wrangler secret put SUNOAPI_KEY
