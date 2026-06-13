@@ -58,6 +58,11 @@ export default function App() {
       if (liveNodes.kick?.volume)   liveNodes.kick.volume.value   = dbVal;
       if (liveNodes.snare?.volume)  liveNodes.snare.volume.value  = dbVal;
       if (liveNodes.hihat) liveNodes.hihat.volume.value = dbVal;
+      // Audio (stem) tracks play through Tone.Player nodes — apply gain there
+      // so mute / solo / volume actually affect them.
+      if (liveNodes.players) {
+        liveNodes.players.forEach(p => { if (p.volume) p.volume.value = dbVal; });
+      }
     });
   }, [session.tracks, session.isPlaying]);
 

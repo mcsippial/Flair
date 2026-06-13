@@ -52,13 +52,31 @@ export default function StartScreen({ onDismiss, dispatch }) {
   const inputRef        = useRef(null);
   const loadingInterval = useRef(null);
   const auditionAudio   = useRef(null);
+  const playingIdxRef   = useRef(null);
 
   useEffect(() => {
     if (screen === 'prompt') inputRef.current?.focus();
   }, [screen]);
 
-  // Stop any audition playback when this screen unmounts.
-  useEffect(() => () => { auditionAudio.current?.pause(); }, []);
+  // One audio element drives all audition playback. React state is synced
+  // FROM the element's own play/pause/ended events — never guessed — so a
+  // superseded play() (AbortError) can't desync the UI.
+  useEffect(() => {
+    const a = new Audio();
+    auditionAudio.current = a;
+    const onPlay  = () => setPlayingIdx(playingIdxRef.current);
+    const onStop  = () => setPlayingIdx(null);
+    a.addEventListener('play', onPlay);
+    a.addEventListener('pause', onStop);
+    a.addEventListener('ended', onStop);
+    return () => {
+      a.pause();
+      a.removeEventListener('play', onPlay);
+      a.removeEventListener('pause', onStop);
+      a.removeEventListener('ended', onStop);
+      auditionAudio.current = null;
+    };
+  }, []);
 
   const startLoadingLines = () => {
     let i = 0;
@@ -151,19 +169,19 @@ export default function StartScreen({ onDismiss, dispatch }) {
   };
 
   const toggleAudition = (i, url) => {
-    if (!auditionAudio.current) auditionAudio.current = new Audio();
     const a = auditionAudio.current;
-    if (playingIdx === i) {
+    if (!a) return;
+    // Clicking the take that's currently playing → pause it.
+    if (playingIdx === i && !a.paused) {
       a.pause();
-      setPlayingIdx(null);
       return;
     }
-    a.pause();
-    a.src = url;
+    // Otherwise (re)start this take from the top. The 'play'/'pause'
+    // listeners update playingIdx; AbortError from a superseded load is ignored.
+    playingIdxRef.current = i;
+    if (a.src !== url) a.src = url;
     a.currentTime = 0;
-    a.onended = () => setPlayingIdx(null);
-    a.play().catch(() => setPlayingIdx(null));
-    setPlayingIdx(i);
+    a.play().catch(() => {});
   };
 
   const handleSubmit = () => { if (input.trim()) scaffold(input.trim(), null); };

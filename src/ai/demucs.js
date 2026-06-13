@@ -13,7 +13,7 @@ function parseStemOutput(output) {
   else if (!Array.isArray(output) && typeof output === 'object')
     stems = Object.entries(output).map(([name, url]) => ({ name, url }));
   else if (Array.isArray(output) && typeof output[0] === 'string')
-    stems = output.map((url, i) => ({ name: ['drums','bass','other','vocals'][i] ?? `stem${i}`, url }));
+    stems = output.map((url, i) => ({ name: ['drums','bass','other','vocals','guitar','piano'][i] ?? `stem${i}`, url }));
   // Drop vocals and any stem with a null/empty URL
   return stems.filter(s => s.url && s.name.toLowerCase() !== 'vocals');
 }
@@ -30,7 +30,9 @@ export async function separateStems(audioUrl, onProgress) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         version: '25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953',
-        input: { audio: audioUrl, model: 'htdemucs' },
+        // htdemucs_6s = 6-source model: drums, bass, other, vocals, guitar, piano.
+        // Gives more granular, individually-labeled stems than the 4-source default.
+        input: { audio: audioUrl, model: 'htdemucs_6s' },
       }),
     });
   } catch (err) {
