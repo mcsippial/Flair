@@ -1,4 +1,5 @@
 const REPLICATE = 'https://api.replicate.com';
+const SUNOR = 'https://sunor.cc/api/v1';
 
 export default {
   async fetch(req, env) {
@@ -44,7 +45,7 @@ export default {
       if (url.pathname.startsWith('/sunor/')) {
         if (!env.SUNOR_API_KEY) return json({ error: 'Worker misconfigured: SUNOR_API_KEY secret not set' }, 500);
         const sunorPath = url.pathname.replace('/sunor', '');
-        const target = `https://sunor.cc/api/v1${sunorPath}${url.search}`;
+        const target = `${SUNOR}${sunorPath}${url.search}`;
         const init = {
           method: req.method,
           headers: { 'x-api-key': env.SUNOR_API_KEY, 'Content-Type': 'application/json' },
