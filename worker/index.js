@@ -40,15 +40,14 @@ export default {
         });
       }
 
-      // /sunor/* — proxy to Sunor API with user-supplied key
+      // /sunor/* — proxy to Sunor API using embedded Worker secret
       if (url.pathname.startsWith('/sunor/')) {
+        if (!env.SUNOR_API_KEY) return json({ error: 'Worker misconfigured: SUNOR_API_KEY secret not set' }, 500);
         const sunorPath = url.pathname.replace('/sunor', '');
         const target = `https://sunor.cc/api/v1${sunorPath}${url.search}`;
-        const sunorKey = req.headers.get('x-sunor-key');
-        if (!sunorKey) return json({ error: 'Missing x-sunor-key header' }, 400);
         const init = {
           method: req.method,
-          headers: { 'x-api-key': sunorKey, 'Content-Type': 'application/json' },
+          headers: { 'x-api-key': env.SUNOR_API_KEY, 'Content-Type': 'application/json' },
         };
         if (req.method === 'POST') init.body = await req.text();
         let resp;
@@ -106,6 +105,6 @@ function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, x-sunor-key',
+    'Access-Control-Allow-Headers': 'Content-Type',
   };
 }

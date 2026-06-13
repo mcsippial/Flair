@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getApiKey } from './claudeClient';
 import { getReplicateKey, generateMusicUrl } from './musicGen';
-import { getSunorKey, generateSunoSong } from './sunorMusic';
+import { generateSunoSong } from './sunorMusic';
 import { separateStems } from './demucs';
 
 function genId() { return Math.random().toString(36).substr(2, 9); }
@@ -43,20 +43,8 @@ Create 3-4 tracks. Section B (bars 8-15) must differ from Section A (bars 0-7) i
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
 export async function composeStarterSession(intent, onStemProgress) {
-  const sunorKey     = getSunorKey();
-  const replicateKey = getReplicateKey();
-  const claudeKey    = getApiKey();
-
-  if (sunorKey) {
-    return composeWithSuno(intent, claudeKey, onStemProgress);
-  }
-  if (replicateKey) {
-    return composeWithStems(intent, claudeKey, onStemProgress);
-  }
-  if (claudeKey) {
-    return composeWithMidi(intent, claudeKey);
-  }
-  return buildFallback(intent);
+  const claudeKey = getApiKey();
+  return composeWithSuno(intent, claudeKey, onStemProgress);
 }
 
 

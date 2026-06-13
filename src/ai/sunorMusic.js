@@ -1,25 +1,13 @@
 const PROXY = 'https://flair-proxy.macsippial.workers.dev';
-const KEY_STORAGE = 'flair_sunor_key';
-
-export function getSunorKey() {
-  return localStorage.getItem(KEY_STORAGE) || null;
-}
-
-export function setSunorKey(key) {
-  localStorage.setItem(KEY_STORAGE, key.trim());
-}
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 export async function generateSunoSong(prompt, onProgress) {
-  const key = getSunorKey();
-  if (!key) throw new Error('No Sunor API key set');
-
   onProgress?.('Generating with Suno V5…');
 
   const res = await fetch(`${PROXY}/sunor/task`, {
     method: 'POST',
-    headers: { 'x-sunor-key': key, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'suno',
       task_type: 'music',
@@ -43,9 +31,7 @@ export async function generateSunoSong(prompt, onProgress) {
     await sleep(4000);
     let pred;
     try {
-      const pollRes = await fetch(`${PROXY}/sunor/task/${taskId}`, {
-        headers: { 'x-sunor-key': key },
-      });
+      const pollRes = await fetch(`${PROXY}/sunor/task/${taskId}`);
       if (!pollRes.ok) continue;
       pred = await pollRes.json();
     } catch { continue; }

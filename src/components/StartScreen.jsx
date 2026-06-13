@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { composeStarterSession } from '../ai/composeSession';
 import { getApiKey, setApiKey } from '../ai/claudeClient';
-import { getReplicateKey, setReplicateKey } from '../ai/musicGen';
-import { getSunorKey, setSunorKey } from '../ai/sunorMusic';
 
 const CHIPS = [
   { id: 'beat', label: 'Beat' },
@@ -32,71 +30,38 @@ function parseIntent(text, chipId) {
   return { type, key, scale, bpm: Math.max(60, Math.min(200, bpm)), mood, description: text };
 }
 
-const LOADING_STEMS = [
-  'Composing music…',
-  'Still composing…',
+const LOADING_LINES = [
+  'Crafting your track…',
+  'Still working…',
   'Almost there…',
 ];
-
-const LOADING_MIDI = [
-  'Setting the key and tempo…',
-  'Writing chord progression…',
-  'Laying down the groove…',
-  'Composing the bass line…',
-  'Building section B…',
-  'Almost there…',
-];
-
-function initialScreen() {
-  if (!getSunorKey() && !getReplicateKey() && !getApiKey()) return 'sunor';
-  return 'prompt';
-}
 
 export default function StartScreen({ onDismiss, dispatch }) {
-  const [input, setInput]           = useState('');
-  const [screen, setScreen]         = useState(initialScreen);
-  const [sunorKey, setSunorKeyState] = useState(getSunorKey() || '');
-  const [replicateKey, setRepKey]   = useState(getReplicateKey() || '');
-  const [claudeKey, setClaudeKey]   = useState(getApiKey() || '');
-  const [building, setBuilding]     = useState(false);
+  const [input, setInput]       = useState('');
+  const [screen, setScreen]     = useState('prompt');
+  const [claudeKey, setClaudeKeyState] = useState(getApiKey() || '');
+  const [building, setBuilding] = useState(false);
   const [loadingLine, setLoadingLine] = useState('');
   const inputRef     = useRef(null);
-  const sunorKeyRef  = useRef(null);
-  const repKeyRef    = useRef(null);
   const claudeKeyRef = useRef(null);
   const loadingInterval = useRef(null);
 
-  const usingSuno  = !!getSunorKey();
-  const usingStems = !!getReplicateKey();
-
   useEffect(() => {
-    if (screen === 'sunor') sunorKeyRef.current?.focus();
-    else if (screen === 'replicate') repKeyRef.current?.focus();
-    else if (screen === 'claude') claudeKeyRef.current?.focus();
+    if (screen === 'claude') claudeKeyRef.current?.focus();
     else inputRef.current?.focus();
   }, [screen]);
-
-  const saveSunorKey = () => {
-    setSunorKey(sunorKey.trim());
-    setScreen('prompt');
-  };
-
-  const saveReplicateKey = () => {
-    setReplicateKey(replicateKey.trim());
-    setScreen('prompt');
-  };
 
   const saveClaudeKey = () => {
     setApiKey(claudeKey.trim());
     setScreen('prompt');
   };
 
-  const startLoadingLines = (lines) => {
+  const startLoadingLines = () => {
     let i = 0;
-    setLoadingLine(lines[0]);
+    setLoadingLine(LOADING_LINES[0]);
     loadingInterval.current = setInterval(() => {
-      i = (i + 1) % lines.length;
-      setLoadingLine(lines[i]);
+      i = (i + 1) % LOADING_LINES.length;
+      setLoadingLine(LOADING_LINES[i]);
     }, 2800);
   };
 
@@ -110,8 +75,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
       : parseIntent(text, chipId);
 
     setBuilding(true);
-    const usingAudio = !!getSunorKey() || !!getReplicateKey();
-    startLoadingLines(usingAudio ? LOADING_STEMS : LOADING_MIDI);
+    startLoadingLines();
 
     const handleProgress = (msg) => {
       if (typeof msg === 'string') {
@@ -121,21 +85,19 @@ export default function StartScreen({ onDismiss, dispatch }) {
     };
 
     try {
-      const result = await composeStarterSession(intent, usingAudio ? handleProgress : null);
+      const result = await composeStarterSession(intent, handleProgress);
       stopLoadingLines();
 
       dispatch({ type: 'UPDATE_BPM', bpm: result.bpm });
       dispatch({ type: 'UPDATE_KEY', key: result.key, scale: result.scale });
       result.tracks.forEach(track => dispatch({ type: 'ADD_TRACK', track }));
 
-      const isStems = result.tracks.some(t => t.type === 'audio');
-      const desc = isStems
-        ? `Generated ${result.tracks.length} stems at ${result.bpm} BPM in ${result.key} ${result.scale}. Mix, mute, and solo each track independently.`
-        : `Composed a 16-bar ${intent.type} at ${result.bpm} BPM in ${result.key} ${result.scale}. Hit play and tell me what to change.`;
-
       dispatch({
         type: 'ADD_AI_MESSAGE',
-        message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: desc },
+        message: {
+          id: genId(), role: 'assistant', timestamp: Date.now(),
+          text: `Generated ${result.tracks.length} stems at ${result.bpm} BPM in ${result.key} ${result.scale}. Mix, mute, and solo each track independently.`,
+        },
       });
       onDismiss();
     } catch (err) {
@@ -169,88 +131,32 @@ export default function StartScreen({ onDismiss, dispatch }) {
             <div className="start-building-dots"><span /><span /><span /></div>
           </div>
 
-        ) : screen === 'sunor' ? (
-          <div className="start-input-section">
-            <p className="start-prompt-label">Sunor API key — for Suno V5 music generation</p>
-            <p className="start-key-desc">
-              Generates high-quality AI music with Suno V5, then separates into real stems with Demucs.<br />
-              Get a free key with 25 credits at <span className="start-key-link">sunor.cc</span>
-            </p>
-            <div className="start-input-wrap">
-              <input
-                ref={sunorKeyRef}
-                className="start-input"
-                type="password"
-                value={sunorKey}
-                onChange={e => setSunorKeyState(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && sunorKey.trim() && saveSunorKey()}
-                placeholder="sk_live_..."
-              />
-              <button className="start-input-submit" onClick={saveSunorKey} disabled={!sunorKey.trim()}>→</button>
-            </div>
-            <button className="start-blank" onClick={() => setScreen('replicate')}>
-              use Replicate key instead (MusicGen)
-            </button>
-            <button className="start-blank" style={{ marginTop: 6, fontSize: 11, opacity: 0.5 }} onClick={() => setScreen('prompt')}>
-              skip — start without AI
-            </button>
-          </div>
-
-        ) : screen === 'replicate' ? (
-          <div className="start-input-section">
-            <p className="start-prompt-label">Replicate API key — for AI stem generation</p>
-            <p className="start-key-desc">
-              Generates real audio stems (drums, bass, chords, melody) separately<br />
-              so you can mix and mute each track independently. Free key at <span className="start-key-link">replicate.com</span>
-            </p>
-            <div className="start-input-wrap">
-              <input
-                ref={repKeyRef}
-                className="start-input"
-                type="password"
-                value={replicateKey}
-                onChange={e => setRepKey(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && replicateKey.trim() && saveReplicateKey()}
-                placeholder="r8_..."
-              />
-              <button className="start-input-submit" onClick={saveReplicateKey} disabled={!replicateKey.trim()}>→</button>
-            </div>
-            <button className="start-blank" onClick={() => setScreen('claude')}>
-              use Claude API key instead (MIDI synthesis)
-            </button>
-            <button className="start-blank" style={{ marginTop: 6, fontSize: 11, opacity: 0.5 }} onClick={() => setScreen('prompt')}>
-              skip — start without AI
-            </button>
-          </div>
-
         ) : screen === 'claude' ? (
           <div className="start-input-section">
-            <p className="start-prompt-label">Claude API key — for AI chat and MIDI composition</p>
+            <p className="start-prompt-label">Claude API key — for smarter prompt generation</p>
+            <p className="start-key-desc">
+              Optional. Lets Claude write hyper-specific music prompts for better results.<br />
+              Without it, Flair uses a simple template prompt.
+            </p>
             <div className="start-input-wrap">
               <input
                 ref={claudeKeyRef}
                 className="start-input"
                 type="password"
                 value={claudeKey}
-                onChange={e => setClaudeKey(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && claudeKey.trim() && saveClaudeKey()}
+                onChange={e => setClaudeKeyState(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && saveClaudeKey()}
                 placeholder="sk-ant-api03-..."
               />
-              <button className="start-input-submit" onClick={saveClaudeKey} disabled={!claudeKey.trim()}>→</button>
+              <button className="start-input-submit" onClick={saveClaudeKey}>→</button>
             </div>
-            <button className="start-blank" onClick={() => setScreen('replicate')}>← back</button>
-            <button className="start-blank" style={{ marginTop: 6, fontSize: 11, opacity: 0.5 }} onClick={() => setScreen('prompt')}>skip</button>
+            <button className="start-blank" onClick={() => setScreen('prompt')}>← back</button>
           </div>
 
         ) : (
           <div className="start-input-section">
             <p className="start-prompt-label">What do you want to make?</p>
-            {usingSuno && (
-              <p className="start-mode-badge">Suno V5 + Demucs · real stems</p>
-            )}
-            {!usingSuno && usingStems && (
-              <p className="start-mode-badge">MusicGen + Demucs · real stems</p>
-            )}
+            <p className="start-mode-badge">Suno V5 + Demucs · real stems</p>
             <div className="start-input-wrap">
               <input
                 ref={inputRef}
@@ -272,14 +178,10 @@ export default function StartScreen({ onDismiss, dispatch }) {
             </div>
 
             <button className="start-blank" onClick={handleBlank}>or start blank</button>
-            <div style={{ display: 'flex', gap: 14, marginTop: 8 }}>
-              <button className="start-blank" style={{ fontSize: 11, opacity: 0.45, marginTop: 0 }}
-                onClick={() => setScreen('sunor')}>change Sunor key</button>
-              <button className="start-blank" style={{ fontSize: 11, opacity: 0.45, marginTop: 0 }}
-                onClick={() => setScreen('replicate')}>change Replicate key</button>
-              <button className="start-blank" style={{ fontSize: 11, opacity: 0.45, marginTop: 0 }}
-                onClick={() => setScreen('claude')}>change Claude key</button>
-            </div>
+            <button className="start-blank" style={{ fontSize: 11, opacity: 0.45, marginTop: 8 }}
+              onClick={() => setScreen('claude')}>
+              {getApiKey() ? 'change Claude key' : 'add Claude key (optional)'}
+            </button>
           </div>
         )}
       </div>
