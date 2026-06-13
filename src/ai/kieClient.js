@@ -134,13 +134,20 @@ export async function separateNativeStems(taskId, audioId, onProgress) {
       throw new Error(`Stem split failed: ${d.errorMessage || status}`);
     }
 
-    const stems = parseStemResponse(d.response ?? d);
-    if (stems.length) return stems;
-
-    // Job done but nothing parsed → surface the raw shape instead of timing out,
-    // so any field-name mismatch is visible immediately.
+    const rawForParse = d.response ?? d;
+    // Always log so the raw shape is visible in DevTools when debugging.
     if (status === 'SUCCESS' || status.includes('COMPLETE') || status === '1') {
-      throw new Error(`Stems done but none parsed. Raw: ${JSON.stringify(d).slice(0, 600)}`);
+      console.log('[kieClient] stem poll SUCCESS raw:', JSON.stringify(rawForParse).slice(0, 2000));
+    }
+    const stems = parseStemResponse(rawForParse);
+    if (stems.length) {
+      console.log('[kieClient] parsed stems:', stems.map(s => s.name));
+      return stems;
+    }
+
+    // Job done but nothing parsed → surface the raw shape instead of timing out.
+    if (status === 'SUCCESS' || status.includes('COMPLETE') || status === '1') {
+      throw new Error(`Stems done but none parsed. Raw: ${JSON.stringify(rawForParse).slice(0, 800)}`);
     }
   }
   throw new Error('Stem split timed out');
@@ -157,15 +164,17 @@ function parseStemResponse(resp) {
 
   const arr = resp.originData ?? resp.stems ?? resp.data ?? (Array.isArray(resp) ? resp : null);
   if (Array.isArray(arr)) {
+    console.log('[kieClient] parseStemResponse: array path, length', arr.length, 'keys[0]', arr[0] ? Object.keys(arr[0]) : 'empty');
     raw = arr.map(s => ({
-      name: s.stem_type_group_name ?? s.stemTypeGroupName ?? s.type ?? s.name,
-      url: s.audio_url ?? s.audioUrl ?? s.url,
+      name: s.stem_type_group_name ?? s.stemTypeGroupName ?? s.stemType ?? s.type ?? s.name ?? s.label,
+      url: s.audio_url ?? s.audioUrl ?? s.url ?? s.wavUrl ?? s.fileUrl,
     }));
   } else {
     // Scan for keys like drumsUrl, bassUrl, guitarUrl, synthUrl, fxUrl…
-    raw = Object.entries(resp)
-      .filter(([k, v]) => /url$/i.test(k) && typeof v === 'string' && v)
-      .map(([k, v]) => ({ name: k.replace(/url$/i, ''), url: v }));
+    const flatEntries = Object.entries(resp)
+      .filter(([k, v]) => /url$/i.test(k) && typeof v === 'string' && v);
+    console.log('[kieClient] parseStemResponse: flat path, url-keys:', flatEntries.map(([k]) => k));
+    raw = flatEntries.map(([k, v]) => ({ name: k.replace(/url$/i, ''), url: v }));
   }
 
   return raw
