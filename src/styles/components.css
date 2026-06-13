@@ -189,6 +189,69 @@
   align-self: center;
 }
 
+/* ─── Audition step (A/B takes) ─────────────────────────────── */
+.audition-takes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin: 8px 0 14px;
+}
+
+.audition-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.audition-play {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(192, 124, 16, 0.4);
+  background: rgba(192, 124, 16, 0.12);
+  color: var(--amber);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+.audition-play:hover { background: rgba(192, 124, 16, 0.22); }
+.audition-play.playing { background: var(--amber); color: #1a1a1a; }
+
+.audition-label {
+  flex: 1 1 auto;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: left;
+}
+.audition-dur {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.audition-use {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--amber);
+  background: transparent;
+  border: 1px solid rgba(192, 124, 16, 0.4);
+  border-radius: 6px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.audition-use:hover { background: rgba(192, 124, 16, 0.15); }
+
 .start-building {
   display: flex;
   flex-direction: column;

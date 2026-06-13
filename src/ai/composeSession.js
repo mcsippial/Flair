@@ -40,18 +40,11 @@ Time format: bar=0-15, beat=0-3, sixteenth=0-3. Example: "0:2:0" = bar 0, beat 2
 Create 3-4 tracks. Section B (bars 8-15) must differ from Section A (bars 0-7) in at least 2 tracks.`;
 
 
-// ─── Main entry point ─────────────────────────────────────────────────────────
+// ─── Phase 1: Claude writes prompt → Suno V5 → two full-mix takes ────────────
+// Returns both variations so the user can A/B them before committing to Demucs.
 
-export async function composeStarterSession(intent, onStemProgress) {
+export async function generateTakes(intent, onProgress) {
   const claudeKey = getApiKey();
-  return composeWithSuno(intent, claudeKey, onStemProgress);
-}
-
-
-// ─── Suno path: Claude writes short prompt → Suno V5 → Demucs ───────────────
-
-async function composeWithSuno(intent, claudeKey, onProgress) {
-  const durationSecs = Math.min(30, Math.round((16 * 4 * 60) / intent.bpm));
   let prompt, bpm, key, scale;
 
   if (claudeKey) {
@@ -86,25 +79,32 @@ Output ONLY valid JSON, no markdown:
     prompt = `${intent.mood} ${intent.type} instrumental at ${bpm} BPM in ${key} ${scale}, no vocals`;
   }
 
-  // Step 1: generate with Suno
-  let rawAudioUrl;
+  let takes;
   try {
-    rawAudioUrl = await generateSunoSong(prompt, onProgress);
+    takes = await generateSunoSong(prompt, onProgress); // [{ url, duration, title }]
   } catch (err) {
     throw new Error(`Suno step failed: ${err.message}`);
   }
 
-  // Step 2: separate into stems with Demucs
+  return { bpm, key, scale, takes };
+}
+
+
+// ─── Phase 2: chosen take → Demucs → mixable stem tracks ─────────────────────
+
+export async function separateTake(takeUrl, meta, onProgress) {
+  const { bpm, key, scale } = meta;
+
   let stems;
   try {
-    stems = await separateStems(rawAudioUrl, onProgress);
+    stems = await separateStems(takeUrl, onProgress);
   } catch (err) {
     throw new Error(`Demucs step failed: ${err.message}`);
   }
 
   // Measure the real song length so clips and the timeline fit the full track.
   // All stems share the source duration, so measuring one is enough.
-  let lengthBars = Math.round((durationSecs / 60) * bpm / 4);
+  let lengthBars = 16; // fallback if duration can't be measured
   try {
     const realSecs = await getAudioDuration(stems[0].audioUrl);
     if (realSecs && isFinite(realSecs)) {

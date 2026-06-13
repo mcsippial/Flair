@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { composeStarterSession } from '../ai/composeSession';
-import { getApiKey } from '../ai/claudeClient';
+import { generateTakes, separateTake } from '../ai/composeSession';
 
 const CHIPS = [
   { id: 'beat', label: 'Beat' },
@@ -15,6 +14,12 @@ const SCALES = ['minor','major'];
 const MOODS  = ['cinematic','energetic','melancholic','hypnotic','dark','uplifting'];
 
 function genId() { return Math.random().toString(36).substr(2, 9); }
+
+function fmtDur(s) {
+  if (!s || !isFinite(s)) return '';
+  const m = Math.floor(s / 60), sec = Math.round(s % 60);
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
 
 function parseIntent(text, chipId) {
   const lower = (text || '').toLowerCase();
@@ -38,15 +43,22 @@ const LOADING_LINES = [
 
 export default function StartScreen({ onDismiss, dispatch }) {
   const [input, setInput]       = useState('');
-  const [screen, setScreen]     = useState('prompt');
+  const [screen, setScreen]     = useState('prompt'); // 'prompt' | 'audition'
   const [building, setBuilding] = useState(false);
   const [loadingLine, setLoadingLine] = useState('');
-  const inputRef     = useRef(null);
+  const [takes, setTakes]       = useState([]);
+  const [takeMeta, setTakeMeta] = useState(null);
+  const [playingIdx, setPlayingIdx] = useState(null);
+  const inputRef        = useRef(null);
   const loadingInterval = useRef(null);
+  const auditionAudio   = useRef(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    if (screen === 'prompt') inputRef.current?.focus();
   }, [screen]);
+
+  // Stop any audition playback when this screen unmounts.
+  useEffect(() => () => { auditionAudio.current?.pause(); }, []);
 
   const startLoadingLines = () => {
     let i = 0;
@@ -61,6 +73,35 @@ export default function StartScreen({ onDismiss, dispatch }) {
     if (loadingInterval.current) clearInterval(loadingInterval.current);
   };
 
+  const handleProgress = (msg) => {
+    if (typeof msg === 'string') {
+      stopLoadingLines();
+      setLoadingLine(msg);
+    }
+  };
+
+  const dispatchResult = (result) => {
+    dispatch({ type: 'UPDATE_BPM', bpm: result.bpm });
+    dispatch({ type: 'UPDATE_KEY', key: result.key, scale: result.scale });
+    result.tracks.forEach(track => dispatch({ type: 'ADD_TRACK', track }));
+    dispatch({
+      type: 'ADD_AI_MESSAGE',
+      message: {
+        id: genId(), role: 'assistant', timestamp: Date.now(),
+        text: `Generated ${result.tracks.length} stems at ${result.bpm} BPM in ${result.key} ${result.scale}. Mix, mute, and solo each track independently.`,
+      },
+    });
+  };
+
+  const failWith = (err) => {
+    dispatch({
+      type: 'ADD_AI_MESSAGE',
+      message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: `Generation failed: ${err.message}` },
+    });
+    onDismiss();
+  };
+
+  // Phase 1: generate the two takes, then show the audition step.
   const scaffold = async (text, chipId) => {
     const intent = chipId === 'surprise'
       ? { type: 'song', key: KEYS[Math.floor(Math.random()*12)], scale: SCALES[Math.floor(Math.random()*2)], bpm: Math.floor(Math.random()*60)+80, mood: MOODS[Math.floor(Math.random()*6)], description: text }
@@ -69,37 +110,60 @@ export default function StartScreen({ onDismiss, dispatch }) {
     setBuilding(true);
     startLoadingLines();
 
-    const handleProgress = (msg) => {
-      if (typeof msg === 'string') {
-        stopLoadingLines();
-        setLoadingLine(msg);
-      }
-    };
-
     try {
-      const result = await composeStarterSession(intent, handleProgress);
+      const { bpm, key, scale, takes } = await generateTakes(intent, handleProgress);
       stopLoadingLines();
+      if (!takes?.length) throw new Error('Suno returned no takes');
 
-      dispatch({ type: 'UPDATE_BPM', bpm: result.bpm });
-      dispatch({ type: 'UPDATE_KEY', key: result.key, scale: result.scale });
-      result.tracks.forEach(track => dispatch({ type: 'ADD_TRACK', track }));
+      // Only one take came back — skip the audition step and separate directly.
+      if (takes.length === 1) {
+        await runSeparation(takes[0].url, { bpm, key, scale });
+        return;
+      }
 
-      dispatch({
-        type: 'ADD_AI_MESSAGE',
-        message: {
-          id: genId(), role: 'assistant', timestamp: Date.now(),
-          text: `Generated ${result.tracks.length} stems at ${result.bpm} BPM in ${result.key} ${result.scale}. Mix, mute, and solo each track independently.`,
-        },
-      });
+      setTakeMeta({ bpm, key, scale });
+      setTakes(takes);
+      setBuilding(false);
+      setScreen('audition');
+    } catch (err) {
+      stopLoadingLines();
+      failWith(err);
+    }
+  };
+
+  // Phase 2: run Demucs on the chosen take and load the session.
+  const runSeparation = async (url, meta) => {
+    auditionAudio.current?.pause();
+    setPlayingIdx(null);
+    setScreen('prompt'); // building spinner renders over this
+    setBuilding(true);
+    stopLoadingLines();
+    setLoadingLine('Separating stems…');
+    try {
+      const result = await separateTake(url, meta, handleProgress);
+      stopLoadingLines();
+      dispatchResult(result);
       onDismiss();
     } catch (err) {
       stopLoadingLines();
-      dispatch({
-        type: 'ADD_AI_MESSAGE',
-        message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: `Generation failed: ${err.message}` },
-      });
-      onDismiss();
+      failWith(err);
     }
+  };
+
+  const toggleAudition = (i, url) => {
+    if (!auditionAudio.current) auditionAudio.current = new Audio();
+    const a = auditionAudio.current;
+    if (playingIdx === i) {
+      a.pause();
+      setPlayingIdx(null);
+      return;
+    }
+    a.pause();
+    a.src = url;
+    a.currentTime = 0;
+    a.onended = () => setPlayingIdx(null);
+    a.play().catch(() => setPlayingIdx(null));
+    setPlayingIdx(i);
   };
 
   const handleSubmit = () => { if (input.trim()) scaffold(input.trim(), null); };
@@ -121,6 +185,35 @@ export default function StartScreen({ onDismiss, dispatch }) {
           <div className="start-building">
             <p className="start-building-text">{loadingLine}</p>
             <div className="start-building-dots"><span /><span /><span /></div>
+          </div>
+
+        ) : screen === 'audition' ? (
+          <div className="start-input-section">
+            <p className="start-prompt-label">Your track is ready — pick a take</p>
+            <p className="start-key-desc">
+              A/B the two versions. Only the one you choose gets split into stems.
+            </p>
+            <div className="audition-takes">
+              {takes.map((take, i) => (
+                <div key={i} className="audition-row">
+                  <button
+                    className={`audition-play ${playingIdx === i ? 'playing' : ''}`}
+                    onClick={() => toggleAudition(i, take.url)}
+                    title={playingIdx === i ? 'Pause' : 'Play'}
+                  >
+                    {playingIdx === i ? '❚❚' : '▶'}
+                  </button>
+                  <span className="audition-label">
+                    Take {String.fromCharCode(65 + i)}
+                    {take.duration ? <span className="audition-dur"> · {fmtDur(take.duration)}</span> : null}
+                  </span>
+                  <button className="audition-use" onClick={() => runSeparation(take.url, takeMeta)}>
+                    Use this take →
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button className="start-blank" onClick={onDismiss}>cancel — start blank</button>
           </div>
 
         ) : (
