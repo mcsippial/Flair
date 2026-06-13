@@ -154,35 +154,48 @@ export async function separateNativeStems(taskId, audioId, onProgress) {
 }
 
 // Non-stem URL fields the response carries that must never be treated as stems.
-const NON_STEM = /callback|image|video|cover|thumb|stream|source|origin|info/i;
+// `origin`/`source` cover the original full-mix track; vocals/instrumental are
+// the 2-stem split, not the per-instrument stems we want.
+const NON_STEM = /callback|image|video|cover|thumb|stream|source|origin|info|vocal|instrumental/i;
 
-// The split_stem response shape varies; handle an array of stems OR a flat set
-// of "<name>Url" fields. Drop vocals/instrumental and any non-audio URL field.
+// kie.ai's split_stem response carries the per-instrument stems as flat
+// "<instrument>Url" keys (drumsUrl, bassUrl, guitarUrl, pianoUrl, synthUrl, …).
+// It ALSO carries an `originData` array describing the ORIGINAL full mix — which
+// is NOT a stem. We must read the flat instrument keys first and only fall back
+// to an array shape if no flat keys exist, otherwise every "stem" ends up being
+// the same original track.
 function parseStemResponse(resp) {
   if (!resp) return [];
-  let raw = [];
 
-  const arr = resp.originData ?? resp.stems ?? resp.data ?? (Array.isArray(resp) ? resp : null);
-  if (Array.isArray(arr)) {
-    console.log('[kieClient] parseStemResponse: array path, length', arr.length, 'keys[0]', arr[0] ? Object.keys(arr[0]) : 'empty');
-    raw = arr.map(s => ({
-      name: s.stem_type_group_name ?? s.stemTypeGroupName ?? s.stemType ?? s.type ?? s.name ?? s.label,
-      url: s.audio_url ?? s.audioUrl ?? s.url ?? s.wavUrl ?? s.fileUrl,
-    }));
-  } else {
-    // Scan for keys like drumsUrl, bassUrl, guitarUrl, synthUrl, fxUrl…
-    const flatEntries = Object.entries(resp)
-      .filter(([k, v]) => /url$/i.test(k) && typeof v === 'string' && v);
-    console.log('[kieClient] parseStemResponse: flat path, url-keys:', flatEntries.map(([k]) => k));
-    raw = flatEntries.map(([k, v]) => ({ name: k.replace(/url$/i, ''), url: v }));
+  // 1) Preferred: flat per-instrument "<name>Url" keys.
+  let raw = Object.entries(resp)
+    .filter(([k, v]) => /url$/i.test(k) && typeof v === 'string' && v)
+    .map(([k, v]) => ({ name: k.replace(/url$/i, ''), url: v }));
+  console.log('[kieClient] parseStemResponse flat url-keys:', raw.map(s => s.name));
+
+  // 2) Fallback: an explicit array of stem objects (never originData — that's
+  //    the source mix). Only used if no flat instrument keys were present.
+  if (!raw.length) {
+    const arr = resp.stems ?? resp.data ?? (Array.isArray(resp) ? resp : null);
+    if (Array.isArray(arr)) {
+      console.log('[kieClient] parseStemResponse array path, keys[0]:', arr[0] ? Object.keys(arr[0]) : 'empty');
+      raw = arr.map(s => ({
+        name: s.stem_type_group_name ?? s.stemTypeGroupName ?? s.stemType ?? s.type ?? s.name ?? s.label,
+        url: s.audio_url ?? s.audioUrl ?? s.url ?? s.wavUrl ?? s.fileUrl,
+      }));
+    }
   }
 
+  // Dedupe by URL so a stem that appears under two aliases isn't doubled.
+  const seen = new Set();
   return raw
-    .filter(s =>
-      s.url && s.url !== CALLBACK && s.name &&
-      !NON_STEM.test(s.name) &&
-      !/vocal/i.test(s.name) && !/instrumental/i.test(s.name)
-    )
+    .filter(s => {
+      if (!s.url || !s.name || s.url === CALLBACK) return false;
+      if (NON_STEM.test(s.name)) return false;
+      if (seen.has(s.url)) return false;
+      seen.add(s.url);
+      return true;
+    })
     .map(s => {
       const m = stemMeta(s.name);
       const label = m.key.charAt(0).toUpperCase() + m.key.slice(1);
