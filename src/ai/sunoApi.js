@@ -1,10 +1,10 @@
-// sunoapi.org client — generation + native generative stems (WAV, up to 12).
+// kie.ai client — Suno generation + native generative stems (WAV, up to 12).
 // All requests are proxied through the Cloudflare Worker, which attaches the
 // Bearer key. The provider requires a callBackUrl, but we poll record-info
 // instead, so we pass the Worker's harmless /callback sink.
 
 const PROXY = 'https://flair-proxy.macsippial.workers.dev';
-const BASE = `${PROXY}/sunoapi`;
+const BASE = `${PROXY}/kieai`;
 const CALLBACK = `${PROXY}/callback`;
 const MODEL = 'V5';
 
