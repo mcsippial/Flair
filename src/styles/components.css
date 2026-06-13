@@ -855,7 +855,7 @@
 .timeline-inner {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  height: 100%;
 }
 
 .timeline-ruler {
@@ -974,6 +974,13 @@
   bottom: 3px;
   height: auto;
   align-items: center;
+}
+
+.clip-svg-preview {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
 }
 
 /* Trim handles on each clip edge — DAW-style resize affordance. */

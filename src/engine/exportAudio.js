@@ -1,81 +1,100 @@
-import * as Tone from 'tone';
+// Exports the arrangement to WAV by rendering with OfflineAudioContext — all
+// trims, fades, volume and pan are baked in. Works on audio (stem) tracks only.
 
-// Exports the edited arrangement to WAV by rendering offline — so trims,
-// moves, fades, volume, pan and EQ are all baked into the output. Works on the
-// audio (stem) tracks, which is what producers want to bounce.
+const _decodeCache = new Map(); // url → AudioBuffer
 
-const _decodeCtx = new (window.AudioContext || window.webkitAudioContext)();
-const _bufCache = new Map(); // audioUrl -> AudioBuffer
-
-async function decode(url) {
-  if (_bufCache.has(url)) return _bufCache.get(url);
+async function decodeCached(url) {
+  if (_decodeCache.has(url)) return _decodeCache.get(url);
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const res = await fetch(url);
+  if (!res.ok) throw new Error(`Fetch failed for ${url}: ${res.status}`);
   const arr = await res.arrayBuffer();
-  const buf = await _decodeCtx.decodeAudioData(arr);
-  _bufCache.set(url, buf);
+  const buf = await ctx.decodeAudioData(arr);
+  ctx.close();
+  _decodeCache.set(url, buf);
   return buf;
 }
 
-// Render the given audio tracks to a single WAV blob.
 async function renderTracks(tracks, bpm) {
   const secPerBar = (60 / (bpm || 120)) * 4;
 
-  // Predecode every clip's audio (offline Players need a ready buffer).
   const urls = [...new Set(tracks.flatMap(t => t.clips.map(c => c.audioUrl).filter(Boolean)))];
+  if (!urls.length) throw new Error('No audio clips to export');
+
   const bufs = new Map();
-  await Promise.all(urls.map(async u => bufs.set(u, await decode(u))));
+  await Promise.all(urls.map(async u => bufs.set(u, await decodeCached(u))));
 
   let endBars = 0;
   tracks.forEach(t => t.clips.forEach(c => {
     endBars = Math.max(endBars, (c.start || 0) + (c.length || 0));
   }));
-  const duration = Math.max(1, endBars * secPerBar) + 0.5;
+  const durationSec = Math.max(1, endBars * secPerBar) + 0.5;
 
-  const rendered = await Tone.Offline(() => {
-    tracks.forEach(track => {
-      const eq = new Tone.EQ3({
-        low:  (track.eq?.low  || 0) * 12,
-        mid:  (track.eq?.mid  || 0) * 12,
-        high: (track.eq?.high || 0) * 12,
-      });
-      const panner = new Tone.Panner(track.pan || 0);
-      const gain = new Tone.Gain(track.volume ?? 0.8);
-      eq.connect(panner); panner.connect(gain); gain.toDestination();
+  const sampleRate = 44100;
+  const numChannels = 2;
+  const offline = new OfflineAudioContext(numChannels, Math.ceil(durationSec * sampleRate), sampleRate);
 
-      track.clips.forEach(clip => {
-        const buf = bufs.get(clip.audioUrl);
-        if (!buf) return;
-        const player = new Tone.Player(buf);
-        player.fadeIn  = clip.fadeIn  || 0;
-        player.fadeOut = clip.fadeOut || 0;
-        player.connect(eq);
-        const startSec = (clip.start || 0) * secPerBar;
-        const offset   = clip.offset || 0;
-        const durSec   = (clip.length || 0) * secPerBar;
-        player.start(startSec, offset, durSec);
-      });
+  tracks.forEach(track => {
+    const gainNode = offline.createGain();
+    gainNode.gain.value = track.volume ?? 0.8;
+
+    const panNode = offline.createStereoPanner();
+    panNode.pan.value = track.pan || 0;
+
+    gainNode.connect(panNode);
+    panNode.connect(offline.destination);
+
+    track.clips.forEach(clip => {
+      const buf = bufs.get(clip.audioUrl);
+      if (!buf) return;
+
+      const src = offline.createBufferSource();
+      src.buffer = buf;
+
+      const startSec = (clip.start || 0) * secPerBar;
+      const offset = clip.offset || 0;
+      const durSec = (clip.length || 0) * secPerBar;
+
+      // Fade in/out via gain envelope
+      if ((clip.fadeIn || 0) > 0 || (clip.fadeOut || 0) > 0) {
+        const clipGain = offline.createGain();
+        clipGain.gain.value = 1;
+        if ((clip.fadeIn || 0) > 0) {
+          clipGain.gain.setValueAtTime(0, startSec);
+          clipGain.gain.linearRampToValueAtTime(1, startSec + clip.fadeIn);
+        }
+        if ((clip.fadeOut || 0) > 0) {
+          const fadeStart = startSec + durSec - clip.fadeOut;
+          clipGain.gain.setValueAtTime(1, fadeStart);
+          clipGain.gain.linearRampToValueAtTime(0, startSec + durSec);
+        }
+        src.connect(clipGain);
+        clipGain.connect(gainNode);
+      } else {
+        src.connect(gainNode);
+      }
+
+      src.start(startSec, offset, durSec);
     });
-  }, duration);
+  });
 
-  return audioBufferToWav(rendered.get());
+  const rendered = await offline.startRendering();
+  return audioBufferToWav(rendered);
 }
 
-// Bounce the full mix (respects mute/solo).
 export async function exportMix(session) {
   const anySolo = session.tracks.some(t => t.solo);
   const tracks = session.tracks.filter(t =>
-    t.type === 'audio' && !t.muted && (!anySolo || t.solo));
-  if (!tracks.length) throw new Error('No audio tracks to export');
+    t.type === 'audio' && !t.muted && (!anySolo || t.solo) && t.clips.length);
+  if (!tracks.length) throw new Error('No active audio tracks to export');
   const wav = await renderTracks(tracks, session.bpm);
   download(wav, 'flair-mix.wav');
 }
 
-// Bounce each stem separately (one WAV per audio track).
 export async function exportStems(session) {
   const tracks = session.tracks.filter(t => t.type === 'audio' && t.clips.length);
   if (!tracks.length) throw new Error('No stems to export');
   for (const track of tracks) {
-    // Render this track alone at unity placement but keeping its own edits.
     const wav = await renderTracks([{ ...track, muted: false, solo: false }], session.bpm);
     const safe = String(track.name || 'stem').replace(/[^\w]+/g, '_');
     download(wav, `flair-${safe}.wav`);
@@ -93,7 +112,6 @@ function download(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 15000);
 }
 
-// Encode an AudioBuffer to a 16-bit PCM WAV Blob.
 function audioBufferToWav(buffer) {
   const numCh = buffer.numberOfChannels;
   const sampleRate = buffer.sampleRate;
@@ -111,7 +129,7 @@ function audioBufferToWav(buffer) {
   writeStr(8, 'WAVE');
   writeStr(12, 'fmt ');
   view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);            // PCM
+  view.setUint16(20, 1, true);
   view.setUint16(22, numCh, true);
   view.setUint32(24, sampleRate, true);
   view.setUint32(28, sampleRate * blockAlign, true);

@@ -23,7 +23,7 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
       if (which === 'mix') await exportMix(session);
       else await exportStems(session);
     } catch (err) {
-      dispatch({ type: 'ADD_AI_MESSAGE', message: { id: Math.random().toString(36).slice(2), role: 'assistant', timestamp: Date.now(), text: `Export failed: ${err.message}` } });
+      alert(`Export failed: ${err.message}`);
     } finally {
       setExporting(false);
     }
