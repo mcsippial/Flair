@@ -43,10 +43,14 @@ export async function generateMusicTakes(prompt, onProgress) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      customMode: false,
+      // customMode: true passes the prompt as a style tag rather than a
+      // natural-language description, which produces more compositionally
+      // unique output and avoids kie.ai's catalog-match rejection on stems.
+      customMode: true,
       instrumental: true,
       model: MODEL,
-      prompt,
+      tags: prompt,  // customMode uses `tags` for the style descriptor
+      prompt: '',
       callBackUrl: CALLBACK,
     }),
   });
@@ -131,7 +135,14 @@ export async function separateNativeStems(taskId, audioId, onProgress) {
     const d = info.data ?? info;
     const status = String(d.status ?? d.successFlag ?? '').toUpperCase();
     if (status.includes('FAIL') || status.includes('ERROR')) {
-      throw new Error(`Stem split failed: ${d.errorMessage || status}`);
+      const msg = d.errorMessage || d.msg || status;
+      if (/catalog|existing recording|copyright/i.test(msg)) {
+        throw new Error(
+          'Stem separation was blocked — the generated track was too similar to a known recording. ' +
+          'Try generating again with a more specific or unusual description.'
+        );
+      }
+      throw new Error(`Stem split failed: ${msg}`);
     }
 
     const rawForParse = d.response ?? d;

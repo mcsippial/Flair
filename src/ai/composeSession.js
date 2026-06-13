@@ -16,15 +16,15 @@ export async function generateTakes(intent, onProgress) {
   if (claudeKey) {
     onProgress?.('Crafting your track…');
     const client = new Anthropic({ apiKey: claudeKey, dangerouslyAllowBrowser: true });
-    const userMsg = `You are a music producer writing a short description for Suno, an AI music generator. Suno works best with concise, vivid descriptions of 20-40 words.
+    const userMsg = `You are a music producer writing style tags for Suno V5 (AI music generator) in customMode. Style tags are comma-separated genre/mood/instrument descriptors, max 120 characters total. Be specific and evocative — unusual combinations produce unique tracks that won't match existing catalog recordings.
 
 User request: ${intent.description ? `"${intent.description}"` : `${intent.mood} ${intent.type}`}
 BPM hint: ${intent.bpm} | Key: ${intent.key} ${intent.scale} | Mood: ${intent.mood}
 
-Write a 20-40 word instrumental music description. Lead with genre, then BPM, then key instruments and mood. No vocals. No lyrics. Pure instrumental.
+Write Suno style tags: comma-separated list of genre, sub-genre, key instruments, mood adjectives. No vocals, no lyrics, purely instrumental. Be specific (e.g. "neo-soul, fender rhodes, muted guitar, brushed drums, warm bassline, late-night" not just "soul"). Max 120 characters.
 
 Output ONLY valid JSON, no markdown:
-{"bpm":<number>,"key":<string>,"scale":"major"|"minor","prompt":<string 20-40 words>}`;
+{"bpm":<number>,"key":<string>,"scale":"major"|"minor","tags":<comma-separated style string max 120 chars>}`;
 
     const resp = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -34,7 +34,7 @@ Output ONLY valid JSON, no markdown:
     const plan = JSON.parse(
       resp.content[0].text.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim()
     );
-    prompt = plan.prompt;
+    prompt = plan.tags || plan.prompt;
     bpm    = plan.bpm    || intent.bpm;
     key    = plan.key    || intent.key;
     scale  = plan.scale  || intent.scale;
@@ -42,7 +42,7 @@ Output ONLY valid JSON, no markdown:
     bpm   = intent.bpm;
     key   = intent.key;
     scale = intent.scale;
-    prompt = `${intent.mood} ${intent.type} instrumental at ${bpm} BPM in ${key} ${scale}, no vocals`;
+    prompt = `${intent.mood}, ${intent.type}, instrumental, ${key} ${scale}, no vocals`;
   }
 
   let result;
