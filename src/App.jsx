@@ -9,7 +9,7 @@ import Mixer from './components/Mixer';
 import PianoRoll from './components/PianoRoll';
 import { ensureToneStarted, getTrackNodes, disposeTrack,
          disposeAllTracks, startRecording, stopRecording } from './engine/audioEngine';
-import * as Tone from 'tone';
+import Tone from 'tone';
 import { scheduleSession, scheduleTrack, clearSchedule } from './engine/scheduler';
 
 

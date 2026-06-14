@@ -1,4 +1,4 @@
-import * as Tone from 'tone';
+import Tone from 'tone';
 
 let masterLimiter, masterGain, masterReverb, masterDelay;
 const trackNodes = {};

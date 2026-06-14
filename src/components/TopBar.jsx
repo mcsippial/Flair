@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import Knob from './Knob';
-import * as Tone from 'tone';
+import Tone from 'tone';
 import { setMasterVolume } from '../engine/audioEngine';
 import { exportMix, exportStems } from '../engine/exportAudio';
 

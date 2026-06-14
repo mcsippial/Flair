@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import * as Tone from 'tone';
+import Tone from 'tone';
 import { useWaveform } from './useWaveform';
 
 const BASE_BAR_WIDTH = 80;

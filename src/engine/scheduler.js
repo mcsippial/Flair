@@ -1,4 +1,4 @@
-import * as Tone from 'tone';
+import Tone from 'tone';
 import { getTrackNodes, setTrackNodes, disposeAllTracks, disposeTrack,
          getMasterGain, getMasterReverb, getMasterDelay } from './audioEngine';
 import { createDrumInstruments, createMidiInstrument } from './instruments';

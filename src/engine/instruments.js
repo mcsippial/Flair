@@ -1,4 +1,4 @@
-import * as Tone from 'tone';
+import Tone from 'tone';
 import { getMasterGain } from './audioEngine';
 
 function dest() { return getMasterGain() || Tone.getDestination(); }
