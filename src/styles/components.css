@@ -1608,6 +1608,7 @@
   display: flex;
   flex-direction: column;
   background: var(--surface-1);
+  background-image: radial-gradient(ellipse 60% 50% at 50% 100%, rgba(255,154,46,0.04) 0%, transparent 70%);
   height: 100%;
 }
 
@@ -1617,7 +1618,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-amber);
   flex-shrink: 0;
 }
 
@@ -1634,9 +1635,10 @@
 .panel-tab:hover { color: var(--text-secondary); }
 
 .panel-tab.active {
-  background: var(--surface-3);
-  color: var(--text-primary);
-  border-color: var(--border);
+  background: var(--surface-raised);
+  color: var(--amber-bright);
+  border-color: var(--border-amber);
+  text-shadow: 0 0 10px rgba(255,154,46,0.3);
 }
 
 .mixer-strips {
@@ -1660,12 +1662,18 @@
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 6px;
+  transition: border-color 0.15s;
+}
+
+.channel-strip:hover {
+  border-color: var(--border-mid);
 }
 
 .channel-strip.master {
   width: 80px;
-  background: rgba(232,146,10,0.03);
-  border-color: var(--border-amber);
+  background: rgba(255,154,46,0.04);
+  border-color: rgba(255,154,46,0.25);
+  box-shadow: 0 0 16px rgba(255,154,46,0.05);
 }
 
 .strip-name {
@@ -1721,6 +1729,7 @@
   display: flex;
   flex-direction: column;
   background: var(--surface-1);
+  background-image: radial-gradient(ellipse 60% 50% at 50% 100%, rgba(255,154,46,0.04) 0%, transparent 70%);
   height: 100%;
 }
 
@@ -1730,7 +1739,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-amber);
   flex-shrink: 0;
 }
 
@@ -1768,8 +1777,8 @@
   flex-shrink: 0;
 }
 
-.piano-key.white { background: rgba(255,255,255,0.035); }
-.piano-key.black { background: var(--surface-1); }
+.piano-key.white { background: rgba(255,255,255,0.04); }
+.piano-key.black { background: rgba(0,0,0,0.5); }
 
 .key-label {
   font-family: var(--font-mono);
@@ -1830,8 +1839,8 @@
 .knob-body {
   border-radius: 50%;
   cursor: grab;
-  background: radial-gradient(circle at 38% 35%, #3a3028, #1e1810 70%, #141008);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.4);
+  background: radial-gradient(circle at 38% 35%, #2a2218, #161008 70%, #0a0600);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.5);
   position: relative;
   transition: box-shadow 0.1s;
 }
@@ -1839,7 +1848,7 @@
 .knob-body:active { cursor: grabbing; }
 
 .knob-body:hover {
-  box-shadow: 0 2px 6px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(0,0,0,0.4), 0 0 0 1px rgba(232,146,10,0.18);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(0,0,0,0.5), 0 0 0 1px rgba(255,154,46,0.22), 0 0 10px rgba(255,154,46,0.08);
 }
 
 .knob-tick {
