@@ -93,7 +93,21 @@ function AudioPreview({ clip, bpm }) {
   );
 }
 
-function DrumPreview({ notes, length }) {
+function DrumPreview({ notes, pattern, length }) {
+  // Pattern format: boolean[] of 16 steps
+  if (pattern?.length) {
+    const steps = pattern.length;
+    return (
+      <svg className="clip-svg-preview" viewBox={`0 ${steps} 1`} preserveAspectRatio="none"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        {pattern.map((on, i) => on ? (
+          <rect key={i} x={i / steps * length} y={0.25} width={length / steps * 0.65} height={0.5}
+            fill="currentColor" opacity={0.7} rx={0.02} />
+        ) : null)}
+      </svg>
+    );
+  }
+  // Notes format
   if (!notes?.length) return null;
   const DRUM_Y = { kick: 0.82, snare: 0.48, hihat: 0.16, openhat: 0.22, clap: 0.44 };
   const DRUM_H = { kick: 0.28, snare: 0.2, hihat: 0.13, openhat: 0.16, clap: 0.2 };
@@ -321,7 +335,7 @@ export default function Timeline({ session, dispatch }) {
                     <span className="clip-name">{clip.name}</span>
                     <div className="clip-preview">
                       {(clip.type === 'midi' || clip.type === 'synth') && <MidiPreview notes={clip.notes} length={clip.length} />}
-                      {clip.type === 'drum' && <DrumPreview notes={clip.notes} length={clip.length} />}
+                      {clip.type === 'drum' && <DrumPreview notes={clip.notes} pattern={clip.pattern} length={clip.length} />}
                       {clip.type === 'audio' && <AudioPreview clip={clip} bpm={session.bpm} />}
                     </div>
                     {clip.type === 'audio' && (
