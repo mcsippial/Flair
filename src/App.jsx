@@ -59,7 +59,66 @@ export default function App() {
     });
   }, [session.tracks, session.isPlaying]);
 
-  // Keyboard shortcuts
+  const handlePlayStop = useCallback(async () => {
+    if (!session.isPlaying) {
+      await ensureToneStarted();
+      Tone.Transport.bpm.value = session.bpm;
+      clearSchedule();
+      scheduleSession(session.tracks);
+      scheduledTrackIds.current = new Set(session.tracks.map(t => t.id));
+      await Tone.loaded();
+      Tone.Transport.start();
+      dispatch({ type: 'SET_PLAYING', isPlaying: true });
+    } else {
+      Tone.Transport.stop();
+      clearSchedule();
+      session.tracks.forEach(track => {
+        const nodes = getTrackNodes(track.id);
+        if (nodes?.players) nodes.players.forEach(p => { try { p.stop(0); } catch {} });
+      });
+      disposeAllTracks();
+      scheduledTrackIds.current = new Set();
+      dispatch({ type: 'SET_PLAYING', isPlaying: false });
+      dispatch({ type: 'SET_PLAYHEAD', position: 0 });
+    }
+  }, [session.isPlaying, session.bpm, session.tracks]);
+
+  const handleRecord = useCallback(async () => {
+    if (!session.armedTrackId) return;
+    if (!session.isRecording) {
+      await ensureToneStarted();
+      await startRecording();
+      dispatch({ type: 'SET_RECORDING', isRecording: true });
+      if (!session.isPlaying) {
+        Tone.Transport.bpm.value = session.bpm;
+        clearSchedule();
+        scheduleSession(session.tracks);
+        scheduledTrackIds.current = new Set(session.tracks.map(t => t.id));
+        await Tone.loaded();
+        Tone.Transport.start();
+        dispatch({ type: 'SET_PLAYING', isPlaying: true });
+      }
+    } else {
+      const audioUrl = await stopRecording();
+      dispatch({ type: 'SET_RECORDING', isRecording: false });
+      if (audioUrl) {
+        const durationBars = Math.ceil(Tone.Transport.seconds / (60 / session.bpm) / 4) || 4;
+        dispatch({ type: 'ADD_AUDIO_CLIP', trackId: session.armedTrackId, audioUrl, name: 'Recording', length: durationBars });
+      }
+      Tone.Transport.stop();
+      clearSchedule();
+      session.tracks.forEach(track => {
+        const nodes = getTrackNodes(track.id);
+        if (nodes?.players) nodes.players.forEach(p => { try { p.stop(0); } catch {} });
+      });
+      disposeAllTracks();
+      scheduledTrackIds.current = new Set();
+      dispatch({ type: 'SET_PLAYING', isPlaying: false });
+      dispatch({ type: 'SET_PLAYHEAD', position: 0 });
+    }
+  }, [session.armedTrackId, session.isRecording, session.isPlaying, session.bpm, session.tracks]);
+
+  // Keyboard shortcuts — defined after handlePlayStop so it's not in TDZ when used in deps
   useEffect(() => {
     const handleKey = (e) => {
       const tag = e.target.tagName.toLowerCase();
@@ -100,69 +159,6 @@ export default function App() {
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, [session.isPlaying, session.selectedTrackId, session.selectedClipId, handlePlayStop]);
-
-  const handleRecord = useCallback(async () => {
-    if (!session.armedTrackId) return;
-    if (!session.isRecording) {
-      await ensureToneStarted();
-      await startRecording();
-      dispatch({ type: 'SET_RECORDING', isRecording: true });
-      // Auto-start transport if not playing
-      if (!session.isPlaying) {
-        Tone.Transport.bpm.value = session.bpm;
-        clearSchedule();
-        scheduleSession(session.tracks);
-        scheduledTrackIds.current = new Set(session.tracks.map(t => t.id));
-        await Tone.loaded();
-        Tone.Transport.start();
-        dispatch({ type: 'SET_PLAYING', isPlaying: true });
-      }
-    } else {
-      const audioUrl = await stopRecording();
-      dispatch({ type: 'SET_RECORDING', isRecording: false });
-      if (audioUrl) {
-        const durationBars = Math.ceil(Tone.Transport.seconds / (60 / session.bpm) / 4) || 4;
-        dispatch({ type: 'ADD_AUDIO_CLIP', trackId: session.armedTrackId, audioUrl, name: 'Recording', length: durationBars });
-      }
-      // Stop transport
-      Tone.Transport.stop();
-      clearSchedule();
-      session.tracks.forEach(track => {
-        const nodes = getTrackNodes(track.id);
-        if (nodes?.players) nodes.players.forEach(p => { try { p.stop(0); } catch {} });
-      });
-      disposeAllTracks();
-      scheduledTrackIds.current = new Set();
-      dispatch({ type: 'SET_PLAYING', isPlaying: false });
-      dispatch({ type: 'SET_PLAYHEAD', position: 0 });
-    }
-  }, [session.armedTrackId, session.isRecording, session.isPlaying, session.bpm, session.tracks]);
-
-  const handlePlayStop = useCallback(async () => {
-    if (!session.isPlaying) {
-      await ensureToneStarted();
-      Tone.Transport.bpm.value = session.bpm;
-      clearSchedule();
-      scheduleSession(session.tracks);
-      scheduledTrackIds.current = new Set(session.tracks.map(t => t.id));
-      await Tone.loaded();
-      Tone.Transport.start();
-      dispatch({ type: 'SET_PLAYING', isPlaying: true });
-    } else {
-      Tone.Transport.stop();
-      clearSchedule();
-      // Players keep running after Transport.stop() because they're independent
-      // AudioBufferSourceNodes. Stop them explicitly then tear down the graph.
-      session.tracks.forEach(track => {
-        const nodes = getTrackNodes(track.id);
-        if (nodes?.players) nodes.players.forEach(p => { try { p.stop(0); } catch {} });
-      });
-      disposeAllTracks();
-      scheduledTrackIds.current = new Set();
-      dispatch({ type: 'SET_PLAYING', isPlaying: false });
-      dispatch({ type: 'SET_PLAYHEAD', position: 0 });
-    }
-  }, [session.isPlaying, session.bpm, session.tracks]);
 
   return (
     <div className="app-root">
