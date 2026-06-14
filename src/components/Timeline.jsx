@@ -280,8 +280,8 @@ export default function Timeline({ session, dispatch }) {
                     style={{
                       left: clip.start * BAR_WIDTH,
                       width: clip.length * BAR_WIDTH - 2,
-                      background: track.color + (clip.type === 'audio' ? '38' : '1e'),
-                      borderColor: track.color + '99',
+                      background: track.color + (clip.type === 'audio' ? '55' : '33'),
+                      borderColor: track.color + 'bb',
                       color: track.color,
                       cursor: 'grab',
                     }}

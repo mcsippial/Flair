@@ -56,15 +56,15 @@ export default function Mixer({ session, dispatch }) {
           <div key={track.id} className="channel-strip" style={{ borderTop: `3px solid ${track.color}` }}>
             <span className="strip-name">{track.name}</span>
             <div className="eq-knobs">
-              <Knob size={28} label="HI"  value={track.eq?.high ?? 0} min={-1} max={1} onChange={v => updateEq(track, 'high', v)} />
-              <Knob size={28} label="MID" value={track.eq?.mid  ?? 0} min={-1} max={1} onChange={v => updateEq(track, 'mid',  v)} />
-              <Knob size={28} label="LO"  value={track.eq?.low  ?? 0} min={-1} max={1} onChange={v => updateEq(track, 'low',  v)} />
+              <Knob size={22} label="HI"  value={track.eq?.high ?? 0} min={-1} max={1} onChange={v => updateEq(track, 'high', v)} />
+              <Knob size={22} label="MID" value={track.eq?.mid  ?? 0} min={-1} max={1} onChange={v => updateEq(track, 'mid',  v)} />
+              <Knob size={22} label="LO"  value={track.eq?.low  ?? 0} min={-1} max={1} onChange={v => updateEq(track, 'low',  v)} />
             </div>
             <div className="send-knobs">
-              <Knob size={24} label="REV" value={track.reverb ?? 0} min={0} max={1} onChange={v => updateSend(track, 'reverb', v)} />
-              <Knob size={24} label="DLY" value={track.delay  ?? 0} min={0} max={1} onChange={v => updateSend(track, 'delay',  v)} />
+              <Knob size={20} label="REV" value={track.reverb ?? 0} min={0} max={1} onChange={v => updateSend(track, 'reverb', v)} />
+              <Knob size={20} label="DLY" value={track.delay  ?? 0} min={0} max={1} onChange={v => updateSend(track, 'delay',  v)} />
+              <Knob size={20} label="PAN" value={track.pan ?? 0} min={-1} max={1} onChange={v => updatePan(track, v)} />
             </div>
-            <Knob size={28} label="PAN" value={track.pan ?? 0} min={-1} max={1} onChange={v => updatePan(track, v)} />
             <div className="fader-section">
               <input
                 className="volume-fader"
