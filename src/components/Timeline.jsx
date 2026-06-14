@@ -13,8 +13,13 @@ function timeToBar(timeStr) {
 
 function noteToY(note) {
   if (!note) return 0.5;
+  // Normalize flats to sharps for lookup (Eb→D#, Ab→G#, Bb→A#, Db→C#, Gb→F#)
+  const flatMap = { 'Eb':'D#', 'Ab':'G#', 'Bb':'A#', 'Db':'C#', 'Gb':'F#' };
   const NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  const m = String(note).match(/^([A-G]#?)(\d+)$/);
+  let s = String(note);
+  const flat = s.slice(0, -1);
+  if (flatMap[flat]) s = flatMap[flat] + s.slice(-1);
+  const m = s.match(/^([A-G]#?)(\d+)$/);
   if (!m) return 0.5;
   const semi = parseInt(m[2]) * 12 + NAMES.indexOf(m[1]);
   return 1 - Math.max(0, Math.min(1, (semi - 28) / 56));
@@ -297,8 +302,9 @@ export default function Timeline({ session, dispatch }) {
                       dispatch({ type: 'REMOVE_CLIP', trackId: track.id, clipId: clip.id });
                     }}
                     onDoubleClick={e => {
-                      if (clip.type === 'midi') {
+                      if (clip.type === 'midi' || clip.type === 'synth') {
                         dispatch({ type: 'SET_OPEN_PANEL', panel: 'pianoroll' });
+                        dispatch({ type: 'SELECT_TRACK', trackId: track.id });
                         dispatch({ type: 'SELECT_CLIP', clipId: clip.id });
                       } else if (clip.type === 'audio') {
                         splitClip(e, track, clip);
@@ -314,7 +320,7 @@ export default function Timeline({ session, dispatch }) {
                     {clip.type === 'audio' && <FadeOverlay clip={clip} bpm={session.bpm} />}
                     <span className="clip-name">{clip.name}</span>
                     <div className="clip-preview">
-                      {clip.type === 'midi' && <MidiPreview notes={clip.notes} length={clip.length} />}
+                      {(clip.type === 'midi' || clip.type === 'synth') && <MidiPreview notes={clip.notes} length={clip.length} />}
                       {clip.type === 'drum' && <DrumPreview notes={clip.notes} length={clip.length} />}
                       {clip.type === 'audio' && <AudioPreview clip={clip} bpm={session.bpm} />}
                     </div>

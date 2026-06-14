@@ -1,6 +1,12 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 
 const NOTES = ['B','A#','A','G#','G','F#','F','E','D#','D','C#','C'];
+const FLAT_MAP = { 'Eb':'D#', 'Ab':'G#', 'Bb':'A#', 'Db':'C#', 'Gb':'F#' };
+function normalizeNoteName(n) {
+  if (!n) return n;
+  const flat = n.slice(0, -1);
+  return FLAT_MAP[flat] ? FLAT_MAP[flat] + n.slice(-1) : n;
+};
 const OCTAVES = [5,4,3,2];
 const ALL_NOTES = OCTAVES.flatMap(oct => NOTES.map(n => `${n}${oct}`));
 const NOTE_HEIGHT = 14;
@@ -17,7 +23,7 @@ function pitchToNote(pitch) {
 // Normalize any note format into { id, note (string), time (string), duration (string), velocity }
 function normalizeNote(n, idx) {
   const id = n.id || String(idx);
-  let noteName = n.note;
+  let noteName = normalizeNoteName(n.note);
   if (!noteName && n.pitch != null) noteName = pitchToNote(n.pitch);
 
   let time = n.time;
