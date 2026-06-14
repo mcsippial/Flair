@@ -289,6 +289,24 @@ export default function StartScreen({ onDismiss, dispatch }) {
     onDismiss();
   };
 
+  const handleDemo = () => {
+    const tracks = [
+      { id: genId(), name: 'Kick',      type: 'drum',  color: '#e05048', volume: 0.85, muted: false, solo: false, pan: 0,    eq: { low: 0.2, mid: 0, high: -0.1 }, reverb: 0, delay: 0, clips: [{ id: genId(), start: 0, length: 8, pattern: Array.from({length:16},(_,i)=>[0,4,8,12].includes(i)) }] },
+      { id: genId(), name: 'Snare',     type: 'drum',  color: '#d4781a', volume: 0.75, muted: false, solo: false, pan: 0,    eq: { low: -0.1, mid: 0.1, high: 0 }, reverb: 0.1, delay: 0, clips: [{ id: genId(), start: 0, length: 8, pattern: Array.from({length:16},(_,i)=>[4,12].includes(i)) }] },
+      { id: genId(), name: 'Hi-Hat',    type: 'drum',  color: '#c8aa44', volume: 0.6,  muted: false, solo: false, pan: 0.1,  eq: { low: -0.3, mid: 0, high: 0.2 }, reverb: 0, delay: 0, clips: [{ id: genId(), start: 0, length: 8, pattern: Array.from({length:16},(_,i)=>i%2===0) }] },
+      { id: genId(), name: 'Bass',      type: 'synth', color: '#4a9e6a', volume: 0.8,  muted: false, solo: false, pan: 0,    eq: { low: 0.3, mid: 0, high: -0.2 }, reverb: 0, delay: 0, clips: [{ id: genId(), start: 0, length: 8, notes: [{id:genId(),pitch:36,start:0,duration:1},{id:genId(),pitch:36,start:2,duration:0.5},{id:genId(),pitch:38,start:4,duration:1},{id:genId(),pitch:35,start:6,duration:1}] }] },
+      { id: genId(), name: 'Chord Pad', type: 'synth', color: '#5888aa', volume: 0.55, muted: false, solo: false, pan: -0.15,eq: { low: -0.2, mid: 0.05, high: 0.1 }, reverb: 0.35, delay: 0.1, clips: [{ id: genId(), start: 0, length: 8, notes: [{id:genId(),pitch:60,start:0,duration:4},{id:genId(),pitch:63,start:0,duration:4},{id:genId(),pitch:67,start:0,duration:4},{id:genId(),pitch:58,start:4,duration:4},{id:genId(),pitch:62,start:4,duration:4},{id:genId(),pitch:65,start:4,duration:4}] }] },
+      { id: genId(), name: 'Lead Synth',type: 'synth', color: '#9b6abf', volume: 0.65, muted: false, solo: false, pan: 0.2,  eq: { low: -0.1, mid: 0.15, high: 0.05 }, reverb: 0.2, delay: 0.15, clips: [{ id: genId(), start: 2, length: 6, notes: [{id:genId(),pitch:72,start:0,duration:0.5},{id:genId(),pitch:74,start:1,duration:0.5},{id:genId(),pitch:75,start:2,duration:1},{id:genId(),pitch:72,start:4,duration:0.5}] }] },
+      { id: genId(), name: 'Vocals',    type: 'audio', color: '#cc6688', volume: 0.7,  muted: false, solo: false, pan: 0,    eq: { low: -0.15, mid: 0.1, high: 0.05 }, reverb: 0.25, delay: 0.05, clips: [] },
+      { id: genId(), name: 'FX Riser', type: 'audio',  color: '#7ab8c0', volume: 0.45, muted: true,  solo: false, pan: 0,    eq: { low: 0, mid: 0, high: 0 }, reverb: 0.4, delay: 0, clips: [] },
+    ];
+    tracks.forEach(t => dispatch({ type: 'ADD_TRACK', track: t }));
+    dispatch({ type: 'UPDATE_BPM', bpm: 128 });
+    dispatch({ type: 'UPDATE_KEY', key: 'C', scale: 'minor' });
+    dispatch({ type: 'ADD_AI_MESSAGE', message: { id: genId(), role: 'assistant', timestamp: Date.now(), text: "Demo session loaded — 8 tracks across drum, synth, and audio types. Nothing plays yet (no audio files), but the full layout is live for UI testing." } });
+    onDismiss();
+  };
+
   const weirdLabel = weirdness <= 0.3 ? 'Faithful' : weirdness >= 0.7 ? 'Experimental' : 'Balanced';
 
   return (
@@ -350,6 +368,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
                 </div>
               ))}
             </div>
+            <button className="start-blank" onClick={handleDemo}>load demo session</button>
             <button className="start-blank" onClick={onDismiss}>cancel — start blank</button>
           </div>
 
@@ -408,6 +427,7 @@ export default function StartScreen({ onDismiss, dispatch }) {
 
             <div className="start-foot">
               <span className="start-mode-badge">Suno V5 · native stems</span>
+              <button className="start-blank" onClick={handleDemo}>load demo session</button>
               <button className="start-blank" onClick={handleBlank}>or start blank</button>
             </div>
           </div>
