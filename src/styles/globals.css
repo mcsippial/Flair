@@ -1,21 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@400;500&family=Lora:ital,wght@0,400;1,400&display=swap');
 
 :root {
-  /* Base — near-neutral dark, barely perceptible warmth */
-  --bg: #0c0b0a;
-  --surface-1: #111010;
-  --surface-2: #181614;
-  --surface-3: #1e1c1a;
-  --surface-raised: #252220;
+  /* Base — pure black with neon brown accent */
+  --bg: #000000;
+  --surface-1: #080705;
+  --surface-2: #0f0d0a;
+  --surface-3: #161310;
+  --surface-raised: #1e1a15;
 
   /* Wood trim — used only on header/ruler accent bands */
-  --wood-dark: #171008;
-  --wood-mid: #22160a;
+  --wood-dark: #0d0905;
+  --wood-mid: #181108;
 
   /* Text */
-  --text-primary: #e0d6ca;
-  --text-secondary: #78706a;
-  --text-dim: #3d3530;
+  --text-primary: #eddfc8;
+  --text-secondary: #7a6f5e;
+  --text-dim: #3a3028;
 
   /* Chrome / silver — primary control accent (not amber) */
   --chrome: #8a9099;
@@ -23,10 +23,10 @@
   --chrome-dim: #48505a;
   --chrome-glow: rgba(180, 188, 196, 0.1);
 
-  /* Amber — ONLY for active play/record, caret, playhead */
-  --amber: #c07c10;
-  --amber-bright: #d89828;
-  --amber-glow: rgba(192, 124, 16, 0.12);
+  /* Neon brown/amber — primary accent */
+  --amber: #d4781a;
+  --amber-bright: #ff9a2e;
+  --amber-glow: rgba(255, 154, 46, 0.15);
 
   /* Functional */
   --green: #3c7e4e;
@@ -38,10 +38,10 @@
   --ai-surface: rgba(88, 136, 170, 0.07);
 
   /* Borders */
-  --border: rgba(255, 255, 255, 0.055);
-  --border-mid: rgba(255, 255, 255, 0.1);
-  --border-chrome: rgba(180, 188, 196, 0.16);
-  --border-amber: rgba(192, 124, 16, 0.28);
+  --border: rgba(255, 255, 255, 0.05);
+  --border-mid: rgba(255, 255, 255, 0.09);
+  --border-chrome: rgba(180, 188, 196, 0.14);
+  --border-amber: rgba(255, 154, 46, 0.35);
 
   /* Fonts */
   --font-ui: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
