@@ -1157,6 +1157,50 @@
   border-bottom: 1px solid var(--border);
 }
 
+/* Zoom controls — pinned to right side of the ruler */
+.timeline-zoom-controls {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 5;
+  background: var(--surface-2);
+  border: 1px solid var(--border-mid);
+  border-radius: 5px;
+  padding: 2px 4px;
+}
+
+.zoom-btn {
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: all 0.1s;
+  line-height: 1;
+}
+
+.zoom-btn:hover {
+  color: var(--amber-bright);
+  background: var(--surface-raised);
+}
+
+.zoom-pct {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  min-width: 32px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
 .timeline-lane:nth-child(even) { background: rgba(255,255,255,0.008); }
 
 .timeline-empty {
@@ -1765,6 +1809,96 @@
 }
 
 .quantize-btn:hover { color: var(--text-primary); border-color: var(--border-mid); }
+
+/* Quantize selector in piano roll header */
+.pr-quantize {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.pr-q-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  margin-right: 4px;
+}
+
+.pr-q-btn {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  background: transparent;
+  transition: all 0.1s;
+}
+
+.pr-q-btn:hover { color: var(--text-secondary); border-color: var(--border-mid); }
+
+.pr-q-btn.active {
+  background: var(--surface-raised);
+  border-color: var(--border-amber);
+  color: var(--amber-bright);
+}
+
+/* Action buttons */
+.pr-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+}
+
+.pr-add-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--amber);
+  color: #0a0600;
+  font-weight: 600;
+  transition: background 0.1s;
+}
+
+.pr-add-btn:hover { background: var(--amber-bright); }
+
+.pr-clear-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-mid);
+  color: var(--text-dim);
+  transition: all 0.1s;
+}
+
+.pr-clear-btn:hover { border-color: rgba(152,48,40,0.5); color: #e05048; }
+
+/* Empty state / hints */
+.pr-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.pr-grid-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  color: var(--text-dim);
+  pointer-events: none;
+  font-style: italic;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
 
 .piano-roll-body {
   flex: 1;
