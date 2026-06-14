@@ -157,11 +157,11 @@ export default function PianoRoll({ session, dispatch }) {
         </div>
 
         <div className="pr-actions">
-          {!selectedClip && !noTrack && (
-            <button className="pr-add-btn" onClick={handleAddClip}>+ New Clip</button>
-          )}
           {selectedClip && (
             <button className="pr-clear-btn" onClick={handleClear} title="Clear all notes">Clear</button>
+          )}
+          {!noTrack && (
+            <button className="pr-add-btn" onClick={handleAddClip}>+ New Clip</button>
           )}
         </div>
       </div>
