@@ -119,7 +119,9 @@ export default function App() {
       clearSchedule();
       scheduleSession(session.tracks);
       scheduledTrackIds.current = new Set(session.tracks.map(t => t.id));
-      // Start immediately using synth fallbacks; samples upgrade in the background
+      // Wait for audio buffers (stems) to load before starting so that
+      // Transport.schedule() events inside scheduleAudioTrack fire at bar 0.
+      await Tone.loaded();
       Tone.Transport.start();
       if (session.id) incrementPlayCount(session.id);
       dispatch({ type: 'SET_PLAYING', isPlaying: true });
@@ -149,6 +151,7 @@ export default function App() {
         clearSchedule();
         scheduleSession(session.tracks);
         scheduledTrackIds.current = new Set(session.tracks.map(t => t.id));
+        await Tone.loaded();
         Tone.Transport.start();
         dispatch({ type: 'SET_PLAYING', isPlaying: true });
       }

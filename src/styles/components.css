@@ -461,6 +461,7 @@
 }
 
 .transport-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+.transport-btn.save-flash { color: var(--neon); border-color: var(--neon); }
 .transport-btn.play { min-width: 40px; font-size: 13px; }
 
 .transport-btn.play.active {

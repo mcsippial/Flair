@@ -45,12 +45,15 @@ function MidiPreview({ notes, length, laneHeight = 58 }) {
 }
 
 // Placeholder shown while the real waveform is still decoding (or if it fails).
-// Drawn bold so a clip never looks empty — it always reads as an audio region.
-function AudioPlaceholder({ length }) {
+// Each clip gets a unique shape seeded from its id so tracks look distinct.
+function AudioPlaceholder({ length, seed = 0 }) {
   const n = Math.max(8, Math.round((length || 1) * 24));
+  const a = 1.3 + (seed % 7) * 0.19;
+  const b = 0.5 + (seed % 5) * 0.13;
+  const c = 0.4 + (seed % 11) * 0.07;
   const top = [], bottom = [];
   for (let i = 0; i <= n; i++) {
-    const h = 0.18 + 0.14 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.6));
+    const h = 0.12 + 0.16 * Math.abs(Math.sin(i * a + seed) * Math.cos(i * b) + 0.3 * Math.sin(i * c));
     top.push(`${i},${0.5 - h}`);
     bottom.unshift(`${i},${0.5 + h}`);
   }
@@ -66,7 +69,8 @@ function AudioPlaceholder({ length }) {
 // the clip's trimmed region (offset → offset+length).
 function AudioPreview({ clip, bpm }) {
   const data = useWaveform(clip.audioUrl);
-  if (!data) return <AudioPlaceholder length={clip.length} />;
+  const seed = clip.id ? clip.id.split('').reduce((s, c) => s + c.charCodeAt(0), 0) : 0;
+  if (!data) return <AudioPlaceholder length={clip.length} seed={seed} />;
 
   const { peaks, duration } = data;
   let from = 0, to = peaks.length;

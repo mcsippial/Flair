@@ -3,6 +3,7 @@ import Tone from 'tone';
 import { setMasterVolume, setMetronome, getMetronomeEnabled } from '../engine/audioEngine';
 import { exportMix, exportStems } from '../engine/exportAudio';
 import { exportSessionMidi } from '../engine/exportMidi';
+import { saveProjectRecord } from '../state/projectHistory';
 
 const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
@@ -16,20 +17,32 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
   const tapTimeout = useRef(null);
   const loadInputRef = useRef(null);
 
+  const [saveFlash, setSaveFlash] = React.useState(false);
+
   const handleSaveProject = () => {
+    try {
+      saveProjectRecord(session);
+      setSaveFlash(true);
+      setTimeout(() => setSaveFlash(false), 1800);
+    } catch (err) {
+      alert(`Save failed: ${err.message}`);
+    }
+  };
+
+  const handleExportProject = () => {
     try {
       const json = JSON.stringify(session, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'flair-project.json';
+      a.download = `${session.name || 'flair-project'}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 15000);
     } catch (err) {
-      alert(`Save failed: ${err.message}`);
+      alert(`Export failed: ${err.message}`);
     }
   };
 
@@ -188,11 +201,14 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
       </div>
 
       <div className="top-right">
-        <button className="transport-btn" onClick={handleSaveProject} title="Save project as JSON">
-          Save Project
+        <button className={`transport-btn${saveFlash ? ' save-flash' : ''}`} onClick={handleSaveProject} title="Save to project history">
+          {saveFlash ? 'Saved ✓' : 'Save'}
         </button>
-        <button className="transport-btn" onClick={() => loadInputRef.current?.click()} title="Load project from JSON">
-          Load Project
+        <button className="transport-btn" onClick={handleExportProject} title="Export project as JSON file">
+          Export
+        </button>
+        <button className="transport-btn" onClick={() => loadInputRef.current?.click()} title="Load project from JSON file">
+          Import
         </button>
         <input
           ref={loadInputRef}
