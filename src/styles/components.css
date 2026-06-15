@@ -1418,6 +1418,11 @@
   border-color: rgba(0,200,240,0.2);
   box-shadow: 0 0 14px rgba(0,200,240,0.04);
 }
+.master-spacer { flex: 1; }
+.master-out-label {
+  font-family: var(--font-mono); font-size: 8px; font-weight: 600;
+  letter-spacing: 0.1em; color: var(--neon-dim);
+}
 
 .strip-name {
   font-size: 9px; color: var(--text-secondary);

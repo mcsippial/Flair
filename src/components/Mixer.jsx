@@ -108,6 +108,7 @@ export default function Mixer({ session, dispatch }) {
 
         <div className="channel-strip master">
           <span className="strip-name">MASTER</span>
+          <div className="master-spacer" />
           <div className="fader-section">
             <input
               className="volume-fader"
@@ -120,6 +121,10 @@ export default function Mixer({ session, dispatch }) {
               <VUMeter level={meterLevels.__master ?? -60} vertical />
             </div>
           </div>
+          <div className="strip-buttons">
+            <span className="master-out-label">OUT</span>
+          </div>
+          <div className="color-dot" style={{ background: 'var(--neon-dim)' }} />
         </div>
       </div>
     </div>
