@@ -1402,12 +1402,12 @@
 }
 
 .fader-section {
-  display: flex; gap: 4px; align-items: flex-end; height: 72px; justify-content: center;
+  display: flex; gap: 4px; align-items: flex-end; height: 60px; justify-content: center;
 }
 
 .volume-fader {
   writing-mode: vertical-lr; direction: rtl;
-  width: 14px; height: 64px;
+  width: 14px; height: 52px;
   accent-color: var(--neon); cursor: pointer;
 }
 

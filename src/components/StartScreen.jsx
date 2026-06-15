@@ -158,7 +158,7 @@ export default function StartScreen({ onDismiss, dispatch, savedData }) {
       type: 'ADD_AI_MESSAGE',
       message: {
         id: genId(), role: 'assistant', timestamp: Date.now(),
-        text: `Generated ${result.tracks.length} stems at ${result.bpm} BPM in ${result.key} ${result.scale}. Mix, mute, and solo each track independently.`,
+        text: `${result.tracks.length} tracks at ${result.bpm} BPM in ${result.key} ${result.scale}. Ask me to tweak anything.`,
       },
     });
   };
@@ -461,7 +461,7 @@ export default function StartScreen({ onDismiss, dispatch, savedData }) {
     dispatch({ type: 'UPDATE_KEY', key: 'C', scale: 'minor' });
     dispatch({ type: 'ADD_AI_MESSAGE', message: {
       id: genId(), role: 'assistant', timestamp: Date.now(),
-      text: "Lo-fi hip hop beat loaded — 130 BPM, C minor. Kick hits on the 1 and the syncopated 3+, snare on 2 and 4, hi-hats with swing feel. Rhodes chords (Cm7→Fm7→Abmaj7→G7), walking bass, and a 2-phrase melody over 8 bars. Double-click any clip to edit it. Try asking me to change the chord progression, add a counter-melody, or adjust the mix."
+      text: "Lo-fi beat loaded. Ask me to change the chords, swap the melody, adjust the vibe, or anything else."
     }});
     onDismiss();
   };
