@@ -184,6 +184,23 @@ export default function Timeline({ session, dispatch, trackHeights = {} }) {
   }, [session.isPlaying, BAR_WIDTH]);
 
   useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        setZoom(z => e.deltaY < 0
+          ? Math.min(4, +(z * 1.15).toFixed(3))
+          : Math.max(0.25, +(z / 1.15).toFixed(3))
+        );
+      }
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  useEffect(() => {
     if (loopRegion && session.isPlaying) {
       Tone.Transport.loop = true;
       Tone.Transport.loopStart = `${loopRegion.start}m`;
@@ -328,12 +345,6 @@ export default function Timeline({ session, dispatch, trackHeights = {} }) {
   const zoomIn  = (e) => { e?.stopPropagation(); setZoom(z => Math.min(4, +(z * 1.5).toFixed(2))); };
   const zoomOut = (e) => { e?.stopPropagation(); setZoom(z => Math.max(0.25, +(z / 1.5).toFixed(2))); };
 
-  const handleWheel = (e) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      if (e.deltaY < 0) zoomIn(); else zoomOut();
-    }
-  };
 
   const currentBar = playheadX / BAR_WIDTH;
   const barNum = Math.floor(currentBar) + 1;
@@ -341,7 +352,7 @@ export default function Timeline({ session, dispatch, trackHeights = {} }) {
 
   return (
     <div className="timeline">
-      <div className="timeline-scroll" ref={scrollRef} onWheel={handleWheel}>
+      <div className="timeline-scroll" ref={scrollRef}>
         <div className="timeline-inner" style={{ width: totalWidth }}>
 
           <div
