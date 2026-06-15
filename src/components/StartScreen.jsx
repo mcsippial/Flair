@@ -158,7 +158,7 @@ export default function StartScreen({ onDismiss, dispatch, savedData }) {
       type: 'ADD_AI_MESSAGE',
       message: {
         id: genId(), role: 'assistant', timestamp: Date.now(),
-        text: `${result.tracks.length} tracks at ${result.bpm} BPM in ${result.key} ${result.scale}. Ask me to tweak anything.`,
+        text: `${result.tracks.length} tracks generated — ${result.bpm} BPM, ${result.key} ${result.scale}. What do you want to change?`,
       },
     });
   };
@@ -461,7 +461,7 @@ export default function StartScreen({ onDismiss, dispatch, savedData }) {
     dispatch({ type: 'UPDATE_KEY', key: 'C', scale: 'minor' });
     dispatch({ type: 'ADD_AI_MESSAGE', message: {
       id: genId(), role: 'assistant', timestamp: Date.now(),
-      text: "Lo-fi beat loaded. Ask me to change the chords, swap the melody, adjust the vibe, or anything else."
+      text: "Lo-fi hip hop loaded — 130 BPM, C minor. 7 tracks: kick, snare, hi-hats, walking bass, Rhodes chords (Cm7→Fm7→Abmaj7→G7), lead melody, and vinyl FX. What do you want to change?"
     }});
     onDismiss();
   };
