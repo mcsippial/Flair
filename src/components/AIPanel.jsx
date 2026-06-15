@@ -78,11 +78,6 @@ export default function AIPanel({ session, dispatch, open = true, onToggle }) {
         {session.aiMessages.length === 0 && (
           <div className="ai-empty">
             <div className="ai-empty-title">Producer</div>
-            <div className="ai-empty-hints">
-              {['Dark trap beat, 140 BPM', 'Jazz chords in C minor', 'Add a bass line', 'Change the vibe to lo-fi'].map(hint => (
-                <span key={hint} onClick={() => setInput(hint)}>{hint}</span>
-              ))}
-            </div>
           </div>
         )}
         {session.aiMessages.map(msg => (
@@ -110,17 +105,26 @@ export default function AIPanel({ session, dispatch, open = true, onToggle }) {
           <div className="no-key-prompt">Add your Claude API key in Settings to enable AI.</div>
         ) : (
           <>
-            <input
-              className="ai-input"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder="Add a melody, change the vibe, ask anything..."
-              disabled={thinking}
-            />
-            <button className="ai-send-btn" onClick={handleSend} disabled={thinking || !input.trim()}>
-              →
-            </button>
+            {!input && !thinking && (
+              <div className="ai-prompt-chips">
+                {['Dark trap beat', 'Jazz chords', 'Add a bass line', 'Lo-fi vibe'].map(hint => (
+                  <button key={hint} className="ai-prompt-chip" onClick={() => setInput(hint)}>{hint}</button>
+                ))}
+              </div>
+            )}
+            <div className="ai-input-row">
+              <input
+                className="ai-input"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                placeholder="Add a melody, change the vibe, ask anything..."
+                disabled={thinking}
+              />
+              <button className="ai-send-btn" onClick={handleSend} disabled={thinking || !input.trim()}>
+                →
+              </button>
+            </div>
           </>
         )}
       </div>
