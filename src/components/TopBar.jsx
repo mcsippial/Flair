@@ -1,5 +1,4 @@
 import React, { useState, useRef, useCallback } from 'react';
-import Knob from './Knob';
 import Tone from 'tone';
 import { setMasterVolume, setMetronome, getMetronomeEnabled } from '../engine/audioEngine';
 import { exportMix, exportStems } from '../engine/exportAudio';
@@ -177,7 +176,16 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
       <div className="top-spacer" />
 
       <div className="master-volume">
-        <Knob value={masterVol} min={0} max={1} label="VOL" size={28} onChange={v => { setMasterVol(v); setMasterVolume(v); }} />
+        <span className="master-vol-label">VOL</span>
+        <input
+          className="master-vol-slider"
+          type="range" min={0} max={1} step={0.01}
+          value={masterVol}
+          style={{ '--fill': `${masterVol * 100}%` }}
+          onChange={e => { const v = parseFloat(e.target.value); setMasterVol(v); setMasterVolume(v); }}
+          title={`Master volume: ${Math.round(masterVol * 100)}%`}
+        />
+        <span className="master-vol-pct">{Math.round(masterVol * 100)}</span>
       </div>
 
       <div className="top-right">
