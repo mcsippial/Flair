@@ -1472,6 +1472,7 @@
   color: var(--neon); box-shadow: 0 0 6px var(--neon-glow);
 }
 .comp-knobs { display: flex; gap: 4px; }
+.comp-knobs.comp-disabled { opacity: 0.3; pointer-events: none; }
 
 
 /* ============================================================

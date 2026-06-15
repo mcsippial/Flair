@@ -77,14 +77,12 @@ export default function Mixer({ session, dispatch }) {
                 onClick={() => updateComp(track, { enabled: !track.comp?.enabled })}
                 title="Compressor"
               >COMP</button>
-              {track.comp?.enabled && (
-                <div className="comp-knobs">
-                  <Knob size={18} label="THR" value={track.comp?.threshold ?? -24} min={-60} max={0}
-                    onChange={v => updateComp(track, { threshold: v })} />
-                  <Knob size={18} label="RAT" value={track.comp?.ratio ?? 4} min={1} max={20}
-                    onChange={v => updateComp(track, { ratio: v })} />
-                </div>
-              )}
+              <div className={`comp-knobs${!track.comp?.enabled ? ' comp-disabled' : ''}`}>
+                <Knob size={18} label="THR" value={track.comp?.threshold ?? -24} min={-60} max={0}
+                  onChange={v => updateComp(track, { threshold: v })} />
+                <Knob size={18} label="RAT" value={track.comp?.ratio ?? 4} min={1} max={20}
+                  onChange={v => updateComp(track, { ratio: v })} />
+              </div>
             </div>
             <div className="fader-section">
               <input
@@ -108,7 +106,23 @@ export default function Mixer({ session, dispatch }) {
 
         <div className="channel-strip master">
           <span className="strip-name">MASTER</span>
-          <div className="master-spacer" />
+          <div className="eq-knobs">
+            <Knob size={22} label="LO" value={0} min={-1} max={1} onChange={() => {}} />
+            <Knob size={22} label="MID" value={0} min={-1} max={1} onChange={() => {}} />
+            <Knob size={22} label="HI" value={0} min={-1} max={1} onChange={() => {}} />
+          </div>
+          <div className="send-knobs">
+            <Knob size={20} label="LIM" value={0.9} min={0} max={1} onChange={() => {}} />
+            <Knob size={20} label="WID" value={0.5} min={0} max={1} onChange={() => {}} />
+            <Knob size={20} label="GAI" value={0.5} min={0} max={1} onChange={() => {}} />
+          </div>
+          <div className="comp-section">
+            <button className="comp-btn">LIMIT</button>
+            <div className="comp-knobs comp-disabled">
+              <Knob size={18} label="THR" value={-3} min={-20} max={0} onChange={() => {}} />
+              <Knob size={18} label="CEI" value={0} min={-6} max={0} onChange={() => {}} />
+            </div>
+          </div>
           <div className="fader-section">
             <input
               className="volume-fader"
