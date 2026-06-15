@@ -105,9 +105,9 @@ export default function AIPanel({ session, dispatch, open = true, onToggle }) {
           <div className="no-key-prompt">Add your Claude API key in Settings to enable AI.</div>
         ) : (
           <>
-            {!input && !thinking && (
+            {!thinking && (
               <div className="ai-prompt-chips">
-                {['Dark trap beat', 'Jazz chords', 'Add a bass line', 'Lo-fi vibe'].map(hint => (
+                {['Change the chords', 'Add a melody', 'Heavier drums', 'Darker vibe'].map(hint => (
                   <button key={hint} className="ai-prompt-chip" onClick={() => setInput(hint)}>{hint}</button>
                 ))}
               </div>
