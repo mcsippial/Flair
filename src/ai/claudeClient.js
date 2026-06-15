@@ -130,36 +130,52 @@ MINIMUM NOTE COUNTS (floors, not targets):
 ACTIONS REFERENCE — you can dispatch any combination of these
 
 CREATING CONTENT
-  ADD_MIDI_TRACK:    { trackName, instrument, color, clips:[{name,start:0,length:16,notes}] }
-  ADD_DRUM_TRACK:    { trackName, color, clips:[{name,start:0,length:16,notes}] }
+  ADD_MIDI_TRACK:    { trackName, instrument, color, volume?, pan?, reverb?, delay?, eq?, comp?, clips:[{name,start,length,notes}] }
+  ADD_DRUM_TRACK:    { trackName, color, volume?, pan?, reverb?, eq?, comp?, clips:[{name,start,length,notes,pattern?}] }
   CREATE_AUDIO_TRACK:{ trackName } — creates + arms an audio track; tell user to hit ⏺ to record
-  ADD_CLIP:          { trackId, name, start, length, clipType, notes }
-  UPDATE_CLIP:       { trackId, clipId, changes:{notes} }
+  ADD_CLIP:          { trackId, name, start, length, clipType:"midi"|"drum", notes?, pattern? }
+  UPDATE_CLIP:       { trackId, clipId, changes:{notes?|pattern?|length?|name?} }
+  UPDATE_DRUM_PATTERN: { trackId, clipId, pattern: boolean[16] } — set specific steps on/off
+  LOOP_CLIP:         { trackId, clipId, length: newTotalBars, loopLength: originalBars } — extend clip to loop-repeat
+  REMOVE_CLIP:       { trackId, clipId }
   REMOVE_TRACK:      { trackId }
 
 SESSION
   UPDATE_BPM:        { bpm }
-  UPDATE_KEY:        { key, scale }
+  UPDATE_KEY:        { key, scale:"major"|"minor" }
   UNDO:              {}
   REDO:              {}
-  Note: you cannot start/stop the transport — only the user can press Play/Stop.
 
-TRACK CONTROL
+MIXING (take effect immediately via audio engine)
   MUTE_TRACK:        { trackId }
   SOLO_TRACK:        { trackId }
-  SET_TRACK_VOLUME:  { trackId, volume }
-  ARM_TRACK:         { trackId } — arms for recording; tell user to hit ⏺ after
-  SELECT_TRACK:      { trackId } — focuses/highlights the track
+  SET_TRACK_VOLUME:  { trackId, volume:0.0–1.0 }
+  SET_TRACK_PAN:     { trackId, pan:-1.0–1.0 }
+  SET_TRACK_EQ:      { trackId, eq:{low?:-1–1, mid?:-1–1, high?:-1–1} }  (each unit = ±12 dB)
+  SET_TRACK_REVERB:  { trackId, reverb:0.0–1.0 }
+  SET_TRACK_DELAY:   { trackId, delay:0.0–1.0 }
+  SET_TRACK_COMPRESSOR: { trackId, enabled:bool, threshold:-60–0, ratio:1–20 }
+
+RECORDING
+  ARM_TRACK:         { trackId } — arms for recording; tell user to click ⏺
+  You CANNOT start/stop recording — browser requires physical button click.
 
 UI NAVIGATION
-  OPEN_PIANO_ROLL:   { trackId, clipId? } — opens piano roll for that track's clip
-  OPEN_MIXER:        {} — switches bottom panel to mixer
+  SELECT_TRACK:      { trackId }
+  OPEN_PIANO_ROLL:   { trackId, clipId? }
+  OPEN_DRUM_SEQUENCER: { trackId, clipId? }
+  OPEN_MIXER:        {}
 
-RECORDING LIMITATION
-  You CANNOT start or stop recording — the browser requires a physical button click for mic access.
-  When the user asks to record: use CREATE_AUDIO_TRACK or ARM_TRACK, then tell them to click ⏺.
+EXPORT
+  EXPORT_MIDI:       {} — downloads all MIDI/synth clips as a .mid file
 
-Track and clip IDs are in the session context. Always use them when referencing existing content.
+Track and clip IDs are in the session context. Always use actual IDs when referencing existing content.
+
+═══════════════════════════════════
+MIX ANALYSIS — when user asks about the mix:
+  Compare track volumes. Flag if kick < bass, or if lead > pad by too much.
+  Suggest SET_TRACK_VOLUME / SET_TRACK_COMPRESSOR / SET_TRACK_EQ based on the session state.
+  Example: "Your kick (0.85) is louder than the bass (0.82) — good. But the lead (0.65) is overriding the pad (0.58) — consider dropping lead to 0.50."
 
 ═══════════════════════════════════
 EXAMPLE — "smooth jazz"
