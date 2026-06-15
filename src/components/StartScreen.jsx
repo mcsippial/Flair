@@ -84,8 +84,28 @@ const LOADING_LINES = [
   'Almost there…',
 ];
 
+// Wrapper: shows the producer Dashboard when there's session history, otherwise
+// the generate flow. Keeps hook order stable by mounting GenerateScreen (which
+// owns all the generate-flow hooks) only when actually generating.
 export default function StartScreen({ onDismiss, dispatch, savedData, onLoadSession }) {
   const [showGenerate, setShowGenerate] = useState(false);
+  const history = getProjectHistory();
+
+  if (history.length > 0 && !showGenerate) {
+    return (
+      <Dashboard
+        history={history}
+        onLoadSession={onLoadSession}
+        onDismiss={onDismiss}
+        onNewSession={() => setShowGenerate(true)}
+      />
+    );
+  }
+
+  return <GenerateScreen onDismiss={onDismiss} dispatch={dispatch} savedData={savedData} />;
+}
+
+function GenerateScreen({ onDismiss, dispatch, savedData }) {
   const [input, setInput]       = useState('');
   const [screen, setScreen]     = useState('prompt'); // 'prompt' | 'audition'
   const [building, setBuilding] = useState(false);
@@ -101,20 +121,6 @@ export default function StartScreen({ onDismiss, dispatch, savedData, onLoadSess
   const auditionAudio   = useRef(null);
   const playingIdxRef   = useRef(null);
   const intentRef       = useRef(null); // kept so we can regenerate on a catalog block
-
-  const history = getProjectHistory();
-
-  // Show dashboard if we have history and user hasn't requested generate
-  if (history.length > 0 && !showGenerate) {
-    return (
-      <Dashboard
-        history={history}
-        onLoadSession={onLoadSession}
-        onDismiss={onDismiss}
-        onNewSession={() => setShowGenerate(true)}
-      />
-    );
-  }
 
   useEffect(() => {
     if (screen === 'prompt') inputRef.current?.focus();
