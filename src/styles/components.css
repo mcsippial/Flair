@@ -1940,6 +1940,65 @@
   flex: 1;
   display: flex;
   overflow: hidden;
+  min-height: 0;
+}
+
+/* Velocity lane */
+.vel-lane-row {
+  display: flex;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-amber);
+  background: var(--surface-1);
+}
+
+.vel-lane-label {
+  width: 72px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  border-right: 1px solid var(--border);
+}
+
+.vel-lane {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  position: relative;
+  background: var(--bg);
+  cursor: ns-resize;
+}
+
+.vel-lane-inner {
+  position: relative;
+  height: 100%;
+}
+
+.vel-bar-hit {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 1px;
+  cursor: ns-resize;
+  height: 100%;
+  touch-action: none;
+}
+
+.vel-bar {
+  width: 100%;
+  border-radius: 2px 2px 0 0;
+  transition: opacity 0.05s;
+  min-height: 4px;
+}
+
+.vel-bar-hit.dragging .vel-bar {
+  opacity: 1 !important;
+  outline: 1px solid rgba(255,255,255,0.3);
 }
 
 .piano-keys {

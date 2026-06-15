@@ -39,6 +39,37 @@ export function setMasterVolume(v) {
   if (masterGain) masterGain.gain.value = Math.max(0, Math.min(1, v));
 }
 
+// ─── Metronome ────────────────────────────────────────────────────────────────
+let metroPart = null;
+let metroEnabled = false;
+
+export function setMetronome(enabled) {
+  metroEnabled = enabled;
+  if (!enabled) {
+    metroPart?.stop();
+    metroPart?.dispose();
+    metroPart = null;
+    return;
+  }
+  if (metroPart) return; // already running
+  const click = new Tone.Synth({
+    oscillator: { type: 'triangle' },
+    envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.05 },
+    volume: -8,
+  }).toDestination();
+
+  metroPart = new Tone.Sequence((time, beat) => {
+    const freq = beat === 0 ? 1400 : 900;
+    const vol  = beat === 0 ? -6 : -14;
+    click.volume.value = vol;
+    click.triggerAttackRelease(freq, '32n', time);
+  }, [0, 1, 2, 3], '4n');
+
+  metroPart.start(0);
+}
+
+export function getMetronomeEnabled() { return metroEnabled; }
+
 // ─── Track nodes ──────────────────────────────────────────────────────────────
 export function getTrackNodes(trackId) { return trackNodes[trackId]; }
 export function setTrackNodes(trackId, nodes) { trackNodes[trackId] = nodes; }
