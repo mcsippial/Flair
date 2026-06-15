@@ -205,13 +205,14 @@ export default function App() {
         <Timeline session={session} dispatch={dispatch} />
         <AIPanel session={session} dispatch={dispatch} />
         <div className="bottom-panel">
-          {session.openPanel === 'pianoroll' ? (
-            <PianoRoll session={session} dispatch={dispatch} />
-          ) : session.openPanel === 'drumsequencer' ? (
-            <DrumSequencer session={session} dispatch={dispatch} />
-          ) : (
-            <Mixer session={session} dispatch={dispatch} />
-          )}
+          {(() => {
+            // Check if selected clip is a drum clip (auto-open drum sequencer)
+            const selectedClip = session.tracks.flatMap(t => t.clips).find(c => c.id === session.selectedClipId);
+            const isDrumPanel = session.openPanel === 'drumsequencer' || selectedClip?.type === 'drum';
+            if (isDrumPanel) return <DrumSequencer session={session} dispatch={dispatch} />;
+            if (session.openPanel === 'pianoroll') return <PianoRoll session={session} dispatch={dispatch} />;
+            return <Mixer session={session} dispatch={dispatch} />;
+          })()}
         </div>
       </div>
       {apiKeyModalOpen && (

@@ -2348,3 +2348,157 @@
 }
 
 .btn-secondary:hover { color: var(--text-primary); border-color: var(--border-mid); }
+
+
+/* ============================================================
+   DRUM SEQUENCER
+   ============================================================ */
+
+.drum-sequencer {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-1);
+  background-image: radial-gradient(ellipse 60% 50% at 50% 100%, rgba(255,154,46,0.04) 0%, transparent 70%);
+  height: 100%;
+}
+
+.drum-seq-header {
+  height: 36px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-amber);
+  flex-shrink: 0;
+}
+
+.drum-seq-clip-info {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+}
+
+.drum-seq-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.ds-add-bar-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-amber);
+  color: var(--amber);
+  background: rgba(192,124,16,0.08);
+  transition: all 0.12s;
+  font-weight: 500;
+}
+
+.ds-add-bar-btn:hover {
+  background: rgba(192,124,16,0.18);
+  color: var(--amber-bright);
+}
+
+.drum-seq-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 18px 20px 14px;
+  overflow-x: auto;
+  gap: 6px;
+}
+
+/* Beat labels (1, 2, 3, 4 per bar) */
+.drum-seq-beat-labels {
+  display: flex;
+  align-items: center;
+  padding-left: 0;
+  gap: 0;
+  margin-bottom: 2px;
+}
+
+.drum-seq-beat-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  text-align: left;
+  padding-left: 4px;
+  flex-shrink: 0;
+}
+
+/* Step button row */
+.drum-seq-steps {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Visual separator every 4 steps (one beat) */
+.drum-seq-bar-sep {
+  width: 1px;
+  height: 32px;
+  background: var(--border-amber);
+  opacity: 0.4;
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+/* Step number labels row */
+.drum-seq-step-labels {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.drum-seq-bar-sep-label {
+  width: 1px;
+  height: 10px;
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+.drum-step-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--text-dim);
+  text-align: center;
+  flex-shrink: 0;
+  width: 28px;
+  opacity: 0.6;
+}
+
+/* Individual step button */
+.drum-step {
+  width: 28px;
+  height: 34px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-mid);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, box-shadow 0.1s, transform 0.08s;
+  position: relative;
+}
+
+.drum-step:hover:not(.active) {
+  background: var(--surface-3);
+  border-color: var(--border-amber);
+  transform: translateY(-1px);
+}
+
+.drum-step.active {
+  background: var(--amber-bright);
+  border-color: var(--amber-bright);
+  box-shadow: 0 0 10px rgba(245,166,35,0.7), 0 0 22px rgba(245,166,35,0.3);
+}
+
+.drum-step.active:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 14px rgba(245,166,35,0.85), 0 0 28px rgba(245,166,35,0.4);
+}
