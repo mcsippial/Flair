@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '0 6 * * *'   # 6 AM UTC
     - cron: '0 18 * * *'  # 6 PM UTC
-  workflow_dispatch:        # allow manual trigger
+  workflow_dispatch:
 
 jobs:
   review:
@@ -26,17 +26,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build + capture output
+      # ── Static build check ─────────────────────────────────────────────────
+
+      - name: Build
         id: build
         run: |
           npm run build 2>&1 | tee build.log
-          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+          echo "ok=$( [ ${PIPESTATUS[0]} -eq 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
 
       - name: Analyze bundle
         id: bundle
         run: |
           python3 - <<'EOF'
-          import os, json, re
+          import os, json
 
           dist = 'dist/assets'
           files = os.listdir(dist) if os.path.isdir(dist) else []
@@ -44,109 +46,178 @@ jobs:
           total = 0
           chunks = []
           for f in files:
-            path = os.path.join(dist, f)
-            size = os.path.getsize(path)
-            total += size
+            p = os.path.join(dist, f)
+            sz = os.path.getsize(p)
+            total += sz
             if f.endswith('.js') or f.endswith('.css'):
-              chunks.append((f, size))
+              chunks.append((f, sz))
 
           chunks.sort(key=lambda x: -x[1])
 
-          lines = [f"**Total dist size:** {total/1024:.1f} KB"]
+          lines = [f"**Total dist:** {total/1024:.1f} KB"]
           for name, sz in chunks[:8]:
             flag = ' ⚠️' if sz > 500_000 else ''
             lines.append(f"- `{name}`: {sz/1024:.1f} KB{flag}")
 
-          print('\n'.join(lines))
+          summary = '\n'.join(lines)
+          print(summary)
 
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-            summary = '\n'.join(lines).replace('%', '%25').replace('\n', '%0A')
-            f.write(f"summary={summary}\n")
-            f.write(f"total_kb={total/1024:.0f}\n")
+          env = os.environ['GITHUB_OUTPUT']
+          with open(env, 'a') as f:
+            escaped = summary.replace('%','%25').replace('\n','%0A')
+            f.write(f"summary={escaped}\n")
+            f.write(f"total_kb={int(total/1024)}\n")
           EOF
 
-      - name: Check for build warnings
-        id: warnings
+      - name: Check build warnings + tech debt
+        id: static
         run: |
           WARNS=$(grep -iE 'warning|deprecated|unused' build.log | grep -v 'Node.js' | head -20 || true)
-          echo "found=$( [ -n "$WARNS" ] && echo true || echo false )" >> $GITHUB_OUTPUT
+          DEBT=$(grep -rn --include="*.jsx" --include="*.js" -E "TODO|FIXME|HACK|XXX" src/ | head -20 || true)
           {
-            echo 'content<<EOF'
+            echo 'warns<<EOF'
             echo "$WARNS"
             echo 'EOF'
-          } >> $GITHUB_OUTPUT
-
-      - name: Check for TODO/FIXME/HACK
-        id: debt
-        run: |
-          ITEMS=$(grep -rn --include="*.jsx" --include="*.js" -E "TODO|FIXME|HACK|XXX" src/ | grep -v node_modules | head -20 || true)
-          {
-            echo 'content<<EOF'
-            echo "$ITEMS"
+            echo 'debt<<EOF'
+            echo "$DEBT"
             echo 'EOF'
           } >> $GITHUB_OUTPUT
 
-      - name: Post issue with findings
+      # ── Live browser test ──────────────────────────────────────────────────
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Start dev server
+        run: npm run dev &
+        env:
+          NODE_ENV: development
+
+      - name: Wait for dev server
+        run: npx wait-on http://localhost:5173 --timeout 30000
+
+      - name: Run E2E smoke tests
+        id: e2e
+        run: |
+          node tests/e2e/smoke.js http://localhost:5173
+          echo "exit=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+        env:
+          CHROMIUM_PATH: ''
+
+      - name: Parse E2E results
+        id: e2e_results
+        if: always()
+        run: |
+          python3 - <<'EOF'
+          import json, os
+
+          try:
+            with open('tests/e2e/results.json') as f:
+              data = json.load(f)
+          except:
+            data = {'passed': 0, 'failed': 1, 'total': 1,
+                    'results': [{'label': 'E2E runner failed to start', 'pass': False}]}
+
+          lines = [f"**{data['passed']}/{data['total']} checks passed**\n"]
+          for r in data['results']:
+            icon = '✅' if r['pass'] else '❌'
+            line = f"{icon} {r['label']}"
+            if not r['pass'] and r.get('error'):
+              line += f" — `{r['error']}`"
+            lines.append(line)
+
+          summary = '\n'.join(lines)
+          print(summary)
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            escaped = summary.replace('%','%25').replace('\n','%0A')
+            f.write(f"summary={escaped}\n")
+            f.write(f"passed={data['passed']}\n")
+            f.write(f"failed={data['failed']}\n")
+          EOF
+
+      - name: Upload screenshots as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        id: screenshots
+        with:
+          name: e2e-screenshots-${{ github.run_number }}
+          path: tests/e2e/screenshots/
+          retention-days: 7
+
+      # ── Open GitHub issue with full report ─────────────────────────────────
+
+      - name: Post review issue
+        if: always()
         uses: actions/github-script@v7
+        env:
+          BUILD_OK: ${{ steps.build.outputs.ok }}
+          BUNDLE_SUMMARY: ${{ steps.bundle.outputs.summary }}
+          TOTAL_KB: ${{ steps.bundle.outputs.total_kb }}
+          BUILD_WARNS: ${{ steps.static.outputs.warns }}
+          TECH_DEBT: ${{ steps.static.outputs.debt }}
+          E2E_SUMMARY: ${{ steps.e2e_results.outputs.summary }}
+          E2E_PASSED: ${{ steps.e2e_results.outputs.passed }}
+          E2E_FAILED: ${{ steps.e2e_results.outputs.failed }}
+          RUN_NUMBER: ${{ github.run_number }}
         with:
           script: |
             const date = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
-            const buildLog = require('fs').readFileSync('build.log', 'utf8').slice(-3000);
-            const buildOk = !buildLog.includes('error') && !buildLog.includes('Error');
+            const buildOk   = process.env.BUILD_OK === 'true';
+            const totalKb   = parseInt(process.env.TOTAL_KB || '0');
+            const e2ePassed = parseInt(process.env.E2E_PASSED || '0');
+            const e2eFailed = parseInt(process.env.E2E_FAILED || '0');
+            const allGreen  = buildOk && e2eFailed === 0;
+            const runNum    = process.env.RUN_NUMBER;
 
-            const bundle = `${{ steps.bundle.outputs.summary }}`;
-            const totalKb = parseInt(`${{ steps.bundle.outputs.total_kb }}`);
-            const warnings = `${{ steps.warnings.outputs.content }}`.trim();
-            const debt = `${{ steps.debt.outputs.content }}`.trim();
+            const screenshotUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
 
-            const statusEmoji = buildOk ? '✅' : '❌';
-            const bundleFlag = totalKb > 1500 ? ' ⚠️ over 1.5 MB' : '';
+            let body = `## Flair Automated Review — ${date}\n\n`;
 
-            let body = `## Flair Code Review — ${date}\n\n`;
-            body += `### Build ${statusEmoji}\n`;
+            // Build
+            body += `### Build ${buildOk ? '✅' : '❌'}\n`;
+            body += buildOk ? `Succeeded.\n\n` : `**Build failed** — check the [workflow logs](${screenshotUrl}).\n\n`;
 
-            if (!buildOk) {
-              body += `\`\`\`\n${buildLog.slice(-1500)}\n\`\`\`\n\n`;
-            } else {
-              body += `Build succeeded.\n\n`;
-            }
+            // Bundle
+            body += `### Bundle\n${process.env.BUNDLE_SUMMARY}\n\n`;
 
-            body += `### Bundle Analysis${bundleFlag}\n${bundle}\n\n`;
+            // E2E
+            body += `### Live Browser Tests ${e2eFailed === 0 ? '✅' : '❌'}\n`;
+            body += `${process.env.E2E_SUMMARY}\n\n`;
+            body += `📸 [View screenshots](${screenshotUrl}) (artifact: \`e2e-screenshots-${runNum}\`, kept 7 days)\n\n`;
 
-            if (warnings) {
-              body += `### Build Warnings ⚠️\n\`\`\`\n${warnings}\n\`\`\`\n\n`;
-            } else {
-              body += `### Build Warnings\nNone.\n\n`;
-            }
+            // Warnings
+            const warns = process.env.BUILD_WARNS.trim();
+            body += `### Build Warnings\n`;
+            body += warns ? `\`\`\`\n${warns}\n\`\`\`\n\n` : `None.\n\n`;
 
-            if (debt) {
-              body += `### Tech Debt (TODO/FIXME/HACK)\n\`\`\`\n${debt}\n\`\`\`\n\n`;
-            } else {
-              body += `### Tech Debt\nNone found.\n\n`;
-            }
+            // Tech debt
+            const debt = process.env.TECH_DEBT.trim();
+            body += `### Tech Debt (TODO/FIXME/HACK)\n`;
+            body += debt ? `\`\`\`\n${debt}\n\`\`\`\n\n` : `None found.\n\n`;
 
-            body += `---\n_Auto-generated by the semi-daily code review workflow._`;
+            body += `---\n_[Workflow run](${screenshotUrl}) · Auto-generated semi-daily review_`;
 
-            // Close any previous open review issues before opening a new one
-            const existing = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              labels: 'auto-review',
-              state: 'open',
-            });
-            for (const issue of existing.data) {
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                state: 'closed',
+            // Close previous open auto-review issues
+            try {
+              const existing = await github.rest.issues.listForRepo({
+                owner: context.repo.owner, repo: context.repo.repo,
+                labels: 'auto-review', state: 'open',
               });
-            }
+              for (const issue of existing.data) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  issue_number: issue.number, state: 'closed',
+                });
+              }
+            } catch {}
 
+            const status = allGreen ? 'OK' : 'NEEDS ATTENTION';
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `[Auto Review] ${date} — Build ${buildOk ? 'OK' : 'FAILED'} · ${totalKb} KB`,
+              title: `[Auto Review] ${date} — ${status} · Build ${buildOk ? '✅' : '❌'} · E2E ${e2ePassed}/${e2ePassed + e2eFailed} · ${totalKb} KB`,
               body,
               labels: ['auto-review'],
             });
