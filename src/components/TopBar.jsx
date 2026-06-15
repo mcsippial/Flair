@@ -3,6 +3,7 @@ import Knob from './Knob';
 import Tone from 'tone';
 import { setMasterVolume, setMetronome, getMetronomeEnabled } from '../engine/audioEngine';
 import { exportMix, exportStems } from '../engine/exportAudio';
+import { exportSessionMidi } from '../engine/exportMidi';
 
 const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
@@ -230,6 +231,7 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
             <div className="export-menu" onMouseLeave={() => setShowExport(false)}>
               <button onClick={() => runExport('mix')}>Export Mix (WAV)</button>
               <button onClick={() => runExport('stems')}>Export Stems (WAV)</button>
+              <button onClick={() => { setShowExport(false); exportSessionMidi(session); }}>Export MIDI (.mid)</button>
             </div>
           )}
         </div>

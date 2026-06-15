@@ -59,10 +59,12 @@ export default function PianoRoll({ session, dispatch }) {
   const velRef  = useRef(null);
   const [quantize, setQuantize] = useState('4n');
   const [rawNotes, setRawNotes] = useState(() => (selectedClip?.notes || []).map(normalizeNote));
-  const [draggingVel, setDraggingVel] = useState(null); // noteId being dragged
+  const [draggingVel, setDraggingVel] = useState(null);
+  const [selectedNoteIds, setSelectedNoteIds] = useState(new Set());
 
   useEffect(() => {
     setRawNotes((selectedClip?.notes || []).map(normalizeNote));
+    setSelectedNoteIds(new Set());
   }, [selectedClip?.id]);
 
   const sync = useCallback((newNotes) => {
@@ -83,6 +85,34 @@ export default function PianoRoll({ session, dispatch }) {
     if (gridRef.current && velRef.current)
       gridRef.current.scrollLeft = velRef.current.scrollLeft;
   };
+
+  const transposeSelected = useCallback((semitones) => {
+    if (selectedNoteIds.size === 0) return;
+    const shifted = rawNotes.map(n => {
+      if (!selectedNoteIds.has(n.id)) return n;
+      const idx = ALL_NOTES.indexOf(n.note);
+      if (idx === -1) return n;
+      const newIdx = Math.max(0, Math.min(ALL_NOTES.length - 1, idx + semitones));
+      return { ...n, note: ALL_NOTES[newIdx] };
+    });
+    sync(shifted);
+  }, [selectedNoteIds, rawNotes, sync]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!e.shiftKey) return;
+      if (e.key === 'ArrowUp')   { e.preventDefault(); transposeSelected(e.ctrlKey || e.metaKey ? -12 : -1); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); transposeSelected(e.ctrlKey || e.metaKey ?  12 :  1); }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedNoteIds.size > 0) {
+          sync(rawNotes.filter(n => !selectedNoteIds.has(n.id)));
+          setSelectedNoteIds(new Set());
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [transposeSelected, selectedNoteIds, rawNotes, sync]);
 
   const handleGridClick = (e) => {
     if (e.button !== 0 || !selectedTrack) return;
@@ -119,9 +149,30 @@ export default function PianoRoll({ session, dispatch }) {
     sync([...rawNotes, newNote]);
   };
 
+  const handleNoteClick = (e, noteId) => {
+    e.stopPropagation();
+    setSelectedNoteIds(prev => {
+      const next = new Set(prev);
+      if (e.shiftKey) {
+        next.has(noteId) ? next.delete(noteId) : next.add(noteId);
+      } else {
+        if (next.has(noteId) && next.size === 1) next.clear();
+        else { next.clear(); next.add(noteId); }
+      }
+      return next;
+    });
+  };
+
   const handleNoteRightClick = (e, noteId) => {
     e.preventDefault();
-    sync(rawNotes.filter(n => n.id !== noteId));
+    e.stopPropagation();
+    if (selectedNoteIds.has(noteId) && selectedNoteIds.size > 1) {
+      sync(rawNotes.filter(n => !selectedNoteIds.has(n.id)));
+      setSelectedNoteIds(new Set());
+    } else {
+      sync(rawNotes.filter(n => n.id !== noteId));
+      setSelectedNoteIds(prev => { const s = new Set(prev); s.delete(noteId); return s; });
+    }
   };
 
   // Velocity lane drag
@@ -193,6 +244,11 @@ export default function PianoRoll({ session, dispatch }) {
         </div>
 
         <div className="pr-actions">
+          {selectedNoteIds.size > 0 && (
+            <span className="pr-selection-hint">
+              {selectedNoteIds.size} selected · Shift+↑↓ transpose · Shift+Del delete
+            </span>
+          )}
           {selectedClip && (
             <button className="pr-clear-btn" onClick={handleClear} title="Clear all notes">Clear</button>
           )}
@@ -227,19 +283,22 @@ export default function PianoRoll({ session, dispatch }) {
               {rawNotes.map(note => {
                 const { noteIdx, beatPos, durationBeats } = noteToPos(note);
                 if (noteIdx === -1) return null;
+                const isSelected = selectedNoteIds.has(note.id);
                 return (
                   <div
                     key={note.id}
-                    className="piano-note"
+                    className={`piano-note${isSelected ? ' selected' : ''}`}
                     style={{
                       top: noteIdx * NOTE_HEIGHT,
                       left: beatPos * BEAT_WIDTH,
                       width: Math.max(4, durationBeats * BEAT_WIDTH - 2),
                       height: NOTE_HEIGHT - 1,
-                      background: trackColor,
-                      opacity: 0.4 + (note.velocity ?? 0.8) * 0.6,
-                      boxShadow: `0 0 6px ${trackColor}66`,
+                      background: isSelected ? '#fff' : trackColor,
+                      opacity: isSelected ? 1 : 0.4 + (note.velocity ?? 0.8) * 0.6,
+                      boxShadow: isSelected ? `0 0 8px #fff8` : `0 0 6px ${trackColor}66`,
+                      cursor: 'pointer',
                     }}
+                    onClick={e => handleNoteClick(e, note.id)}
                     onContextMenu={e => handleNoteRightClick(e, note.id)}
                   />
                 );

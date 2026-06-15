@@ -45,6 +45,12 @@ export default function Mixer({ session, dispatch }) {
     applyTrackFx(track.id, { [key]: val });
   };
 
+  const updateComp = (track, changes) => {
+    const comp = { threshold: -24, ratio: 4, enabled: false, ...track.comp, ...changes };
+    dispatch({ type: 'UPDATE_TRACK', trackId: track.id, changes: { comp } });
+    applyTrackFx(track.id, { comp });
+  };
+
   return (
     <div className="mixer">
       <div className="mixer-header">
@@ -64,6 +70,21 @@ export default function Mixer({ session, dispatch }) {
               <Knob size={20} label="REV" value={track.reverb ?? 0} min={0} max={1} onChange={v => updateSend(track, 'reverb', v)} />
               <Knob size={20} label="DLY" value={track.delay  ?? 0} min={0} max={1} onChange={v => updateSend(track, 'delay',  v)} />
               <Knob size={20} label="PAN" value={track.pan ?? 0} min={-1} max={1} onChange={v => updatePan(track, v)} />
+            </div>
+            <div className="comp-section">
+              <button
+                className={`comp-btn${track.comp?.enabled ? ' active' : ''}`}
+                onClick={() => updateComp(track, { enabled: !track.comp?.enabled })}
+                title="Compressor"
+              >COMP</button>
+              {track.comp?.enabled && (
+                <div className="comp-knobs">
+                  <Knob size={18} label="THR" value={track.comp?.threshold ?? -24} min={-60} max={0}
+                    onChange={v => updateComp(track, { threshold: v })} />
+                  <Knob size={18} label="RAT" value={track.comp?.ratio ?? 4} min={1} max={20}
+                    onChange={v => updateComp(track, { ratio: v })} />
+                </div>
+              )}
             </div>
             <div className="fader-section">
               <input

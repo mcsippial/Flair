@@ -25,18 +25,32 @@ function buildFxChain(track) {
     mid:  (track.eq?.mid  || 0) * 12,
     high: (track.eq?.high || 0) * 12,
   });
-  const panner     = new Tone.Panner(track.pan || 0);
+  const comp = new Tone.Compressor({
+    threshold: track.comp?.threshold ?? -24,
+    ratio:     track.comp?.ratio     ?? 4,
+    attack:    0.003,
+    release:   0.1,
+  });
+  const panner      = new Tone.Panner(track.pan || 0);
   const send_reverb = new Tone.Gain(track.reverb || 0);
   const send_delay  = new Tone.Gain(track.delay  || 0);
 
+  // Chain: eq → comp → panner → master; comp also feeds sends
+  eq.connect(comp);
+  comp.connect(panner);
   panner.connect(masterDest);
-  eq.connect(panner);
   if (getMasterReverb()) send_reverb.connect(getMasterReverb());
   if (getMasterDelay())  send_delay.connect(getMasterDelay());
-  eq.connect(send_reverb);
-  eq.connect(send_delay);
+  comp.connect(send_reverb);
+  comp.connect(send_delay);
 
-  return { eq, panner, send_reverb, send_delay, input: eq };
+  // Bypass compressor by default if track has no comp settings
+  if (!track.comp?.enabled) {
+    comp.threshold.value = 0;  // 0 dB threshold = effectively bypassed
+    comp.ratio.value = 1;
+  }
+
+  return { eq, comp, panner, send_reverb, send_delay, input: eq };
 }
 
 // ─── Drum track ───────────────────────────────────────────────────────────────

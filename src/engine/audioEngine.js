@@ -74,7 +74,7 @@ export function getMetronomeEnabled() { return metroEnabled; }
 export function getTrackNodes(trackId) { return trackNodes[trackId]; }
 export function setTrackNodes(trackId, nodes) { trackNodes[trackId] = nodes; }
 
-export function applyTrackFx(trackId, { eq, pan, reverb, delay } = {}) {
+export function applyTrackFx(trackId, { eq, pan, reverb, delay, comp } = {}) {
   const nodes = trackNodes[trackId];
   if (!nodes) return;
   if (nodes.eq && eq) {
@@ -85,6 +85,15 @@ export function applyTrackFx(trackId, { eq, pan, reverb, delay } = {}) {
   if (nodes.panner    && pan     !== undefined) nodes.panner.pan.value       = pan;
   if (nodes.send_reverb && reverb !== undefined) nodes.send_reverb.gain.value = reverb;
   if (nodes.send_delay  && delay  !== undefined) nodes.send_delay.gain.value  = delay;
+  if (nodes.comp && comp !== undefined) {
+    if (comp.enabled) {
+      nodes.comp.threshold.value = comp.threshold ?? -24;
+      nodes.comp.ratio.value     = comp.ratio     ?? 4;
+    } else {
+      nodes.comp.threshold.value = 0;
+      nodes.comp.ratio.value     = 1;
+    }
+  }
 }
 
 export function disposeTrack(trackId) {
@@ -92,7 +101,7 @@ export function disposeTrack(trackId) {
   if (nodes) {
     // Dispose individual named nodes
     ['sequence','synth','padFilter','player',
-     'drumBus','meter','eq','panner','send_reverb','send_delay'].forEach(k => {
+     'drumBus','meter','eq','comp','panner','send_reverb','send_delay'].forEach(k => {
       try { if (nodes[k]) nodes[k].dispose(); } catch(e) {}
     });
     // Dispose all drum internal nodes (filters, gains, dist) if present

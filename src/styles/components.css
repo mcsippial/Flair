@@ -1912,6 +1912,14 @@
 
 .pr-clear-btn:hover { border-color: rgba(152,48,40,0.5); color: #e05048; }
 
+.pr-selection-hint {
+  font-size: 10px;
+  color: var(--amber);
+  opacity: 0.85;
+  white-space: nowrap;
+  margin-right: 6px;
+}
+
 /* Empty state / hints */
 .pr-empty {
   flex: 1;
@@ -2501,4 +2509,41 @@
 .drum-step.active:hover {
   transform: translateY(-1px);
   box-shadow: 0 0 14px rgba(245,166,35,0.85), 0 0 28px rgba(245,166,35,0.4);
+}
+
+/* ── Compressor section in channel strips ─────────────────────────────────── */
+.comp-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
+}
+
+.comp-btn {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.comp-btn:hover { border-color: var(--amber); color: var(--amber); }
+
+.comp-btn.active {
+  background: var(--amber-glow);
+  border-color: var(--amber);
+  color: var(--amber-bright);
+  box-shadow: 0 0 6px var(--amber-glow);
+}
+
+.comp-knobs {
+  display: flex;
+  gap: 4px;
 }
