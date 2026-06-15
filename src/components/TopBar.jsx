@@ -13,6 +13,41 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
   const [showExport, setShowExport] = useState(false);
   const [exporting, setExporting] = useState(false);
   const tapTimeout = useRef(null);
+  const loadInputRef = useRef(null);
+
+  const handleSaveProject = () => {
+    try {
+      const json = JSON.stringify(session, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'flair-project.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 15000);
+    } catch (err) {
+      alert(`Save failed: ${err.message}`);
+    }
+  };
+
+  const handleLoadProject = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        dispatch({ type: 'LOAD_SESSION', data });
+      } catch (err) {
+        alert(`Load failed: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+    // Reset file input so the same file can be loaded again if needed
+    e.target.value = '';
+  };
 
   const hasAudio = session.tracks.some(t => t.type === 'audio' && t.clips.length);
 
@@ -133,6 +168,19 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
       </div>
 
       <div className="top-right">
+        <button className="transport-btn" onClick={handleSaveProject} title="Save project as JSON">
+          Save Project
+        </button>
+        <button className="transport-btn" onClick={() => loadInputRef.current?.click()} title="Load project from JSON">
+          Load Project
+        </button>
+        <input
+          ref={loadInputRef}
+          type="file"
+          accept=".json"
+          style={{ display: 'none' }}
+          onChange={handleLoadProject}
+        />
         <div className="shortcut-hint"
           onMouseEnter={() => setShowShortcuts(true)}
           onMouseLeave={() => setShowShortcuts(false)}

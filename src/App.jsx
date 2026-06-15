@@ -13,12 +13,32 @@ import Tone from 'tone';
 import { scheduleSession, scheduleTrack, clearSchedule } from './engine/scheduler';
 
 
+const SAVE_KEY = 'flair_session_v1';
+
 export default function App() {
   const [state, dispatch] = useReducer(sessionReducer, initialState);
   const { present: session } = state;
+  const [savedData] = useState(() => {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  });
   const [showStartScreen, setShowStartScreen] = useState(true);
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
   const scheduledTrackIds = useRef(new Set());
+  const saveTimerRef = useRef(null);
+
+  // Auto-save session to localStorage, debounced 1 second.
+  useEffect(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(session));
+      } catch {}
+    }, 1000);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [session]);
 
   // Sync mute/solo/volume to audio engine; hot-add new tracks if playing
   useEffect(() => {
@@ -167,6 +187,7 @@ export default function App() {
           onDismiss={() => setShowStartScreen(false)}
           dispatch={dispatch}
           session={session}
+          savedData={savedData}
         />
       )}
       <div className={`app-layout ${showStartScreen ? 'blurred' : ''}`}>

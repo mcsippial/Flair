@@ -500,6 +500,42 @@
 .start-stem-done .start-stem-status { color: #6dc87a; }
 .start-stem-done { opacity: 0.75; }
 
+/* Restore session banner */
+.start-restore-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(192, 124, 16, 0.12);
+  border: 1px solid rgba(192, 124, 16, 0.35);
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.start-restore-text {
+  color: var(--text-secondary);
+  font-size: 13px;
+  flex: 1;
+}
+
+.start-restore-btn {
+  background: var(--amber, #c07c10);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+
+.start-restore-btn:hover {
+  background: var(--amber-bright, #e09a20);
+}
+
 
 /* ============================================================
    TOP BAR

@@ -169,6 +169,11 @@ export function sessionReducer(state, action) {
     return { ...state, past: [...state.past, state.present].slice(-MAX_HISTORY), future: [] };
   }
 
+  // LOAD_SESSION replaces entire state and resets undo/redo history (non-undoable).
+  if (action.type === 'LOAD_SESSION') {
+    return { past: [], present: action.data, future: [] };
+  }
+
   // Non-undoable actions
   const nonUndoable = ['SET_PLAYING', 'SET_RECORDING', 'ARM_TRACK', 'SET_PLAYHEAD', 'SELECT_TRACK', 'SELECT_CLIP', 'ADD_AI_MESSAGE', 'ADD_AI_SUGGESTION', 'REMOVE_AI_SUGGESTION', 'NEW_CHAT', 'SELECT_CHAT', 'UPDATE_CLIP_LIVE', 'COPY_CLIP'];
   if (nonUndoable.includes(action.type)) {

@@ -82,7 +82,7 @@ const LOADING_LINES = [
   'Almost there…',
 ];
 
-export default function StartScreen({ onDismiss, dispatch }) {
+export default function StartScreen({ onDismiss, dispatch, savedData }) {
   const [input, setInput]       = useState('');
   const [screen, setScreen]     = useState('prompt'); // 'prompt' | 'audition'
   const [building, setBuilding] = useState(false);
@@ -380,6 +380,20 @@ export default function StartScreen({ onDismiss, dispatch }) {
       </div>
 
       <div className="start-inner">
+        {savedData && (
+          <div className="start-restore-banner">
+            <span className="start-restore-text">You have a previous session saved.</span>
+            <button
+              className="start-restore-btn"
+              onClick={() => {
+                dispatch({ type: 'LOAD_SESSION', data: savedData });
+                onDismiss();
+              }}
+            >
+              Restore previous session
+            </button>
+          </div>
+        )}
         <div className="start-brand">
           <h1 className="start-wordmark">Flair</h1>
           <p className="start-tagline">The AI studio for producers</p>
