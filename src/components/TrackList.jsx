@@ -2,36 +2,85 @@ import React, { useState } from 'react';
 
 const TRACK_COLORS = ['#c4a882','#6ba3c4','#9b82c4','#6bc49b','#c46b6b','#c4b86b','#6bc4bc','#c46bb8'];
 
-// Minimal SVG icons that read at 14px
-function TypeIcon({ type }) {
+// Instrument-specific icons at 14px
+function TypeIcon({ type, instrument }) {
+  const inst = instrument || '';
+
+  // Drum kit
   if (type === 'drum') return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
-      <ellipse cx="7" cy="4.5" rx="5" ry="2" />
-      <line x1="2" y1="4.5" x2="2" y2="9.5" />
-      <line x1="12" y1="4.5" x2="12" y2="9.5" />
-      <ellipse cx="7" cy="9.5" rx="5" ry="2" />
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+      <ellipse cx="7" cy="5" rx="4.5" ry="1.8" />
+      <line x1="2.5" y1="5" x2="2.5" y2="9.5" />
+      <line x1="11.5" y1="5" x2="11.5" y2="9.5" />
+      <ellipse cx="7" cy="9.5" rx="4.5" ry="1.8" />
+      <line x1="7" y1="3.2" x2="5" y2="1" strokeWidth="1" />
+      <line x1="7" y1="3.2" x2="9" y2="1" strokeWidth="1" />
     </svg>
   );
-  if (type === 'midi') return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
-      <rect x="2" y="4" width="2.5" height="6" rx="0.5" fill="currentColor" stroke="none" opacity="0.8" />
-      <rect x="5.75" y="5.5" width="2.5" height="4.5" rx="0.5" fill="currentColor" stroke="none" opacity="0.6" />
-      <rect x="9.5" y="3" width="2.5" height="7.5" rx="0.5" fill="currentColor" stroke="none" opacity="0.8" />
-    </svg>
-  );
+
+  // Audio waveform
   if (type === 'audio') return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+      <line x1="1.5" y1="7" x2="1.5" y2="7" />
+      <line x1="3" y1="5" x2="3" y2="9" />
+      <line x1="4.5" y1="3" x2="4.5" y2="11" />
+      <line x1="6" y1="5.5" x2="6" y2="8.5" />
+      <line x1="7.5" y1="4" x2="7.5" y2="10" />
+      <line x1="9" y1="5.5" x2="9" y2="8.5" />
+      <line x1="10.5" y1="3.5" x2="10.5" y2="10.5" />
+      <line x1="12" y1="5" x2="12" y2="9" />
+    </svg>
+  );
+
+  // Bass — low sine wave
+  if (inst === 'bass') return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
-      <path d="M1.5 7c1-3 1.5-3 2.5 0s1.5 3 2.5 0 1.5-3 2.5 0 1.5 3 2.5 0" />
+      <path d="M1 9c1.5-5 2.5-5 4 0s2.5 5 4 0s2 -3 3.5 0" />
+      <line x1="1" y1="11" x2="13" y2="11" strokeWidth="0.8" opacity="0.4" />
     </svg>
   );
+
+  // Lead / melody — single note with flag
+  if (inst === 'lead') return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+      <ellipse cx="4.5" cy="10.5" rx="2.2" ry="1.5" fill="currentColor" opacity="0.85" stroke="none" />
+      <line x1="6.7" y1="10.5" x2="6.7" y2="2.5" />
+      <path d="M6.7 2.5 C9 2 11 3.5 10.5 5.5 C10 7 7.5 7 6.7 6.5" fill="currentColor" opacity="0.7" stroke="none" />
+    </svg>
+  );
+
+  // Pad / chords — stacked bars
+  if (inst === 'pad') return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+      <rect x="1.5" y="3" width="11" height="1.8" rx="0.5" opacity="0.9" />
+      <rect x="1.5" y="6.1" width="11" height="1.8" rx="0.5" opacity="0.7" />
+      <rect x="1.5" y="9.2" width="11" height="1.8" rx="0.5" opacity="0.5" />
+    </svg>
+  );
+
+  // Keys / piano — keyboard
+  if (inst === 'keys') return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round">
+      <rect x="1.5" y="4" width="11" height="7" rx="1" />
+      <line x1="4" y1="4" x2="4" y2="11" />
+      <line x1="7" y1="4" x2="7" y2="11" />
+      <line x1="10" y1="4" x2="10" y2="11" />
+      <rect x="2.8" y="4" width="1.4" height="4" rx="0.4" fill="currentColor" stroke="none" />
+      <rect x="5.8" y="4" width="1.4" height="4" rx="0.4" fill="currentColor" stroke="none" />
+      <rect x="8.8" y="4" width="1.4" height="4" rx="0.4" fill="currentColor" stroke="none" />
+    </svg>
+  );
+
+  // Default midi / synth — waveform bars
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="7" cy="7" r="5" />
-      <path d="M5 5.5a2 2 0 0 1 4 0c0 1.5-2 2.5-2 3.5" />
-      <circle cx="7" cy="11" r="0.6" fill="currentColor" />
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+      <rect x="1.5" y="5" width="2" height="5" rx="0.4" fill="currentColor" stroke="none" opacity="0.8" />
+      <rect x="4.5" y="3.5" width="2" height="6.5" rx="0.4" fill="currentColor" stroke="none" opacity="0.7" />
+      <rect x="7.5" y="2" width="2" height="8" rx="0.4" fill="currentColor" stroke="none" opacity="0.8" />
+      <rect x="10.5" y="5" width="2" height="5" rx="0.4" fill="currentColor" stroke="none" opacity="0.6" />
     </svg>
   );
-};
+}
 
 function genId() { return Math.random().toString(36).substr(2, 9); }
 
@@ -77,7 +126,7 @@ export default function TrackList({ session, dispatch }) {
               {/* Top row: icon + name + arm */}
               <div className="track-row-top">
                 <span className="track-icon" style={{ color: track.color }}>
-                  <TypeIcon type={track.type} />
+                  <TypeIcon type={track.type} instrument={track.instrument} />
                 </span>
 
                 {editingId === track.id ? (
@@ -104,23 +153,18 @@ export default function TrackList({ session, dispatch }) {
 
                 <div className="track-row-actions" onClick={e => e.stopPropagation()}>
                   <button
-                    className={`track-btn arm-btn${session.armedTrackId === track.id ? ' armed' : ''}`}
-                    onClick={() => dispatch({ type: 'ARM_TRACK', trackId: track.id })}
-                    title="Arm for recording"
-                  >R</button>
-                  <button
                     className="track-btn delete-btn"
                     onClick={() => dispatch({ type: 'REMOVE_TRACK', trackId: track.id })}
                     title="Delete track"
                   >
-                    <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
-                      <line x1="1" y1="1" x2="8" y2="8" /><line x1="8" y1="1" x2="1" y2="8" />
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+                      <line x1="1" y1="1" x2="7" y2="7" /><line x1="7" y1="1" x2="1" y2="7" />
                     </svg>
                   </button>
                 </div>
               </div>
 
-              {/* Bottom row: M / S + volume fader + color swatch */}
+              {/* Bottom row: M / S / R + volume fader + color swatch — all on the same line */}
               <div className="track-row-bottom" onClick={e => e.stopPropagation()}>
                 <button
                   className={`track-ms-btn${track.muted ? ' ms-active muted' : ''}`}
@@ -132,6 +176,11 @@ export default function TrackList({ session, dispatch }) {
                   onClick={() => dispatch({ type: 'SOLO_TRACK', trackId: track.id })}
                   title="Solo (S)"
                 >S</button>
+                <button
+                  className={`track-ms-btn arm-btn${session.armedTrackId === track.id ? ' armed' : ''}`}
+                  onClick={() => dispatch({ type: 'ARM_TRACK', trackId: track.id })}
+                  title="Arm for recording"
+                >R</button>
 
                 <input
                   className="track-fader"

@@ -76,7 +76,10 @@ export default function AIPanel({ session, dispatch, open = true, onToggle }) {
 
       <div className="ai-chat-feed" ref={chatRef}>
         {session.aiMessages.length === 0 && (
-          <div className="ai-empty">Tell me what you're making and I'll help build it.</div>
+          <div className="ai-empty">
+            <div className="ai-empty-title">Your AI Producer</div>
+            <div className="ai-empty-body">Describe what you're making and I'll build it — chord progressions, drum patterns, melodies, arrangement changes. Try:<br/><br/><em>"Dark trap beat, 140 BPM, heavy 808s"</em><br/><em>"Add a minor chord progression with a jazzy feel"</em><br/><em>"Layer a lead melody over the existing chords"</em></div>
+          </div>
         )}
         {session.aiMessages.map(msg => (
           <div key={msg.id} className={`ai-message ${msg.role}`}>

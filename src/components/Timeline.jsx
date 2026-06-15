@@ -333,25 +333,6 @@ export default function Timeline({ session, dispatch }) {
 
   return (
     <div className="timeline">
-      <div className="timeline-controls" onClick={e => e.stopPropagation()}>
-        <button
-          className={`snap-btn${snap ? ' active' : ''}`}
-          onClick={() => setSnap(s => !s)}
-        >{snap ? 'SNAP ON' : 'SNAP OFF'}</button>
-        {[
-          { label: '1', value: 1 },
-          { label: '1/2', value: 2 },
-          { label: '1/4', value: 4 },
-          { label: '1/8', value: 8 },
-          { label: '1/16', value: 16 },
-        ].map(({ label, value }) => (
-          <button
-            key={value}
-            className={`grid-btn${snapDiv === value ? ' active' : ''}`}
-            onClick={() => setSnapDiv(value)}
-          >{label}</button>
-        ))}
-      </div>
       <div className="timeline-scroll" ref={scrollRef} onWheel={handleWheel}>
         <div className="timeline-inner" style={{ width: totalWidth }}>
 
@@ -372,7 +353,21 @@ export default function Timeline({ session, dispatch }) {
               }} />
             )}
             <div className="playhead" style={{ left: playheadX }} />
-            <div className="timeline-zoom-controls" onClick={e => e.stopPropagation()}>
+            <div className="timeline-ruler-controls" onClick={e => e.stopPropagation()}>
+              <button className={`snap-btn${snap ? ' active' : ''}`} onClick={() => setSnap(s => !s)}>
+                {snap ? 'SNAP' : 'FREE'}
+              </button>
+              {snap && [
+                { label: '1', value: 1 },
+                { label: '½', value: 2 },
+                { label: '¼', value: 4 },
+                { label: '⅛', value: 8 },
+                { label: '1/16', value: 16 },
+              ].map(({ label, value }) => (
+                <button key={value} className={`grid-btn${snapDiv === value ? ' active' : ''}`}
+                  onClick={() => setSnapDiv(value)}>{label}</button>
+              ))}
+              <div className="ruler-sep" />
               <button className="zoom-btn" onClick={zoomOut} title="Zoom out">−</button>
               <span className="zoom-pct">{Math.round(zoom * 100)}%</span>
               <button className="zoom-btn" onClick={zoomIn} title="Zoom in">+</button>

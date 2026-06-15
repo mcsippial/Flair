@@ -14,6 +14,7 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
   const [showExport, setShowExport] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [metroOn, setMetroOn] = useState(() => getMetronomeEnabled());
+  const [masterVol, setMasterVol] = useState(0.8);
   const tapTimeout = useRef(null);
   const loadInputRef = useRef(null);
 
@@ -176,7 +177,7 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
       <div className="top-spacer" />
 
       <div className="master-volume">
-        <Knob value={0.8} min={0} max={1} label="VOL" size={28} onChange={setMasterVolume} />
+        <Knob value={masterVol} min={0} max={1} label="VOL" size={28} onChange={v => { setMasterVol(v); setMasterVolume(v); }} />
       </div>
 
       <div className="top-right">
