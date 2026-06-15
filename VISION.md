@@ -195,24 +195,37 @@ The AI needs to:
 ### Tier 2 — Core DAW features producers expect
 5. Automation lanes — draw volume/pan/effect curves over time
 6. ✅ Velocity lane in piano roll
-7. Note selection + transpose (shift notes up/down by semitone/octave)
-8. Clip loop/repeat by dragging the right edge
-9. Compression per channel in the mixer
-10. MIDI export (.mid file)
+7. ✅ Note selection + transpose (shift notes up/down by semitone/octave)
+8. ✅ Clip loop/repeat by dragging the right edge
+9. ✅ Compression per channel in the mixer
+10. ✅ MIDI export (.mid file)
 
-### Tier 3 — AI differentiation (where Flair beats everything else)
-11. ✅ Session-aware AI panel — AI sees all tracks, can dispatch actions
-12. AI chord progression generator in piano roll (knows your key/scale)
-13. AI mix analysis — flags masking, gain staging issues, frequency clashes
-14. AI arrangement suggestions — section markers, variation ideas
-15. AI mastering chain — LUFS targeting, auto-limiter, reference matching
+### Tier 3 — UI/UX polish (what separates a tool from a product)
+11. ✅ Full UI overhaul — neon blue on pure black, Inter typography, tighter spacing
+12. Automation lanes — draw volume/pan curves over time on the timeline
+13. Loop region markers — draggable A/B loop on the ruler to repeat a section
+14. Snap toggle + grid size selector in the timeline header
+15. Track height resize — drag divider between tracks for more/less vertical space
+16. Mixer: mute/solo state visible per strip, peak hold on VU meters
+17. Collapsible AI panel — full-width timeline mode when you need focus
+18. Status bar — shows cursor position, note under cursor, selection length
+19. Keyboard shortcuts for bottom panel switching (P=piano roll, D=drums, M=mixer)
+20. AI proactive hints — session-aware suggestions ("your bass has no variation in bars 8–15")
+21. Send/return routing UI — visual signal flow per channel strip
 
-### Tier 4 — Ecosystem
-16. Sample browser + drag-to-track (built-in royalty-free library or Splice embed)
-17. MIDI hardware input (Web MIDI API)
-18. Real-time collaboration (shared session via WebSocket/Y.js)
-19. Distribution integration (DistroKid API)
-20. VST bridge for power users (local server approach)
+### Tier 4 — AI differentiation (where Flair beats everything else)
+22. ✅ Session-aware AI panel — AI sees all tracks, dispatches actions in real time
+23. AI chord progression generator in piano roll (knows your key/scale)
+24. AI mix analysis — flags masking, gain staging issues, frequency clashes
+25. AI arrangement suggestions — section markers, variation ideas
+26. AI mastering chain — LUFS targeting, auto-limiter, reference matching
+
+### Tier 5 — Ecosystem
+27. Sample browser + drag-to-track (built-in royalty-free library or Splice embed)
+28. MIDI hardware input (Web MIDI API)
+29. Real-time collaboration (shared session via WebSocket/Y.js)
+30. Distribution integration (DistroKid API)
+31. VST bridge for power users (local server approach)
 
 ---
 
