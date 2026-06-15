@@ -71,10 +71,7 @@ export default function AIPanel({ session, dispatch }) {
             <div className="msg-bubble">{msg.text}</div>
             {msg.actions?.length > 0 && (
               <div className="msg-actions">
-                <button className="action-chip apply"
-                  onClick={() => parseAndDispatch({ message: msg.text, actions: msg.actions }, dispatch, session)}>
-                  Apply changes
-                </button>
+                <span className="action-applied">✓ {msg.actions.length} action{msg.actions.length !== 1 ? 's' : ''} applied</span>
               </div>
             )}
           </div>

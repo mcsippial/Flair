@@ -1594,20 +1594,11 @@
   padding-left: 2px;
 }
 
-.action-chip {
-  font-size: 11px;
-  padding: 4px 12px;
-  border-radius: 10px;
-  transition: all 0.12s;
+.action-applied {
+  font-size: 10px;
+  color: rgba(232,146,10,0.55);
+  letter-spacing: 0.03em;
 }
-
-.action-chip.apply {
-  background: rgba(232,146,10,0.1);
-  border: 1px solid rgba(232,146,10,0.22);
-  color: var(--amber);
-}
-
-.action-chip.apply:hover { background: rgba(232,146,10,0.18); }
 
 .thinking-dot {
   width: 6px;
