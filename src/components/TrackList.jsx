@@ -84,10 +84,32 @@ function TypeIcon({ type, instrument }) {
 
 function genId() { return Math.random().toString(36).substr(2, 9); }
 
-export default function TrackList({ session, dispatch }) {
+const DEFAULT_HEIGHT = 58;
+const MIN_HEIGHT = 40;
+const MAX_HEIGHT = 120;
+
+export default function TrackList({ session, dispatch, trackHeights = {}, setTrackHeight }) {
   const [editingId, setEditingId]       = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(null);
   const [showAddMenu, setShowAddMenu]   = useState(false);
+
+  const startResize = (e, trackId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startY = e.clientY;
+    const startH = trackHeights[trackId] ?? DEFAULT_HEIGHT;
+
+    const onMove = (ev) => {
+      const newH = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startH + (ev.clientY - startY)));
+      setTrackHeight?.(trackId, newH);
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
 
   const addTrack = (type) => {
     dispatch({
@@ -117,6 +139,7 @@ export default function TrackList({ session, dispatch }) {
           <div
             key={track.id}
             className={`track-row${session.selectedTrackId === track.id ? ' selected' : ''}${track.muted ? ' muted' : ''}`}
+            style={{ height: trackHeights[track.id] ?? DEFAULT_HEIGHT }}
             onClick={() => dispatch({ type: 'SELECT_TRACK', trackId: track.id })}
           >
             {/* Left accent bar = track color */}
@@ -208,6 +231,10 @@ export default function TrackList({ session, dispatch }) {
                 )}
               </div>
             </div>
+            <div
+              className="track-resize-handle"
+              onPointerDown={e => startResize(e, track.id)}
+            />
           </div>
         ))}
       </div>

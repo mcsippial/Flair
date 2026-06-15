@@ -23,11 +23,7 @@ export default function AIPanel({ session, dispatch, open = true, onToggle }) {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [session.aiMessages, thinking]);
 
-  const handleSend = async () => {
-    if (!input.trim() || thinking) return;
-    const userMsg = input.trim();
-    setInput('');
-    dispatch({ type: 'ADD_AI_MESSAGE', message: { id: Math.random().toString(36).substr(2,9), role: 'user', text: userMsg, timestamp: Date.now() } });
+  const startThinking = () => {
     setThinking(true);
     setThinkingHint(COMPOSING_HINTS[0]);
     let hintIdx = 0;
@@ -35,6 +31,17 @@ export default function AIPanel({ session, dispatch, open = true, onToggle }) {
       hintIdx = (hintIdx + 1) % COMPOSING_HINTS.length;
       setThinkingHint(COMPOSING_HINTS[hintIdx]);
     }, 2500);
+  };
+
+  const stopThinking = () => {
+    clearInterval(hintInterval.current);
+    setThinking(false);
+    setThinkingHint('');
+  };
+
+  const sendAiMessage = async (userMsg) => {
+    dispatch({ type: 'ADD_AI_MESSAGE', message: { id: Math.random().toString(36).substr(2,9), role: 'user', text: userMsg, timestamp: Date.now() } });
+    startThinking();
     try {
       const response = await sendMessage(userMsg, buildSessionContext(session), session.aiMessages);
       dispatch({ type: 'ADD_AI_MESSAGE', message: { id: Math.random().toString(36).substr(2,9), role: 'assistant', text: response.message, actions: response.actions, timestamp: Date.now() } });
@@ -42,10 +49,20 @@ export default function AIPanel({ session, dispatch, open = true, onToggle }) {
     } catch (err) {
       dispatch({ type: 'ADD_AI_MESSAGE', message: { id: Math.random().toString(36).substr(2,9), role: 'assistant', text: `Error: ${err.message}`, timestamp: Date.now() } });
     } finally {
-      clearInterval(hintInterval.current);
-      setThinking(false);
-      setThinkingHint('');
+      stopThinking();
     }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() || thinking) return;
+    const userMsg = input.trim();
+    setInput('');
+    await sendAiMessage(userMsg);
+  };
+
+  const handleAnalyzeMix = async () => {
+    if (thinking) return;
+    await sendAiMessage("Analyze this mix and give me your honest assessment — flag any gain staging issues, frequency clashing, arrangement gaps, or anything that would stop this from sounding professional. Be specific and producer-direct.");
   };
 
   if (!open) {
@@ -111,6 +128,11 @@ export default function AIPanel({ session, dispatch, open = true, onToggle }) {
                   <button key={hint} className="ai-prompt-chip" onClick={() => setInput(hint)}>{hint}</button>
                 ))}
               </div>
+            )}
+            {!thinking && (
+              <button className="ai-analyze-btn" onClick={handleAnalyzeMix}>
+                Analyze mix
+              </button>
             )}
             <div className="ai-input-row">
               <input

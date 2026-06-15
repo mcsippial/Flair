@@ -732,6 +732,19 @@
 .track-row.selected { background: rgba(0,200,240,0.04); border-left: 2px solid var(--neon); }
 .track-row.muted { opacity: 0.4; }
 
+.track-resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  cursor: ns-resize;
+  z-index: 10;
+}
+.track-resize-handle:hover {
+  background: var(--border-neon);
+}
+
 .track-color-bar {
   width: 2px;
   flex-shrink: 0;
@@ -1217,6 +1230,25 @@
 }
 .ai-prompt-chip:hover {
   border-color: var(--border-neon); color: var(--neon); background: rgba(0,200,240,0.05);
+}
+
+.ai-analyze-btn {
+  width: 100%;
+  padding: 5px 10px;
+  margin-bottom: 6px;
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  text-align: center;
+}
+.ai-analyze-btn:hover {
+  border-color: var(--border-neon);
+  color: var(--neon);
 }
 
 .ai-input-row {

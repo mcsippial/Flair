@@ -28,6 +28,11 @@ export default function App() {
   const [showStartScreen, setShowStartScreen] = useState(true);
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(true);
+  const [trackHeights, setTrackHeights] = useState({});
+
+  const setTrackHeight = useCallback((trackId, height) => {
+    setTrackHeights(prev => ({ ...prev, [trackId]: height }));
+  }, []);
   const scheduledTrackIds = useRef(new Set());
   const saveTimerRef = useRef(null);
   const trackNotesFingerprints = useRef({});
@@ -223,8 +228,8 @@ export default function App() {
           canUndo={state.past.length > 0}
           canRedo={state.future.length > 0}
         />
-        <TrackList session={session} dispatch={dispatch} />
-        <Timeline session={session} dispatch={dispatch} />
+        <TrackList session={session} dispatch={dispatch} trackHeights={trackHeights} setTrackHeight={setTrackHeight} />
+        <Timeline session={session} dispatch={dispatch} trackHeights={trackHeights} />
         <AIPanel session={session} dispatch={dispatch} open={aiPanelOpen} onToggle={() => setAiPanelOpen(o => !o)} />
         <div className="bottom-panel">
           {(() => {

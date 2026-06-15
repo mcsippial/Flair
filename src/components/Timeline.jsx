@@ -146,7 +146,9 @@ function FadeOverlay({ clip, bpm }) {
   );
 }
 
-export default function Timeline({ session, dispatch }) {
+const DEFAULT_TRACK_HEIGHT = 58;
+
+export default function Timeline({ session, dispatch, trackHeights = {} }) {
   const scrollRef = useRef(null);
   const [playheadX, setPlayheadX] = useState(0);
   const [zoom, setZoom] = useState(1);
@@ -379,7 +381,7 @@ export default function Timeline({ session, dispatch }) {
               <div className="timeline-empty">Add a track or ask Flair to build something.</div>
             )}
             {session.tracks.map(track => (
-              <div key={track.id} className="timeline-lane">
+              <div key={track.id} className="timeline-lane" style={{ height: trackHeights[track.id] ?? DEFAULT_TRACK_HEIGHT }}>
                 {track.clips.map(clip => (
                   <div
                     key={clip.id}
