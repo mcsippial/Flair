@@ -1397,7 +1397,7 @@
   overflow-x: auto; overflow-y: hidden;
   padding: 6px 8px;
   gap: 4px;
-  align-items: flex-start;
+  align-items: stretch;
   scrollbar-gutter: stable;
 }
 
