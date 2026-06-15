@@ -257,6 +257,31 @@ export default function Timeline({ session, dispatch }) {
     }
   };
 
+  // Drag the right edge of a MIDI/drum clip to loop-repeat it.
+  // The clip's content stays fixed; only `length` grows, and `loopLength`
+  // records the original pattern length so the scheduler can tile it.
+  const startLoop = (e, track, clip) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startX  = e.clientX;
+    const origLen = clip.length;
+    dispatch({ type: 'PUSH_HISTORY' });
+
+    const move = (ev) => {
+      let dBars = (ev.clientX - startX) / BAR_WIDTH;
+      if (!ev.shiftKey) dBars = Math.round(dBars * 4) / 4;
+      const nl = Math.max(origLen, +(origLen + dBars).toFixed(4));
+      dispatch({ type: 'UPDATE_CLIP_LIVE', trackId: track.id, clipId: clip.id,
+        changes: { length: nl, loopLength: clip.loopLength || origLen } });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
   const zoomIn  = (e) => { e?.stopPropagation(); setZoom(z => Math.min(4, +(z * 1.5).toFixed(2))); };
   const zoomOut = (e) => { e?.stopPropagation(); setZoom(z => Math.max(0.25, +(z / 1.5).toFixed(2))); };
 
@@ -295,6 +320,7 @@ export default function Timeline({ session, dispatch }) {
                 {track.clips.map(clip => (
                   <div
                     key={clip.id}
+                    data-type={clip.type}
                     className={`clip clip-${clip.type}${session.selectedClipId === clip.id ? ' selected' : ''}`}
                     style={{
                       left: clip.start * BAR_WIDTH,
@@ -358,10 +384,20 @@ export default function Timeline({ session, dispatch }) {
                         />
                       </>
                     )}
+                    {/* Loop repeat tick marks for MIDI/drum clips */}
+                    {(clip.type === 'midi' || clip.type === 'synth' || clip.type === 'drum') && clip.loopLength && clip.length > clip.loopLength && (
+                      Array.from({ length: Math.floor(clip.length / clip.loopLength) - 1 }, (_, i) => (
+                        <div key={i} className="clip-loop-tick"
+                          style={{ left: `${((i + 1) * clip.loopLength / clip.length) * 100}%` }} />
+                      ))
+                    )}
                     <div
-                      className="clip-handle clip-handle-right"
+                      className={`clip-handle clip-handle-right${clip.type !== 'audio' ? ' loop-handle' : ''}`}
                       data-handle="right"
-                      onPointerDown={e => startDrag(e, track, clip, 'trim-right')}
+                      title={clip.type !== 'audio' ? 'Drag to loop-repeat' : 'Drag to trim'}
+                      onPointerDown={e => clip.type === 'audio'
+                        ? startDrag(e, track, clip, 'trim-right')
+                        : startLoop(e, track, clip)}
                     />
                   </div>
                 ))}

@@ -79,7 +79,7 @@ function scheduleDrumTrack(track) {
     }, clip.notes || []);
     part.start(`${clip.start}m`);
     part.loop = true;
-    part.loopEnd = `${clip.length}m`;
+    part.loopEnd = `${clip.loopLength || clip.length}m`;
     scheduledParts.push(part);
   });
 }
@@ -122,7 +122,7 @@ function scheduleMidiTrack(track) {
     }, events);
     part.start(`${clip.start}m`);
     part.loop = true;
-    part.loopEnd = `${clip.length}m`;
+    part.loopEnd = `${clip.loopLength || clip.length}m`;
     scheduledParts.push(part);
   });
 }

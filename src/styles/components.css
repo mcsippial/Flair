@@ -2258,113 +2258,6 @@
 .drum-sequencer {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  background: var(--surface-1);
-  overflow: hidden;
-}
-
-.drum-seq-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-2);
-  flex-shrink: 0;
-}
-
-.drum-seq-actions {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.drum-seq-body {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  padding: 16px 20px;
-  overflow: auto;
-  gap: 12px;
-}
-
-.drum-seq-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.drum-seq-clip-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.drum-seq-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  align-items: center;
-}
-
-.drum-step {
-  width: 44px;
-  height: 44px;
-  border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-dim);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.1s, box-shadow 0.1s, border-color 0.1s;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.drum-step:hover {
-  border-color: var(--amber);
-  background: var(--surface-3);
-}
-
-.drum-step.active {
-  color: #000;
-}
-
-.drum-step.active:hover {
-  filter: brightness(1.15);
-}
-
-/* Visual separator every 4 steps (bar grouping) */
-.drum-step.bar-start {
-  margin-left: 12px;
-}
-
-.drum-step-num {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  user-select: none;
-  pointer-events: none;
-  opacity: 0.6;
-}
-
-.drum-step.active .drum-step-num {
-  opacity: 0.85;
-}
-
-.btn-secondary:hover { color: var(--text-primary); border-color: var(--border-mid); }
-
-
-/* ============================================================
-   DRUM SEQUENCER
-   ============================================================ */
-
-.drum-sequencer {
-  display: flex;
-  flex-direction: column;
   background: var(--surface-1);
   background-image: radial-gradient(ellipse 60% 50% at 50% 100%, rgba(255,154,46,0.04) 0%, transparent 70%);
   height: 100%;
@@ -2509,6 +2402,34 @@
 .drum-step.active:hover {
   transform: translateY(-1px);
   box-shadow: 0 0 14px rgba(245,166,35,0.85), 0 0 28px rgba(245,166,35,0.4);
+}
+
+/* ── Clip loop repeat ─────────────────────────────────────────────────────── */
+.clip-loop-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: currentColor;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.clip-handle-right.loop-handle {
+  cursor: e-resize;
+  background: currentColor;
+  opacity: 0.5;
+  border-radius: 0 2px 2px 0;
+}
+
+.clip-handle-right.loop-handle::after {
+  content: '↻';
+  position: absolute;
+  font-size: 8px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.9;
 }
 
 /* ── Compressor section in channel strips ─────────────────────────────────── */
