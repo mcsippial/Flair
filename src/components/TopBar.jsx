@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import Knob from './Knob';
 import Tone from 'tone';
-import { setMasterVolume } from '../engine/audioEngine';
+import { setMasterVolume, setMetronome, getMetronomeEnabled } from '../engine/audioEngine';
 import { exportMix, exportStems } from '../engine/exportAudio';
 
 const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -12,6 +12,7 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
   const [timeDisplay, setTimeDisplay] = useState('0:0:0');
   const [showExport, setShowExport] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [metroOn, setMetroOn] = useState(() => getMetronomeEnabled());
   const tapTimeout = useRef(null);
   const loadInputRef = useRef(null);
 
@@ -107,6 +108,16 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
           {session.isPlaying
             ? <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="0" width="4" height="12"/><rect x="7" y="0" width="4" height="12"/></svg>
             : <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><polygon points="1,0 11,6 1,12"/></svg>}
+        </button>
+        <button
+          className={`transport-btn${metroOn ? ' active' : ''}`}
+          title="Metronome"
+          onClick={() => { const next = !metroOn; setMetroOn(next); setMetronome(next); }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+            <polygon points="5,1 7,1 9,11 3,11"/>
+            <line x1="6" y1="4" x2="8.5" y2="8" stroke="currentColor" strokeWidth="1.2"/>
+          </svg>
         </button>
         <button
           className={`transport-btn record${session.isRecording ? ' recording' : ''}`}
