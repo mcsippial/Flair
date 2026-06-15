@@ -12,9 +12,9 @@ export function scheduleSession(tracks) {
 }
 
 export function scheduleTrack(track) {
-  if (track.type === 'drum')                    scheduleDrumTrack(track);
-  else if (track.type === 'midi' || track.type === 'ai') scheduleMidiTrack(track);
-  else if (track.type === 'audio')              scheduleAudioTrack(track);
+  if (track.type === 'drum')                                        scheduleDrumTrack(track);
+  else if (['midi','synth','ai','keys','lead','bass','pad'].includes(track.type)) scheduleMidiTrack(track);
+  else if (track.type === 'audio')                                  scheduleAudioTrack(track);
 }
 
 // ─── Per-track FX chain ───────────────────────────────────────────────────────
@@ -53,6 +53,30 @@ function buildFxChain(track) {
   return { eq, comp, panner, send_reverb, send_delay, input: eq };
 }
 
+// Infer which drum sound a track plays from its name or instrument field.
+function inferDrumType(track) {
+  const s = (track.instrument || track.name || '').toLowerCase();
+  if (s.includes('kick') || s.includes('bass drum') || s.includes('bd')) return 'kick';
+  if (s.includes('snare') || s.includes('clap') || s.includes('rimshot')) return 'snare';
+  if (s.includes('hat') || s.includes('cymbal') || s.includes('shaker')) return 'hihat';
+  return null; // mixed — expects note.drum to be set
+}
+
+// Convert a boolean pattern[] into Tone.Part-compatible note events.
+// Each step is a 16th note; the drum type comes from the track name.
+function patternToNotes(pattern, drumType) {
+  if (!pattern?.length) return [];
+  return pattern.flatMap((on, i) => {
+    if (!on) return [];
+    const bar  = Math.floor(i / 16);
+    const step = i % 16;
+    const beat = Math.floor(step / 4);
+    const sixteenth = step % 4;
+    const velocity = (beat === 0 || beat === 2) ? 0.82 : (sixteenth === 0 ? 0.65 : 0.45);
+    return [{ time: `${bar}:${beat}:${sixteenth}`, drum: drumType, velocity }];
+  });
+}
+
 // ─── Drum track ───────────────────────────────────────────────────────────────
 function scheduleDrumTrack(track) {
   const fx = buildFxChain(track);
@@ -71,12 +95,21 @@ function scheduleDrumTrack(track) {
     drumBus, meter, ...fx, _drumNodes: drums._nodes,
   });
 
+  const trackDrumType = inferDrumType(track);
+
   track.clips.forEach(clip => {
+    // Support both boolean pattern[] and explicit notes[] formats.
+    let notes = clip.notes?.length ? clip.notes : [];
+    if (!notes.length && clip.pattern?.length) {
+      const drumType = trackDrumType || 'kick';
+      notes = patternToNotes(clip.pattern, drumType);
+    }
+
     const part = new Tone.Part((time, note) => {
       if      (note.drum === 'kick')  drums.triggerKick(time, note.velocity || 0.8);
       else if (note.drum === 'snare') drums.triggerSnare(time, note.velocity || 0.6);
       else if (note.drum === 'hihat') drums.triggerHihat(time, note.velocity || 0.4);
-    }, clip.notes || []);
+    }, notes);
     part.start(`${clip.start}m`);
     part.loop = true;
     part.loopEnd = `${clip.loopLength || clip.length}m`;
