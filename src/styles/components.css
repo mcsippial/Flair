@@ -1441,6 +1441,7 @@
 
 .fader-section {
   display: flex; gap: 4px; align-items: flex-end; height: 60px; justify-content: center;
+  margin-top: auto;
 }
 
 .volume-fader {
