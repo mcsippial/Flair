@@ -7,6 +7,7 @@ import Timeline from './components/Timeline';
 import AIPanel from './components/AIPanel';
 import Mixer from './components/Mixer';
 import PianoRoll from './components/PianoRoll';
+import DrumSequencer from './components/DrumSequencer';
 import { ensureToneStarted, getTrackNodes, disposeTrack,
          disposeAllTracks, startRecording, stopRecording } from './engine/audioEngine';
 import Tone from 'tone';
@@ -206,6 +207,8 @@ export default function App() {
         <div className="bottom-panel">
           {session.openPanel === 'pianoroll' ? (
             <PianoRoll session={session} dispatch={dispatch} />
+          ) : session.openPanel === 'drumsequencer' ? (
+            <DrumSequencer session={session} dispatch={dispatch} />
           ) : (
             <Mixer session={session} dispatch={dispatch} />
           )}

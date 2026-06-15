@@ -35,6 +35,13 @@ function sessionReducerCore(session, action) {
           ? { ...t, clips: t.clips.map(c => c.id === action.clipId ? { ...c, ...action.changes } : c) }
           : t)
       };
+    case 'UPDATE_DRUM_PATTERN':
+      return {
+        ...session,
+        tracks: session.tracks.map(t => t.id === action.trackId
+          ? { ...t, clips: t.clips.map(c => c.id === action.clipId ? { ...c, pattern: action.pattern } : c) }
+          : t)
+      };
     case 'DUPLICATE_CLIP': {
       let dup = null;
       const tracks = session.tracks.map(t => {

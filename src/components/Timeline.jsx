@@ -320,6 +320,10 @@ export default function Timeline({ session, dispatch }) {
                         dispatch({ type: 'SET_OPEN_PANEL', panel: 'pianoroll' });
                         dispatch({ type: 'SELECT_TRACK', trackId: track.id });
                         dispatch({ type: 'SELECT_CLIP', clipId: clip.id });
+                      } else if (clip.type === 'drum') {
+                        dispatch({ type: 'SET_OPEN_PANEL', panel: 'drumsequencer' });
+                        dispatch({ type: 'SELECT_TRACK', trackId: track.id });
+                        dispatch({ type: 'SELECT_CLIP', clipId: clip.id });
                       } else if (clip.type === 'audio') {
                         splitClip(e, track, clip);
                       }
