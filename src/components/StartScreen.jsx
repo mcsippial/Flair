@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { generateTakes, separateTake } from '../ai/composeSession';
 import { downloadAudio } from '../ai/audioUtils';
+import { getProjectHistory } from '../state/projectHistory';
+import Dashboard from './Dashboard';
 
 // Icons rendered at call-time (not module-level) to avoid JSX TDZ issues.
 function ChipIcon({ id }) {
@@ -82,7 +84,8 @@ const LOADING_LINES = [
   'Almost there…',
 ];
 
-export default function StartScreen({ onDismiss, dispatch, savedData }) {
+export default function StartScreen({ onDismiss, dispatch, savedData, onLoadSession }) {
+  const [showGenerate, setShowGenerate] = useState(false);
   const [input, setInput]       = useState('');
   const [screen, setScreen]     = useState('prompt'); // 'prompt' | 'audition'
   const [building, setBuilding] = useState(false);
@@ -98,6 +101,20 @@ export default function StartScreen({ onDismiss, dispatch, savedData }) {
   const auditionAudio   = useRef(null);
   const playingIdxRef   = useRef(null);
   const intentRef       = useRef(null); // kept so we can regenerate on a catalog block
+
+  const history = getProjectHistory();
+
+  // Show dashboard if we have history and user hasn't requested generate
+  if (history.length > 0 && !showGenerate) {
+    return (
+      <Dashboard
+        history={history}
+        onLoadSession={onLoadSession}
+        onDismiss={onDismiss}
+        onNewSession={() => setShowGenerate(true)}
+      />
+    );
+  }
 
   useEffect(() => {
     if (screen === 'prompt') inputRef.current?.focus();

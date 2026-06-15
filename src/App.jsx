@@ -12,6 +12,7 @@ import { ensureToneStarted, getTrackNodes, disposeTrack,
          disposeAllTracks, startRecording, stopRecording } from './engine/audioEngine';
 import Tone from 'tone';
 import { scheduleSession, scheduleTrack, rescheduleTrack, clearSchedule } from './engine/scheduler';
+import { saveProjectRecord, incrementPlayCount } from './state/projectHistory';
 
 
 const SAVE_KEY = 'flair_session_v1';
@@ -47,6 +48,17 @@ export default function App() {
     }, 1000);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [session]);
+
+  // Save project record to history whenever session changes (debounced).
+  const historyTimerRef = useRef(null);
+  useEffect(() => {
+    if (!session.tracks.length) return;
+    if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
+    historyTimerRef.current = setTimeout(() => {
+      saveProjectRecord(session);
+    }, 1500);
+    return () => { if (historyTimerRef.current) clearTimeout(historyTimerRef.current); };
+  }, [session.id, session.name, session.bpm, session.key, session.scale, session.tracks]);
 
   // Sync mute/solo/volume to audio engine; hot-add new tracks if playing
   useEffect(() => {
@@ -109,6 +121,7 @@ export default function App() {
       scheduledTrackIds.current = new Set(session.tracks.map(t => t.id));
       // Start immediately using synth fallbacks; samples upgrade in the background
       Tone.Transport.start();
+      if (session.id) incrementPlayCount(session.id);
       dispatch({ type: 'SET_PLAYING', isPlaying: true });
     } else {
       Tone.Transport.stop();
@@ -216,6 +229,7 @@ export default function App() {
           dispatch={dispatch}
           session={session}
           savedData={savedData}
+          onLoadSession={(sessionData) => dispatch({ type: 'LOAD_SESSION', data: sessionData })}
         />
       )}
       <div className={`app-layout ${showStartScreen ? 'blurred' : ''}${!aiPanelOpen ? ' ai-panel-closed' : ''}`}>
