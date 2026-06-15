@@ -62,10 +62,12 @@ export default function PianoRoll({ session, dispatch }) {
   const [draggingVel, setDraggingVel] = useState(null);
   const [selectedNoteIds, setSelectedNoteIds] = useState(new Set());
 
+  // Sync when clip ID changes OR when notes are externally updated (e.g. AI dispatch)
+  const notesKey = selectedClip?.notes?.map(n => n.id + n.note).join('') ?? '';
   useEffect(() => {
     setRawNotes((selectedClip?.notes || []).map(normalizeNote));
     setSelectedNoteIds(new Set());
-  }, [selectedClip?.id]);
+  }, [selectedClip?.id, notesKey]);
 
   const sync = useCallback((newNotes) => {
     setRawNotes(newNotes);

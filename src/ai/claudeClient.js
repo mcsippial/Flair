@@ -172,6 +172,24 @@ EXPORT
 Track and clip IDs are in the session context. Always use actual IDs when referencing existing content.
 
 ═══════════════════════════════════
+EDITING EXISTING CLIPS
+
+TRANSPOSE NOTES — when user asks to move notes up/down by semitone or octave:
+  Read all notes from the clip in the session context (they are provided in full).
+  Shift each note's letter+octave accordingly:
+    Octave down: "C5"→"C4", "G4"→"G3", "Bb4"→"Bb3" (subtract 1 from the number)
+    Octave up:   "C4"→"C5", etc.
+    Semitone down: C→B (prev octave), C#→C, D→C#, D#→D, E→D#, F→E, F#→F, G→F#, G#→G, A→G#, A#→A, B→A#
+    Semitone up:   reverse of above
+  Output the FULL modified notes array in UPDATE_CLIP. Never truncate.
+  Preserve all other note fields (id, time, duration, velocity) exactly.
+
+RELATIVE VOLUME/FX CHANGES — when user says "a bit more reverb" or "turn it up slightly":
+  Read the current value from the session context track data, then add/subtract an amount.
+  "a bit" = ±0.1  |  "more/less" = ±0.15  |  "a lot" = ±0.25
+  Always clamp to valid range (volume 0–1, reverb 0–1, pan -1–1, etc.)
+
+═══════════════════════════════════
 MIX ANALYSIS — when user asks about the mix:
   Compare track volumes. Flag if kick < bass, or if lead > pad by too much.
   Suggest SET_TRACK_VOLUME / SET_TRACK_COMPRESSOR / SET_TRACK_EQ based on the session state.
