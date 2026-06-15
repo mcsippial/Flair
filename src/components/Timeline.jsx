@@ -25,16 +25,19 @@ function noteToY(note) {
   return 1 - Math.max(0, Math.min(1, (semi - 28) / 56));
 }
 
-function MidiPreview({ notes, length }) {
+function MidiPreview({ notes, length, laneHeight = 58 }) {
   if (!notes?.length) return null;
+  // Scale note thickness with lane height: at 58px notes are thin dots,
+  // at 120px they're thick enough to read pitch clearly.
+  const noteH = Math.max(0.04, Math.min(0.18, 0.07 * (laneHeight / 58)));
   return (
     <svg className="clip-svg-preview" viewBox={`0 0 ${length} 1`} preserveAspectRatio="none">
       {notes.map((n, i) => {
         const x = timeToBar(n.time);
         const y = noteToY(n.note);
         return (
-          <rect key={i} x={x} y={Math.max(0, y - 0.06)} width={0.1} height={0.12}
-            fill="currentColor" opacity={(n.velocity || 0.7) * 0.75} />
+          <rect key={i} x={x} y={Math.max(0, y - noteH / 2)} width={Math.max(0.06, 0.1 * (laneHeight / 58))} height={noteH}
+            fill="currentColor" opacity={(n.velocity || 0.7) * 0.85} />
         );
       })}
     </svg>
@@ -93,15 +96,18 @@ function AudioPreview({ clip, bpm }) {
   );
 }
 
-function DrumPreview({ notes, pattern, length }) {
+function DrumPreview({ notes, pattern, length, laneHeight = 58 }) {
+  const scale = laneHeight / 58;
   // Pattern format: boolean[] of 16 steps
   if (pattern?.length) {
     const steps = pattern.length;
+    const barH = Math.min(0.7, 0.5 * scale);
+    const barY = (1 - barH) / 2;
     return (
-      <svg className="clip-svg-preview" viewBox={`0 ${steps} 1`} preserveAspectRatio="none"
+      <svg className="clip-svg-preview" viewBox={`0 0 ${length} 1`} preserveAspectRatio="none"
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
         {pattern.map((on, i) => on ? (
-          <rect key={i} x={i / steps * length} y={0.25} width={length / steps * 0.65} height={0.5}
+          <rect key={i} x={i / steps * length} y={barY} width={length / steps * 0.65} height={barH}
             fill="currentColor" opacity={0.7} rx={0.02} />
         ) : null)}
       </svg>
@@ -116,9 +122,9 @@ function DrumPreview({ notes, pattern, length }) {
       {notes.map((n, i) => {
         const x = timeToBar(n.time);
         const cy = DRUM_Y[n.drum] ?? 0.5;
-        const h = DRUM_H[n.drum] ?? 0.15;
+        const h = Math.min(0.4, (DRUM_H[n.drum] ?? 0.15) * scale);
         return (
-          <rect key={i} x={x} y={cy - h / 2} width={0.07} height={h}
+          <rect key={i} x={x} y={cy - h / 2} width={Math.max(0.05, 0.07 * scale)} height={h}
             fill="currentColor" opacity={(n.velocity || 0.7) * 0.85} />
         );
       })}
@@ -429,8 +435,8 @@ export default function Timeline({ session, dispatch, trackHeights = {} }) {
                     {clip.type === 'audio' && <FadeOverlay clip={clip} bpm={session.bpm} />}
                     <span className="clip-name">{clip.name}</span>
                     <div className="clip-preview">
-                      {(clip.type === 'midi' || clip.type === 'synth') && <MidiPreview notes={clip.notes} length={clip.length} />}
-                      {clip.type === 'drum' && <DrumPreview notes={clip.notes} pattern={clip.pattern} length={clip.length} />}
+                      {(clip.type === 'midi' || clip.type === 'synth') && <MidiPreview notes={clip.notes} length={clip.length} laneHeight={trackHeights[track.id] ?? DEFAULT_TRACK_HEIGHT} />}
+                      {clip.type === 'drum' && <DrumPreview notes={clip.notes} pattern={clip.pattern} length={clip.length} laneHeight={trackHeights[track.id] ?? DEFAULT_TRACK_HEIGHT} />}
                       {clip.type === 'audio' && <AudioPreview clip={clip} bpm={session.bpm} />}
                     </div>
                     {clip.type === 'audio' && (
