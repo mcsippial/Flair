@@ -15,6 +15,7 @@ export const initialSession = {
   armedTrackId: null,
   selectedTrackId: null,
   selectedClipId: null,
+  masterVolume: 0.8,
   openPanel: "mixer",
   aiSuggestions: [],
   aiMessages: [],

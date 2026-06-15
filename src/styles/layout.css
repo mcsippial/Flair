@@ -6,7 +6,7 @@
 
 .app-layout {
   display: grid;
-  grid-template-rows: 52px 1fr 220px;
+  grid-template-rows: 52px 1fr 240px;
   grid-template-columns: 200px 1fr 310px;
   height: 100vh;
   overflow: hidden;

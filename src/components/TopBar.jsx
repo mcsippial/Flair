@@ -13,7 +13,6 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
   const [showExport, setShowExport] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [metroOn, setMetroOn] = useState(() => getMetronomeEnabled());
-  const [masterVol, setMasterVol] = useState(0.8);
   const tapTimeout = useRef(null);
   const loadInputRef = useRef(null);
 
@@ -180,12 +179,12 @@ export default function TopBar({ session, dispatch, onPlayStop, onRecord, onOpen
         <input
           className="master-vol-slider"
           type="range" min={0} max={1} step={0.01}
-          value={masterVol}
-          style={{ '--fill': `${masterVol * 100}%` }}
-          onChange={e => { const v = parseFloat(e.target.value); setMasterVol(v); setMasterVolume(v); }}
-          title={`Master volume: ${Math.round(masterVol * 100)}%`}
+          value={session.masterVolume}
+          style={{ '--fill': `${session.masterVolume * 100}%` }}
+          onChange={e => { const v = parseFloat(e.target.value); dispatch({ type: 'SET_MASTER_VOLUME', volume: v }); setMasterVolume(v); }}
+          title={`Master volume: ${Math.round(session.masterVolume * 100)}%`}
         />
-        <span className="master-vol-pct">{Math.round(masterVol * 100)}</span>
+        <span className="master-vol-pct">{Math.round(session.masterVolume * 100)}</span>
       </div>
 
       <div className="top-right">

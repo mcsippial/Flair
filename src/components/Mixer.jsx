@@ -112,8 +112,8 @@ export default function Mixer({ session, dispatch }) {
             <input
               className="volume-fader"
               type="range" min={0} max={1} step={0.01}
-              defaultValue={0.8}
-              onChange={e => setMasterVolume(parseFloat(e.target.value))}
+              value={session.masterVolume}
+              onChange={e => { const v = parseFloat(e.target.value); dispatch({ type: 'SET_MASTER_VOLUME', volume: v }); setMasterVolume(v); }}
             />
             <div className="strip-meters">
               <VUMeter level={meterLevels.__master ?? -60} vertical />

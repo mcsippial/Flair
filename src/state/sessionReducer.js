@@ -141,6 +141,8 @@ function sessionReducerCore(session, action) {
       return { ...session, tracks: session.tracks.map(t => t.id === action.trackId ? { ...t, solo: !t.solo } : t) };
     case 'SET_TRACK_VOLUME':
       return { ...session, tracks: session.tracks.map(t => t.id === action.trackId ? { ...t, volume: action.volume } : t) };
+    case 'SET_MASTER_VOLUME':
+      return { ...session, masterVolume: action.volume };
     case 'NEW_CHAT': {
       const chatId = genId();
       const oldChat = {

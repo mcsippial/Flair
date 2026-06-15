@@ -1355,17 +1355,17 @@
   flex: 1;
   display: flex; flex-direction: row;
   overflow-x: auto; overflow-y: hidden;
-  padding: 8px 10px;
-  gap: 5px;
+  padding: 6px 8px;
+  gap: 4px;
   align-items: flex-start;
   scrollbar-gutter: stable;
 }
 
 .channel-strip {
-  width: 90px; flex-shrink: 0;
+  width: 88px; flex-shrink: 0;
   display: flex; flex-direction: column;
-  align-items: center; gap: 5px;
-  padding: 8px 6px;
+  align-items: center; gap: 4px;
+  padding: 6px 5px;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 6px;
