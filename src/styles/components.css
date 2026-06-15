@@ -1662,3 +1662,113 @@
   padding: 8px 16px; border-radius: 6px; transition: all 0.12s; cursor: pointer;
 }
 .btn-secondary:hover { border-color: var(--border-mid); color: var(--text-primary); }
+
+
+/* ============================================================
+   TIMELINE CONTROLS (snap + grid)
+   ============================================================ */
+
+.timeline-controls {
+  height: 24px; flex-shrink: 0;
+  padding: 0 10px;
+  display: flex; align-items: center; gap: 4px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
+}
+
+.snap-btn {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 3px;
+  border: 1px solid var(--border); color: var(--text-dim);
+  background: transparent; cursor: pointer; transition: all 0.12s;
+  margin-right: 6px;
+}
+.snap-btn:hover { border-color: var(--border-neon); color: var(--neon); }
+.snap-btn.active {
+  border-color: var(--border-neon); color: var(--neon);
+  background: rgba(0,200,240,0.08); box-shadow: 0 0 6px var(--neon-glow);
+}
+
+.grid-btn {
+  font-family: var(--font-mono); font-size: 9px;
+  padding: 2px 6px; border-radius: 3px;
+  border: 1px solid var(--border); color: var(--text-dim);
+  background: transparent; cursor: pointer; transition: all 0.1s;
+}
+.grid-btn:hover { border-color: var(--border-mid); color: var(--text-secondary); }
+.grid-btn.active {
+  border-color: var(--neon); color: var(--neon);
+  box-shadow: 0 0 4px var(--neon-glow);
+}
+
+
+/* ============================================================
+   LOOP REGION
+   ============================================================ */
+
+.loop-region {
+  position: absolute; top: 0; bottom: 0;
+  background: rgba(0,200,240,0.12);
+  border-left: 2px solid var(--neon);
+  border-right: 2px solid var(--neon);
+  pointer-events: none;
+  z-index: 2;
+}
+
+
+/* ============================================================
+   MIXER MUTE/SOLO BUTTONS
+   ============================================================ */
+
+.ms-btn { letter-spacing: 0.04em; }
+.ms-btn.muted-active { background: rgba(200,60,60,0.2); border-color: rgba(200,60,60,0.6); color: #ff6060; box-shadow: 0 0 6px rgba(200,60,60,0.3); }
+.ms-btn.solo-active  { background: rgba(0,200,240,0.15); border-color: var(--border-neon); color: var(--neon); box-shadow: 0 0 6px var(--neon-glow); }
+
+
+/* ============================================================
+   TIMELINE STATUS BAR
+   ============================================================ */
+
+.timeline-status {
+  height: 20px; flex-shrink: 0;
+  padding: 0 12px;
+  display: flex; align-items: center; gap: 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-1);
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-dim);
+}
+.timeline-status span { white-space: nowrap; }
+.timeline-status .status-neon { color: var(--neon); }
+
+
+/* ============================================================
+   AI PANEL COLLAPSED STATE
+   ============================================================ */
+
+.ai-panel-collapsed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.ai-collapse-btn {
+  width: 24px; height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--border-mid);
+  color: var(--text-dim); font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.12s; flex-shrink: 0;
+  background: transparent;
+}
+.ai-collapse-btn:hover { border-color: var(--border-neon); color: var(--neon); }
+
+.ai-panel-title-vertical {
+  font-size: 9px; color: var(--neon); letter-spacing: 0.18em;
+  text-transform: uppercase; text-shadow: 0 0 10px var(--neon-glow);
+  writing-mode: vertical-rl; text-orientation: mixed;
+  transform: rotate(180deg);
+}

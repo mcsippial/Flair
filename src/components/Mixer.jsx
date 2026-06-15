@@ -99,8 +99,8 @@ export default function Mixer({ session, dispatch }) {
               </div>
             </div>
             <div className="strip-buttons">
-              <button className={`track-btn ${track.muted ? 'active' : ''}`} onClick={() => dispatch({ type: 'MUTE_TRACK', trackId: track.id })}>M</button>
-              <button className={`track-btn ${track.solo  ? 'active' : ''}`} onClick={() => dispatch({ type: 'SOLO_TRACK',  trackId: track.id })}>S</button>
+              <button className={`track-btn ms-btn${track.muted ? ' muted-active' : ''}`} onClick={() => dispatch({ type: 'MUTE_TRACK', trackId: track.id })}>M</button>
+              <button className={`track-btn ms-btn${track.solo  ? ' solo-active'  : ''}`} onClick={() => dispatch({ type: 'SOLO_TRACK',  trackId: track.id })}>S</button>
             </div>
             <div className="color-dot" style={{ background: track.color }} />
           </div>

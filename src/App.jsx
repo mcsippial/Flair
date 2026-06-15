@@ -27,6 +27,7 @@ export default function App() {
   });
   const [showStartScreen, setShowStartScreen] = useState(true);
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
+  const [aiPanelOpen, setAiPanelOpen] = useState(true);
   const scheduledTrackIds = useRef(new Set());
   const saveTimerRef = useRef(null);
   const trackNotesFingerprints = useRef({});
@@ -186,6 +187,12 @@ export default function App() {
       } else if (e.key === 'Escape') {
         dispatch({ type: 'SET_OPEN_PANEL', panel: 'mixer' });
         dispatch({ type: 'SELECT_TRACK', trackId: null });
+      } else if (e.key === '1' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        dispatch({ type: 'SET_OPEN_PANEL', panel: 'mixer' });
+      } else if (e.key === '2' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        dispatch({ type: 'SET_OPEN_PANEL', panel: 'pianoroll' });
+      } else if (e.key === '3' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        dispatch({ type: 'SET_OPEN_PANEL', panel: 'drumsequencer' });
       } else if (e.key === 'm' || e.key === 'M') {
         if (session.selectedTrackId) dispatch({ type: 'MUTE_TRACK', trackId: session.selectedTrackId });
       } else if (e.key === 's' || e.key === 'S') {
@@ -206,7 +213,7 @@ export default function App() {
           savedData={savedData}
         />
       )}
-      <div className={`app-layout ${showStartScreen ? 'blurred' : ''}`}>
+      <div className={`app-layout ${showStartScreen ? 'blurred' : ''}${!aiPanelOpen ? ' ai-panel-closed' : ''}`}>
         <TopBar
           session={session}
           dispatch={dispatch}
@@ -218,7 +225,7 @@ export default function App() {
         />
         <TrackList session={session} dispatch={dispatch} />
         <Timeline session={session} dispatch={dispatch} />
-        <AIPanel session={session} dispatch={dispatch} />
+        <AIPanel session={session} dispatch={dispatch} open={aiPanelOpen} onToggle={() => setAiPanelOpen(o => !o)} />
         <div className="bottom-panel">
           {(() => {
             // Check if selected clip is a drum clip (auto-open drum sequencer)

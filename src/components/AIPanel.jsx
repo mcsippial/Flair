@@ -11,7 +11,7 @@ const COMPOSING_HINTS = [
   'Almost there…',
 ];
 
-export default function AIPanel({ session, dispatch }) {
+export default function AIPanel({ session, dispatch, open = true, onToggle }) {
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
   const [thinkingHint, setThinkingHint] = useState('');
@@ -48,6 +48,17 @@ export default function AIPanel({ session, dispatch }) {
     }
   };
 
+  if (!open) {
+    return (
+      <div className="ai-panel ai-panel-collapsed">
+        <button className="ai-collapse-btn" onClick={onToggle} title="Expand AI panel">
+          ‹
+        </button>
+        <span className="ai-panel-title-vertical">Producer</span>
+      </div>
+    );
+  }
+
   return (
     <div className="ai-panel">
       <div className="ai-session-bar">
@@ -60,6 +71,7 @@ export default function AIPanel({ session, dispatch }) {
       <div className="ai-chat-header">
         <span className="ai-chat-title">Producer</span>
         <button className="new-chat-btn" onClick={() => dispatch({ type: 'NEW_CHAT' })}>New chat</button>
+        <button className="ai-collapse-btn" onClick={onToggle} title="Collapse AI panel">›</button>
       </div>
 
       <div className="ai-chat-feed" ref={chatRef}>

@@ -150,6 +150,9 @@ export default function Timeline({ session, dispatch }) {
   const scrollRef = useRef(null);
   const [playheadX, setPlayheadX] = useState(0);
   const [zoom, setZoom] = useState(1);
+  const [snap, setSnap] = useState(true);
+  const [snapDiv, setSnapDiv] = useState(4);
+  const [loopRegion, setLoopRegion] = useState(null);
   const BAR_WIDTH = Math.round(BASE_BAR_WIDTH * zoom);
 
   // Grow the timeline to fit the longest clip (+2 bars of headroom).
@@ -172,6 +175,16 @@ export default function Timeline({ session, dispatch }) {
     return () => cancelAnimationFrame(raf);
   }, [session.isPlaying, BAR_WIDTH]);
 
+  useEffect(() => {
+    if (loopRegion && session.isPlaying) {
+      Tone.Transport.loop = true;
+      Tone.Transport.loopStart = `${loopRegion.start}m`;
+      Tone.Transport.loopEnd = `${loopRegion.end}m`;
+    } else {
+      Tone.Transport.loop = false;
+    }
+  }, [loopRegion, session.isPlaying]);
+
   const handleRulerClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const scrollLeft = scrollRef.current?.scrollLeft ?? 0;
@@ -180,6 +193,28 @@ export default function Timeline({ session, dispatch }) {
     Tone.Transport.ticks = bar * Tone.Transport.PPQ * 4;
     dispatch({ type: 'SET_PLAYHEAD', position: bar });
     setPlayheadX(x);
+  };
+
+  const handleRulerPointerDown = (e) => {
+    if (e.altKey) {
+      e.preventDefault();
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left + (scrollRef.current?.scrollLeft ?? 0);
+      const startBar = Math.max(0, x / BAR_WIDTH);
+      const move = (ev) => {
+        const x2 = ev.clientX - rect.left + (scrollRef.current?.scrollLeft ?? 0);
+        const endBar = Math.max(0, x2 / BAR_WIDTH);
+        setLoopRegion({ start: Math.min(startBar, endBar), end: Math.max(startBar, endBar) });
+      };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+      return;
+    }
+    handleRulerClick(e);
   };
 
   // ─── Clip editing: drag to move, trim from either edge ──────────────────────
@@ -196,7 +231,7 @@ export default function Timeline({ session, dispatch }) {
 
     const move = (ev) => {
       let dBars = (ev.clientX - startX) / BAR_WIDTH;
-      if (!ev.shiftKey) dBars = Math.round(dBars * 4) / 4; // snap to 1/4 bar
+      if (snap) dBars = Math.round(dBars * snapDiv) / snapDiv;
       let changes;
       if (mode === 'move') {
         changes = { start: Math.max(0, +(orig.start + dBars).toFixed(4)) };
@@ -269,7 +304,7 @@ export default function Timeline({ session, dispatch }) {
 
     const move = (ev) => {
       let dBars = (ev.clientX - startX) / BAR_WIDTH;
-      if (!ev.shiftKey) dBars = Math.round(dBars * 4) / 4;
+      if (snap) dBars = Math.round(dBars * snapDiv) / snapDiv;
       const nl = Math.max(origLen, +(origLen + dBars).toFixed(4));
       dispatch({ type: 'UPDATE_CLIP_LIVE', trackId: track.id, clipId: clip.id,
         changes: { length: nl, loopLength: clip.loopLength || origLen } });
@@ -292,17 +327,50 @@ export default function Timeline({ session, dispatch }) {
     }
   };
 
+  const currentBar = playheadX / BAR_WIDTH;
+  const barNum = Math.floor(currentBar) + 1;
+  const beatNum = Math.floor((currentBar % 1) * 4) + 1;
+
   return (
     <div className="timeline">
+      <div className="timeline-controls" onClick={e => e.stopPropagation()}>
+        <button
+          className={`snap-btn${snap ? ' active' : ''}`}
+          onClick={() => setSnap(s => !s)}
+        >{snap ? 'SNAP ON' : 'SNAP OFF'}</button>
+        {[
+          { label: '1', value: 1 },
+          { label: '1/2', value: 2 },
+          { label: '1/4', value: 4 },
+          { label: '1/8', value: 8 },
+          { label: '1/16', value: 16 },
+        ].map(({ label, value }) => (
+          <button
+            key={value}
+            className={`grid-btn${snapDiv === value ? ' active' : ''}`}
+            onClick={() => setSnapDiv(value)}
+          >{label}</button>
+        ))}
+      </div>
       <div className="timeline-scroll" ref={scrollRef} onWheel={handleWheel}>
         <div className="timeline-inner" style={{ width: totalWidth }}>
 
-          <div className="timeline-ruler" onClick={handleRulerClick}>
+          <div
+            className="timeline-ruler"
+            onPointerDown={handleRulerPointerDown}
+            onContextMenu={e => { e.preventDefault(); setLoopRegion(null); }}
+          >
             {Array.from({ length: BARS }, (_, i) => (
               <div key={i} className="ruler-bar" style={{ left: i * BAR_WIDTH, width: BAR_WIDTH }}>
                 <span className="ruler-label">{i + 1}</span>
               </div>
             ))}
+            {loopRegion && (
+              <div className="loop-region" style={{
+                left: loopRegion.start * BAR_WIDTH,
+                width: (loopRegion.end - loopRegion.start) * BAR_WIDTH,
+              }} />
+            )}
             <div className="playhead" style={{ left: playheadX }} />
             <div className="timeline-zoom-controls" onClick={e => e.stopPropagation()}>
               <button className="zoom-btn" onClick={zoomOut} title="Zoom out">−</button>
@@ -406,6 +474,13 @@ export default function Timeline({ session, dispatch }) {
           </div>
 
         </div>
+      </div>
+
+      <div className="timeline-status">
+        <span><span className="status-neon">{barNum}:{beatNum}</span></span>
+        <span>Zoom {Math.round(zoom * 100)}%</span>
+        <span>{loopRegion ? `Loop: ${Math.round(loopRegion.start * 10) / 10}–${Math.round(loopRegion.end * 10) / 10}` : 'No loop'}</span>
+        <span>Snap {snap ? `1/${snapDiv === 1 ? '1' : snapDiv} bar` : 'off'}</span>
       </div>
 
       {session.aiSuggestions?.length > 0 && (
