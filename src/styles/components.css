@@ -719,7 +719,7 @@
 }
 
 .track-row {
-  height: 58px;
+  min-height: 58px;
   display: flex;
   align-items: stretch;
   border-bottom: 1px solid var(--border);
@@ -736,6 +736,7 @@
   position: absolute;
   bottom: 0;
   left: 0;
+  background: var(--border);
   right: 0;
   height: 4px;
   cursor: ns-resize;
@@ -1626,9 +1627,10 @@
    ============================================================ */
 
 .vu-meter-v {
-  width: 4px; height: 56px;
-  background: rgba(0,0,0,0.5); border-radius: 2px;
+  width: 6px; height: 52px;
+  background: rgba(255,255,255,0.06); border-radius: 2px;
   overflow: hidden; display: flex; flex-direction: column-reverse;
+  position: relative;
 }
 .vu-bar { width: 100%; transition: height 0.07s ease-out; }
 .vu-meter-h { height: 3px; width: 100%; background: rgba(0,0,0,0.4); border-radius: 2px; overflow: hidden; }
