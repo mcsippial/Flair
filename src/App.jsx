@@ -11,7 +11,7 @@ import DrumSequencer from './components/DrumSequencer';
 import { ensureToneStarted, getTrackNodes, disposeTrack,
          disposeAllTracks, startRecording, stopRecording } from './engine/audioEngine';
 import Tone from 'tone';
-import { scheduleSession, scheduleTrack, clearSchedule } from './engine/scheduler';
+import { scheduleSession, scheduleTrack, rescheduleTrack, clearSchedule } from './engine/scheduler';
 
 
 const SAVE_KEY = 'flair_session_v1';
@@ -29,6 +29,7 @@ export default function App() {
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
   const scheduledTrackIds = useRef(new Set());
   const saveTimerRef = useRef(null);
+  const trackNotesFingerprints = useRef({});
 
   // Auto-save session to localStorage, debounced 1 second.
   useEffect(() => {
@@ -61,6 +62,19 @@ export default function App() {
       if (!nodes && session.isPlaying) {
         scheduleTrack(track);
         scheduledTrackIds.current.add(track.id);
+      }
+
+      // Reschedule track when its notes/pattern change while playing
+      if (nodes && session.isPlaying) {
+        const fp = track.clips.map(c =>
+          (c.notes || []).map(n => n.note + n.time).join('|') +
+          (c.pattern || []).join('')
+        ).join(';');
+        if (trackNotesFingerprints.current[track.id] !== fp) {
+          trackNotesFingerprints.current[track.id] = fp;
+          rescheduleTrack(track);
+          scheduledTrackIds.current.add(track.id);
+        }
       }
 
       const liveNodes = getTrackNodes(track.id);
@@ -99,6 +113,7 @@ export default function App() {
       });
       disposeAllTracks();
       scheduledTrackIds.current = new Set();
+      trackNotesFingerprints.current = {};
       dispatch({ type: 'SET_PLAYING', isPlaying: false });
       dispatch({ type: 'SET_PLAYHEAD', position: 0 });
     }
@@ -133,6 +148,7 @@ export default function App() {
       });
       disposeAllTracks();
       scheduledTrackIds.current = new Set();
+      trackNotesFingerprints.current = {};
       dispatch({ type: 'SET_PLAYING', isPlaying: false });
       dispatch({ type: 'SET_PLAYHEAD', position: 0 });
     }

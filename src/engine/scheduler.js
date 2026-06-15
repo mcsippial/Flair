@@ -4,11 +4,26 @@ import { getTrackNodes, setTrackNodes, disposeAllTracks, disposeTrack,
 import { createDrumInstruments, createMidiInstrument } from './instruments';
 
 let scheduledParts = [];
+const partsByTrack = {}; // trackId → Part[]
 
 export function scheduleSession(tracks) {
   clearSchedule();
   disposeAllTracks();
   tracks.forEach(track => scheduleTrack(track));
+}
+
+// Dispose only the Tone.Parts for a single track and reschedule it.
+// Call this when notes/pattern change while Transport is running.
+export function rescheduleTrack(track) {
+  const parts = partsByTrack[track.id] || [];
+  parts.forEach(p => { try { p.stop(); p.dispose(); } catch (_) {} });
+  partsByTrack[track.id] = [];
+  // Remove from the flat list too
+  const partsSet = new Set(parts);
+  scheduledParts = scheduledParts.filter(p => !partsSet.has(p));
+
+  disposeTrack(track.id);
+  scheduleTrack(track);
 }
 
 export function scheduleTrack(track) {
@@ -114,6 +129,7 @@ function scheduleDrumTrack(track) {
     part.loop = true;
     part.loopEnd = `${clip.loopLength || clip.length}m`;
     scheduledParts.push(part);
+    (partsByTrack[track.id] = partsByTrack[track.id] || []).push(part);
   });
 }
 
@@ -157,6 +173,7 @@ function scheduleMidiTrack(track) {
     part.loop = true;
     part.loopEnd = `${clip.loopLength || clip.length}m`;
     scheduledParts.push(part);
+    (partsByTrack[track.id] = partsByTrack[track.id] || []).push(part);
   });
 }
 
@@ -200,4 +217,5 @@ function scheduleAudioTrack(track) {
 export function clearSchedule() {
   scheduledParts.forEach(p => { try { p.stop(); p.dispose(); } catch(e) {} });
   scheduledParts = [];
+  Object.keys(partsByTrack).forEach(k => delete partsByTrack[k]);
 }
